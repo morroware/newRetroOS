@@ -1004,6 +1004,14 @@ class WindowManagerClass {
     }
 
     /**
+     * Get all open windows
+     * @returns {Object[]} Array of window state objects
+     */
+    getWindows() {
+        return StateManager.getState('windows') || [];
+    }
+
+    /**
      * Get all open window IDs
      * @returns {string[]}
      */
