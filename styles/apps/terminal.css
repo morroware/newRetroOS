@@ -1,0 +1,68 @@
+/* ============================================
+   Terminal
+   ============================================ */
+.terminal {
+    background: #000;
+    color: #0f0;
+    padding: 10px;
+    font-family: 'VT323', monospace;
+    height: 380px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-content-wrapper {
+    position: relative;
+    z-index: 2;
+    overflow-y: auto;
+    height: 100%;
+    width: 100%;
+}
+
+.matrix-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.3;
+    display: none;
+}
+
+.matrix-mode .matrix-canvas {
+    display: block;
+    opacity: 0.9;
+}
+
+.terminal-output {
+    margin-bottom: 5px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.terminal-input-line {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.terminal-prompt {
+    color: #0f0;
+    white-space: nowrap;
+}
+
+.terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #0f0;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    outline: none;
+    caret-color: #0f0;
+}

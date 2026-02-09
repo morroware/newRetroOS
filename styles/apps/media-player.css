@@ -1,0 +1,362 @@
+/* ============================================
+   Media Player
+   ============================================ */
+.media-player {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.media-display {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0a0a15 100%);
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    border: 2px inset var(--win95-gray);
+    padding: 8px;
+    position: relative;
+}
+
+.media-visualizer {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 35px;
+    margin-bottom: 8px;
+}
+
+.media-bar {
+    width: 6px;
+    min-height: 4px;
+    background: linear-gradient(180deg, #00ff00 0%, #00aa00 50%, #008800 100%);
+    animation: pulse 0.3s ease-in-out infinite alternate;
+    animation-play-state: paused;
+    border-radius: 1px;
+}
+
+@keyframes pulse {
+    from { height: 4px; }
+    to { height: 35px; }
+}
+
+.media-info {
+    text-align: center;
+    width: 100%;
+}
+
+.media-title {
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 0 5px #00ff00;
+    margin-bottom: 4px;
+}
+
+.media-time {
+    color: #00cc00;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+}
+
+.media-progress-container {
+    margin-bottom: 8px;
+}
+
+.media-progress {
+    width: 100%;
+    height: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--win95-gray);
+    border: 2px inset var(--win95-gray);
+    cursor: pointer;
+}
+
+.media-progress::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 16px;
+    background: var(--win95-gray);
+    border: 2px outset var(--win95-gray);
+    cursor: pointer;
+}
+
+.media-progress::-moz-range-thumb {
+    width: 12px;
+    height: 16px;
+    background: var(--win95-gray);
+    border: 2px outset var(--win95-gray);
+    cursor: pointer;
+}
+
+.media-progress::-webkit-slider-runnable-track {
+    background: linear-gradient(to right, var(--win95-blue) 0%, var(--win95-gray) 0%);
+}
+
+.media-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.media-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    background: var(--win95-gray);
+    border: 2px outset var(--win95-gray);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-btn:hover {
+    background: #d4d4d4;
+}
+
+.media-btn:active {
+    border: 2px inset var(--win95-gray);
+}
+
+.media-btn.active {
+    background: #b0b0b0;
+    border: 2px inset var(--win95-gray);
+}
+
+.media-btn-small {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+}
+
+.media-btn-large {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+}
+
+.media-volume-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    background: var(--win95-gray);
+    border: 1px solid #808080;
+}
+
+.volume-icon {
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 20px;
+    text-align: center;
+}
+
+.media-volume {
+    flex: 1;
+    height: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: white;
+    border: 2px inset var(--win95-gray);
+    cursor: pointer;
+}
+
+.media-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 16px;
+    background: var(--win95-gray);
+    border: 2px outset var(--win95-gray);
+    cursor: pointer;
+}
+
+.media-volume::-moz-range-thumb {
+    width: 10px;
+    height: 16px;
+    background: var(--win95-gray);
+    border: 2px outset var(--win95-gray);
+    cursor: pointer;
+}
+
+.volume-value {
+    font-size: 11px;
+    min-width: 35px;
+    text-align: right;
+}
+
+.media-playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    background: var(--win95-gray);
+    border: 1px solid #808080;
+    border-bottom: none;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.playlist-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.playlist-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    background: var(--win95-gray);
+    border: 2px outset var(--win95-gray);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.playlist-btn:active {
+    border: 2px inset var(--win95-gray);
+}
+
+.media-playlist {
+    border: 2px inset var(--win95-gray);
+    background: white;
+    flex: 1;
+    min-height: 100px;
+    overflow-y: auto;
+}
+
+.playlist-item {
+    padding: 4px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.playlist-item:last-child {
+    border-bottom: none;
+}
+
+.playlist-item:hover {
+    background: var(--win95-blue);
+    color: white;
+}
+
+.playlist-item:hover .track-duration {
+    color: white;
+}
+
+.playlist-item:hover .track-remove {
+    color: white;
+}
+
+.playlist-item.active {
+    background: #e0e0ff;
+}
+
+.playlist-item.playing {
+    background: var(--win95-blue);
+    color: white;
+}
+
+.playlist-item.playing .track-duration,
+.playlist-item.playing .track-remove {
+    color: white;
+}
+
+.track-icon {
+    flex-shrink: 0;
+}
+
+.track-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-duration {
+    color: #666;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.track-remove {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.playlist-item:hover .track-remove {
+    opacity: 1;
+}
+
+.track-remove:hover {
+    color: #ff0000 !important;
+}
+
+.media-status {
+    padding: 4px 8px;
+    font-size: 10px;
+    color: #666;
+    background: var(--win95-gray);
+    border: 1px solid #808080;
+    border-top: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================
+   Solitaire Game
+   ============================================ */
+
+.solitaire-top-row {
+    display: flex;
+    gap: 10px; /* Space between piles */
+    margin-bottom: 20px;
+    height: 160px; /* Approx card height */
+}
+
+.solitaire-tableau-row {
+    display: flex;
+    justify-content: space-between; /* Spread columns evenly */
+    height: 100%; /* Fill remaining green space */
+}
+
+.tableau-column {
+    width: 100px; /* Approx card width */
+    min-height: 200px; /* Make sure drop target is clickable even if empty */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Crucial for stacking */
+.tableau-column .card {
+    /* Standard flow is fine with negative margins,
+       or use position:absolute if you prefer strict coordinate control */
+    position: relative;
+    z-index: 1;
+}

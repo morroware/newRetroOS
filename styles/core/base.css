@@ -1,0 +1,24 @@
+/* ============================================
+   Base Styles
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'VT323', monospace;
+    background: var(--desktop-bg);
+    height: 100vh;
+    overflow: hidden;
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><polygon points="0,0 0,14 4,10 6,14 8,13 6,9 12,9" fill="white" stroke="black" stroke-width="1"/></svg>') 0 0, auto;
+}
+
+/* Energy saving mode */
+body.energy-saving {
+    filter: brightness(0.7);
+}

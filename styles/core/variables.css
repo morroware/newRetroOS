@@ -1,0 +1,17 @@
+/* ============================================
+   CSS Variables - Theme Colors
+   ============================================ */
+:root {
+    --win95-gray: #c0c0c0;
+    --win95-blue: #000080;
+    --win95-teal: #008080;
+    --win95-dark: #808080;
+    --win95-light: #ffffff;
+    --win95-darkest: #000000;
+    --desktop-bg: #008080;
+    --accent-color: #000080;
+    /* Icon size variables */
+    --icon-size: 48px;
+    --icon-label-size: 16px;
+    --icon-width: 100px;
+}
