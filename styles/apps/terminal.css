@@ -6,7 +6,7 @@
     color: #0f0;
     padding: 10px;
     font-family: 'VT323', monospace;
-    height: 380px;
+    height: 100%;
     overflow: hidden;
     position: relative;
     display: flex;

@@ -694,8 +694,8 @@ Release 88 / Serial number 840726
         };
 
         if (directions[verb]) {
+            rest = directions[verb];
             verb = 'go';
-            rest = directions[verb] || rest;
         }
 
         // Full direction names
