@@ -1,0 +1,939 @@
+/**
+ * Interpreter - Visitor-based AST interpreter for RetroScript
+ *
+ * Executes AST nodes using the visitor pattern.
+ * Handles all statement and expression types with proper async execution.
+ */
+
+import Environment from './Environment.js';
+import { SafetyLimits } from '../utils/SafetyLimits.js';
+import { RuntimeError, TimeoutError, RecursionError, ScriptReferenceError } from '../errors/ScriptError.js';
+import * as AST from '../ast/index.js';
+
+/**
+ * Control flow signals
+ */
+const ControlFlow = {
+    NONE: 'none',
+    BREAK: 'break',
+    CONTINUE: 'continue',
+    RETURN: 'return'
+};
+
+/**
+ * Interpreter class - executes AST
+ */
+export class Interpreter {
+    /**
+     * @param {Object} options - Interpreter options
+     * @param {SafetyLimits} [options.limits] - Safety limits
+     * @param {Object} [options.builtins] - Built-in function registry
+     * @param {Object} [options.context] - Execution context (EventBus, CommandBus, etc.)
+     */
+    constructor(options = {}) {
+        this.limits = options.limits || new SafetyLimits();
+        this.builtins = options.builtins || new Map();
+        this.userFunctions = new Map();
+        this.eventHandlers = new Map();
+        this.context = options.context || {};
+
+        // Execution state
+        this.globalEnv = new Environment();
+        this.currentEnv = this.globalEnv;
+        this.callStack = [];
+        this.controlFlow = ControlFlow.NONE;
+        this.returnValue = undefined;
+        this.isRunning = false;
+        this.shouldStop = false;
+
+        // Output callbacks
+        this.onOutput = options.onOutput || (() => {});
+        this.onError = options.onError || (() => {});
+    }
+
+    /**
+     * Execute a list of statements
+     * @param {AST.Statement[]} statements - Statements to execute
+     * @param {Environment} [env] - Environment to use
+     * @returns {*} Result of execution
+     */
+    async execute(statements, env = null) {
+        const previousEnv = this.currentEnv;
+        if (env) {
+            this.currentEnv = env;
+        }
+
+        try {
+            this.limits.startExecution();
+            this.isRunning = true;
+            this.shouldStop = false;
+            this.controlFlow = ControlFlow.NONE;
+
+            for (const stmt of statements) {
+                if (this.shouldStop) {
+                    break;
+                }
+
+                this.limits.checkTimeout();
+                await this.visitStatement(stmt);
+
+                if (this.controlFlow !== ControlFlow.NONE) {
+                    break;
+                }
+            }
+
+            return this.returnValue;
+        } finally {
+            this.isRunning = false;
+            this.currentEnv = previousEnv;
+            this.limits.stopExecution();
+        }
+    }
+
+    /**
+     * Stop script execution
+     */
+    stop() {
+        this.shouldStop = true;
+    }
+
+    /**
+     * Visit a statement node
+     */
+    async visitStatement(stmt) {
+        if (!stmt) return;
+        return await stmt.accept(this);
+    }
+
+    /**
+     * Visit an expression node
+     */
+    async visitExpression(expr) {
+        if (!expr) return null;
+        return await expr.accept(this);
+    }
+
+    // ==================== STATEMENT VISITORS ====================
+
+    async visitBlockStatement(stmt) {
+        for (const s of stmt.statements) {
+            await this.visitStatement(s);
+            if (this.controlFlow !== ControlFlow.NONE) {
+                break;
+            }
+        }
+    }
+
+    async visitSetStatement(stmt) {
+        const value = await this.visitExpression(stmt.value);
+        this.currentEnv.update(stmt.varName, value);
+    }
+
+    async visitPrintStatement(stmt) {
+        const value = await this.visitExpression(stmt.message);
+        const output = this.stringify(value);
+        this.onOutput(output);
+    }
+
+    async visitIfStatement(stmt) {
+        const condition = await this.visitExpression(stmt.condition);
+
+        if (this.isTruthy(condition)) {
+            const blockEnv = this.currentEnv.extend();
+            const previousEnv = this.currentEnv;
+            this.currentEnv = blockEnv;
+
+            try {
+                for (const s of stmt.thenBody) {
+                    await this.visitStatement(s);
+                    if (this.controlFlow !== ControlFlow.NONE) {
+                        break;
+                    }
+                }
+            } finally {
+                this.currentEnv = previousEnv;
+            }
+        } else if (stmt.elseBody.length > 0) {
+            const blockEnv = this.currentEnv.extend();
+            const previousEnv = this.currentEnv;
+            this.currentEnv = blockEnv;
+
+            try {
+                for (const s of stmt.elseBody) {
+                    await this.visitStatement(s);
+                    if (this.controlFlow !== ControlFlow.NONE) {
+                        break;
+                    }
+                }
+            } finally {
+                this.currentEnv = previousEnv;
+            }
+        }
+    }
+
+    async visitLoopStatement(stmt) {
+        const count = await this.visitExpression(stmt.count);
+        const iterations = this.limits.clampLoopIterations(Math.floor(Number(count)) || 0);
+
+        const loopEnv = this.currentEnv.extend();
+        const previousEnv = this.currentEnv;
+        this.currentEnv = loopEnv;
+
+        try {
+            for (let i = 0; i < iterations; i++) {
+                this.limits.checkTimeout();
+                loopEnv.set('i', i);
+
+                for (const s of stmt.body) {
+                    await this.visitStatement(s);
+
+                    if (this.controlFlow === ControlFlow.BREAK) {
+                        this.controlFlow = ControlFlow.NONE;
+                        return;
+                    }
+                    if (this.controlFlow === ControlFlow.CONTINUE) {
+                        this.controlFlow = ControlFlow.NONE;
+                        break;
+                    }
+                    if (this.controlFlow === ControlFlow.RETURN) {
+                        return;
+                    }
+                }
+            }
+        } finally {
+            this.currentEnv = previousEnv;
+        }
+    }
+
+    async visitWhileStatement(stmt) {
+        const loopEnv = this.currentEnv.extend();
+        const previousEnv = this.currentEnv;
+        this.currentEnv = loopEnv;
+
+        let iterations = 0;
+        const maxIterations = this.limits.get('MAX_LOOP_ITERATIONS');
+
+        try {
+            while (true) {
+                this.limits.checkTimeout();
+
+                if (++iterations > maxIterations) {
+                    throw new RuntimeError(
+                        `While loop exceeded maximum iterations (${maxIterations})`,
+                        { line: stmt.line, column: stmt.column }
+                    );
+                }
+
+                const condition = await this.visitExpression(stmt.condition);
+                if (!this.isTruthy(condition)) {
+                    break;
+                }
+
+                for (const s of stmt.body) {
+                    await this.visitStatement(s);
+
+                    if (this.controlFlow === ControlFlow.BREAK) {
+                        this.controlFlow = ControlFlow.NONE;
+                        return;
+                    }
+                    if (this.controlFlow === ControlFlow.CONTINUE) {
+                        this.controlFlow = ControlFlow.NONE;
+                        break;
+                    }
+                    if (this.controlFlow === ControlFlow.RETURN) {
+                        return;
+                    }
+                }
+            }
+        } finally {
+            this.currentEnv = previousEnv;
+        }
+    }
+
+    async visitForEachStatement(stmt) {
+        const arrayValue = await this.visitExpression(stmt.array);
+
+        if (!Array.isArray(arrayValue)) {
+            throw new RuntimeError(
+                `Expected array in foreach, got ${typeof arrayValue}`,
+                { line: stmt.line, column: stmt.column }
+            );
+        }
+
+        // Create defensive copy to prevent mutation issues
+        const array = [...arrayValue];
+        const loopEnv = this.currentEnv.extend();
+        const previousEnv = this.currentEnv;
+        this.currentEnv = loopEnv;
+
+        try {
+            for (let i = 0; i < array.length; i++) {
+                this.limits.checkTimeout();
+                loopEnv.set(stmt.varName, array[i]);
+                loopEnv.set('i', i);
+
+                for (const s of stmt.body) {
+                    await this.visitStatement(s);
+
+                    if (this.controlFlow === ControlFlow.BREAK) {
+                        this.controlFlow = ControlFlow.NONE;
+                        return;
+                    }
+                    if (this.controlFlow === ControlFlow.CONTINUE) {
+                        this.controlFlow = ControlFlow.NONE;
+                        break;
+                    }
+                    if (this.controlFlow === ControlFlow.RETURN) {
+                        return;
+                    }
+                }
+            }
+        } finally {
+            this.currentEnv = previousEnv;
+        }
+    }
+
+    async visitBreakStatement(stmt) {
+        this.controlFlow = ControlFlow.BREAK;
+    }
+
+    async visitContinueStatement(stmt) {
+        this.controlFlow = ControlFlow.CONTINUE;
+    }
+
+    async visitReturnStatement(stmt) {
+        if (stmt.value) {
+            this.returnValue = await this.visitExpression(stmt.value);
+        } else {
+            this.returnValue = undefined;
+        }
+        this.controlFlow = ControlFlow.RETURN;
+    }
+
+    async visitFunctionDefStatement(stmt) {
+        this.userFunctions.set(stmt.name, {
+            params: stmt.params,
+            body: stmt.body,
+            closure: this.currentEnv
+        });
+    }
+
+    async visitCallStatement(stmt) {
+        await this.callFunction(stmt.funcName, stmt.args);
+    }
+
+    async visitTryCatchStatement(stmt) {
+        try {
+            for (const s of stmt.tryBody) {
+                await this.visitStatement(s);
+                if (this.controlFlow !== ControlFlow.NONE) {
+                    break;
+                }
+            }
+        } catch (error) {
+            // Store error in catch variable
+            const catchEnv = this.currentEnv.extend();
+            catchEnv.set(stmt.errorVar, error.message || String(error));
+
+            const previousEnv = this.currentEnv;
+            this.currentEnv = catchEnv;
+
+            try {
+                for (const s of stmt.catchBody) {
+                    await this.visitStatement(s);
+                    if (this.controlFlow !== ControlFlow.NONE) {
+                        break;
+                    }
+                }
+            } finally {
+                this.currentEnv = previousEnv;
+            }
+        }
+    }
+
+    async visitOnStatement(stmt) {
+        const EventBus = this.context.EventBus;
+        if (!EventBus) {
+            console.warn('[Interpreter] EventBus not available for event handlers');
+            return;
+        }
+
+        const handlerCount = this.eventHandlers.size;
+        if (!this.limits.checkEventHandlerCount(handlerCount)) {
+            throw new RuntimeError(
+                `Maximum event handlers (${this.limits.get('MAX_EVENT_HANDLERS')}) exceeded`,
+                { line: stmt.line, column: stmt.column }
+            );
+        }
+
+        // Remove any existing handler for this event to prevent memory leaks
+        if (this.eventHandlers.has(stmt.eventName)) {
+            const oldHandler = this.eventHandlers.get(stmt.eventName);
+            EventBus.off(stmt.eventName, oldHandler);
+            this.eventHandlers.delete(stmt.eventName);
+        }
+
+        const handler = async (eventData) => {
+            const handlerEnv = this.currentEnv.extend();
+            handlerEnv.set('event', eventData);
+
+            const previousEnv = this.currentEnv;
+            this.currentEnv = handlerEnv;
+
+            try {
+                for (const s of stmt.body) {
+                    await this.visitStatement(s);
+                }
+            } catch (error) {
+                this.onError(error.message);
+            } finally {
+                this.currentEnv = previousEnv;
+            }
+        };
+
+        EventBus.on(stmt.eventName, handler);
+        this.eventHandlers.set(stmt.eventName, handler);
+    }
+
+    async visitEmitStatement(stmt) {
+        const EventBus = this.context.EventBus;
+        if (!EventBus) {
+            console.warn('[Interpreter] EventBus not available for emit');
+            return;
+        }
+
+        // Resolve payload values
+        const payload = {};
+        for (const [key, valueExpr] of Object.entries(stmt.payload)) {
+            payload[key] = await this.visitExpression(valueExpr);
+        }
+
+        EventBus.emit(stmt.eventName, payload);
+    }
+
+    async visitLaunchStatement(stmt) {
+        const CommandBus = this.context.CommandBus;
+        if (!CommandBus) {
+            console.warn('[Interpreter] CommandBus not available for launch');
+            return;
+        }
+
+        // Resolve params
+        const params = {};
+        for (const [key, valueExpr] of Object.entries(stmt.params)) {
+            params[key] = await this.visitExpression(valueExpr);
+        }
+
+        await CommandBus.execute('app:launch', { appId: stmt.appId, params });
+    }
+
+    async visitCloseStatement(stmt) {
+        const CommandBus = this.context.CommandBus;
+        if (!CommandBus) return;
+
+        const target = stmt.target ? await this.visitExpression(stmt.target) : null;
+        await CommandBus.execute('window:close', { windowId: target });
+    }
+
+    async visitWaitStatement(stmt) {
+        const duration = await this.visitExpression(stmt.duration);
+        const ms = Math.max(0, Math.floor(Number(duration)) || 0);
+        await new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async visitFocusStatement(stmt) {
+        const CommandBus = this.context.CommandBus;
+        if (!CommandBus) return;
+
+        const target = await this.visitExpression(stmt.target);
+        await CommandBus.execute('window:focus', { windowId: target });
+    }
+
+    async visitMinimizeStatement(stmt) {
+        const CommandBus = this.context.CommandBus;
+        if (!CommandBus) return;
+
+        const target = await this.visitExpression(stmt.target);
+        await CommandBus.execute('window:minimize', { windowId: target });
+    }
+
+    async visitMaximizeStatement(stmt) {
+        const CommandBus = this.context.CommandBus;
+        if (!CommandBus) return;
+
+        const target = await this.visitExpression(stmt.target);
+        await CommandBus.execute('window:maximize', { windowId: target });
+    }
+
+    async visitWriteStatement(stmt) {
+        const FileSystem = this.context.FileSystemManager;
+        if (!FileSystem) {
+            throw new RuntimeError('FileSystemManager not available', { line: stmt.line });
+        }
+
+        const content = await this.visitExpression(stmt.content);
+        const path = await this.visitExpression(stmt.path);
+        FileSystem.writeFile(path, this.stringify(content));
+    }
+
+    async visitReadStatement(stmt) {
+        const FileSystem = this.context.FileSystemManager;
+        if (!FileSystem) {
+            throw new RuntimeError('FileSystemManager not available', { line: stmt.line });
+        }
+
+        const path = await this.visitExpression(stmt.path);
+        const content = FileSystem.readFile(path);
+        this.currentEnv.set(stmt.varName, content);
+    }
+
+    async visitMkdirStatement(stmt) {
+        const FileSystem = this.context.FileSystemManager;
+        if (!FileSystem) return;
+
+        const path = await this.visitExpression(stmt.path);
+        FileSystem.createDirectory(path);
+    }
+
+    async visitDeleteStatement(stmt) {
+        const FileSystem = this.context.FileSystemManager;
+        if (!FileSystem) return;
+
+        const path = await this.visitExpression(stmt.path);
+        try {
+            FileSystem.deleteFile(path);
+        } catch (e) {
+            // If not a file, try deleting as directory
+            FileSystem.deleteDirectory(path, true);
+        }
+    }
+
+    async visitAlertStatement(stmt) {
+        const message = await this.visitExpression(stmt.message);
+        const EventBus = this.context.EventBus;
+
+        if (EventBus) {
+            EventBus.emit('dialog:alert', { message: this.stringify(message) });
+        } else {
+            console.log('[Alert]', this.stringify(message));
+        }
+    }
+
+    async visitConfirmStatement(stmt) {
+        const message = await this.visitExpression(stmt.message);
+        const EventBus = this.context.EventBus;
+
+        return new Promise((resolve) => {
+            if (EventBus) {
+                EventBus.emit('dialog:confirm', {
+                    message: this.stringify(message),
+                    callback: (result) => {
+                        this.currentEnv.set(stmt.varName, result);
+                        resolve(result);
+                    }
+                });
+            } else {
+                // Autoexec mode - skip dialogs
+                this.currentEnv.set(stmt.varName, true);
+                resolve(true);
+            }
+        });
+    }
+
+    async visitPromptStatement(stmt) {
+        const message = await this.visitExpression(stmt.message);
+        const defaultValue = stmt.defaultValue ?
+            await this.visitExpression(stmt.defaultValue) : '';
+        const EventBus = this.context.EventBus;
+
+        return new Promise((resolve) => {
+            if (EventBus) {
+                EventBus.emit('dialog:prompt', {
+                    message: this.stringify(message),
+                    defaultValue: this.stringify(defaultValue),
+                    callback: (result) => {
+                        this.currentEnv.set(stmt.varName, result);
+                        resolve(result);
+                    }
+                });
+            } else {
+                // Autoexec mode - use default value
+                this.currentEnv.set(stmt.varName, defaultValue);
+                resolve(defaultValue);
+            }
+        });
+    }
+
+    async visitNotifyStatement(stmt) {
+        const message = await this.visitExpression(stmt.message);
+        const EventBus = this.context.EventBus;
+
+        if (EventBus) {
+            EventBus.emit('notification:show', {
+                title: 'RetroScript',
+                message: this.stringify(message)
+            });
+        }
+    }
+
+    async visitPlayStatement(stmt) {
+        const EventBus = this.context.EventBus;
+        if (!EventBus) return;
+
+        // Resolve the source (can be literal or variable)
+        const source = await this.visitExpression(stmt.source);
+
+        // Resolve options
+        const options = {};
+        for (const [key, valueExpr] of Object.entries(stmt.options)) {
+            options[key] = await this.visitExpression(valueExpr);
+        }
+
+        // Determine if this is an MP3 file path or a sound type
+        const isFilePath = typeof source === 'string' &&
+            (source.includes('/') || source.includes('\\') ||
+             source.endsWith('.mp3') || source.endsWith('.wav') ||
+             source.endsWith('.ogg') || source.startsWith('assets/'));
+
+        if (isFilePath) {
+            // Play MP3 file directly
+            EventBus.emit('audio:play', {
+                src: source,
+                volume: options.volume,
+                loop: options.loop || false,
+                force: options.force || false
+            });
+        } else {
+            // Play predefined sound type
+            EventBus.emit('sound:play', {
+                type: source,
+                volume: options.volume,
+                loop: options.loop || false,
+                force: options.force || false
+            });
+        }
+    }
+
+    async visitStopStatement(stmt) {
+        const EventBus = this.context.EventBus;
+        if (!EventBus) return;
+
+        if (stmt.source) {
+            // Stop specific audio
+            const source = await this.visitExpression(stmt.source);
+            EventBus.emit('audio:stop', { src: source });
+        } else {
+            // Stop all audio
+            EventBus.emit('audio:stopall', {});
+        }
+    }
+
+    async visitVideoStatement(stmt) {
+        const EventBus = this.context.EventBus;
+        const CommandBus = this.context.CommandBus;
+        if (!EventBus && !CommandBus) return;
+
+        // Resolve the source (can be literal or variable)
+        const source = await this.visitExpression(stmt.source);
+
+        // Resolve options
+        const options = {};
+        for (const [key, valueExpr] of Object.entries(stmt.options)) {
+            options[key] = await this.visitExpression(valueExpr);
+        }
+
+        // Launch VideoPlayer app with the video source
+        if (CommandBus) {
+            await CommandBus.execute('app:launch', {
+                appId: 'videoplayer',
+                params: {
+                    src: source,
+                    name: options.name || source.split('/').pop(),
+                    volume: options.volume,
+                    loop: options.loop || false,
+                    fullscreen: options.fullscreen || false
+                }
+            });
+        }
+
+        // Also emit a video play event for scripts listening
+        EventBus.emit('videoplayer:requested', {
+            src: source,
+            options: options,
+            timestamp: Date.now()
+        });
+    }
+
+    async visitCommandStatement(stmt) {
+        // Generic command execution - could be used for extensibility
+        if (stmt.command) {
+            console.log('[Command]', stmt.command, stmt.args);
+        }
+    }
+
+    // ==================== EXPRESSION VISITORS ====================
+
+    async visitLiteralExpression(expr) {
+        // Interpolate $variables in strings (e.g., "Hello, $name!")
+        if (typeof expr.value === 'string' && expr.value.includes('$')) {
+            return expr.value.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (match, varName) => {
+                if (this.currentEnv.has(varName)) {
+                    const val = this.currentEnv.get(varName);
+                    return val !== null && val !== undefined ? String(val) : '';
+                }
+                return match;
+            });
+        }
+        return expr.value;
+    }
+
+    async visitVariableExpression(expr) {
+        const value = this.currentEnv.get(expr.name);
+        if (value === undefined && !this.currentEnv.has(expr.name)) {
+            // Check if it might be a string interpolation context
+            return undefined;
+        }
+        return value;
+    }
+
+    async visitBinaryExpression(expr) {
+        const left = await this.visitExpression(expr.left);
+        const right = await this.visitExpression(expr.right);
+
+        switch (expr.operator) {
+            // Arithmetic
+            case '+':
+                if (typeof left === 'string' || typeof right === 'string') {
+                    return String(left) + String(right);
+                }
+                return Number(left) + Number(right);
+            case '-': return Number(left) - Number(right);
+            case '*': return Number(left) * Number(right);
+            case '/': {
+                const divisor = Number(right);
+                if (divisor === 0) return 0; // Return 0 for division by zero
+                return Number(left) / divisor;
+            }
+            case '%': {
+                const modDivisor = Number(right);
+                if (modDivisor === 0) return 0; // Return 0 for modulo by zero (consistent with division)
+                return Number(left) % modDivisor;
+            }
+
+            // Comparison (uses strict equality for predictable behavior)
+            case '==': return left === right;
+            case '!=': return left !== right;
+            case '<': return left < right;
+            case '>': return left > right;
+            case '<=': return left <= right;
+            case '>=': return left >= right;
+
+            // Logical (returns actual values, not booleans - JS semantics)
+            // && returns left if falsy, otherwise right
+            // || returns left if truthy, otherwise right
+            case '&&': return this.isTruthy(left) ? right : left;
+            case '||': return this.isTruthy(left) ? left : right;
+
+            default:
+                throw new RuntimeError(`Unknown operator: ${expr.operator}`, expr.getLocation());
+        }
+    }
+
+    async visitUnaryExpression(expr) {
+        const operand = await this.visitExpression(expr.operand);
+
+        switch (expr.operator) {
+            case '-': return -Number(operand);
+            case '!': return !this.isTruthy(operand);
+            default:
+                throw new RuntimeError(`Unknown unary operator: ${expr.operator}`, expr.getLocation());
+        }
+    }
+
+    async visitCallExpression(expr) {
+        return await this.callFunction(expr.funcName, expr.args);
+    }
+
+    async visitArrayExpression(expr) {
+        const elements = [];
+        for (const element of expr.elements) {
+            elements.push(await this.visitExpression(element));
+        }
+        return elements;
+    }
+
+    async visitObjectExpression(expr) {
+        const obj = {};
+        for (const { key, value } of expr.properties) {
+            obj[key] = await this.visitExpression(value);
+        }
+        return obj;
+    }
+
+    async visitMemberExpression(expr) {
+        const object = await this.visitExpression(expr.object);
+        if (object == null) return undefined;
+        return object[expr.property];
+    }
+
+    async visitIndexExpression(expr) {
+        const object = await this.visitExpression(expr.object);
+        const index = await this.visitExpression(expr.index);
+        if (object == null) return undefined;
+        return object[index];
+    }
+
+    async visitGroupingExpression(expr) {
+        return await this.visitExpression(expr.expression);
+    }
+
+    async visitInterpolatedStringExpression(expr) {
+        let result = '';
+        for (const part of expr.parts) {
+            if (typeof part === 'string') {
+                result += part;
+            } else {
+                const value = await this.visitExpression(part);
+                result += this.stringify(value);
+            }
+        }
+        return result;
+    }
+
+    // ==================== HELPER METHODS ====================
+
+    /**
+     * Call a function (builtin or user-defined)
+     */
+    async callFunction(name, argExprs) {
+        // Evaluate arguments
+        const args = [];
+        for (const argExpr of argExprs) {
+            args.push(await this.visitExpression(argExpr));
+        }
+
+        // Check builtins first
+        if (this.builtins.has(name)) {
+            const builtin = this.builtins.get(name);
+            try {
+                return await builtin(...args);
+            } catch (error) {
+                throw new RuntimeError(`Error in function '${name}': ${error.message}`);
+            }
+        }
+
+        // Check user-defined functions
+        if (this.userFunctions.has(name)) {
+            return await this.callUserFunction(name, args);
+        }
+
+        throw new RuntimeError(`Unknown function: '${name}'`, {
+            hint: `Function '${name}' is not defined. Check spelling or define it with 'def ${name}() { ... }'`
+        });
+    }
+
+    /**
+     * Call user-defined function
+     */
+    async callUserFunction(name, args) {
+        const func = this.userFunctions.get(name);
+
+        // Check recursion depth
+        this.callStack.push(name);
+        if (!this.limits.checkRecursionDepth(this.callStack.length)) {
+            throw new RecursionError(
+                this.limits.get('MAX_RECURSION_DEPTH'),
+                name,
+                { callStack: [...this.callStack] }
+            );
+        }
+
+        // Create function scope
+        const funcEnv = func.closure.extend();
+
+        // Bind parameters
+        for (let i = 0; i < func.params.length; i++) {
+            funcEnv.set(func.params[i], args[i]);
+        }
+
+        // Execute function body
+        const previousEnv = this.currentEnv;
+        const previousControlFlow = this.controlFlow;
+        const previousReturnValue = this.returnValue;
+
+        this.currentEnv = funcEnv;
+        this.controlFlow = ControlFlow.NONE;
+        this.returnValue = undefined;
+
+        try {
+            for (const stmt of func.body) {
+                await this.visitStatement(stmt);
+                if (this.controlFlow === ControlFlow.RETURN) {
+                    break;
+                }
+            }
+            return this.returnValue;
+        } finally {
+            this.callStack.pop();
+            this.currentEnv = previousEnv;
+            this.controlFlow = previousControlFlow;
+            this.returnValue = previousReturnValue;
+        }
+    }
+
+    /**
+     * Check if value is truthy
+     */
+    isTruthy(value) {
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'string') return value.length > 0;
+        if (Array.isArray(value)) return value.length > 0;
+        return true;
+    }
+
+    /**
+     * Convert value to string for output
+     */
+    stringify(value) {
+        if (value === null) return 'null';
+        if (value === undefined) return 'undefined';
+        if (typeof value === 'string') return value;
+        if (Array.isArray(value)) return JSON.stringify(value);
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+    }
+
+    /**
+     * Register a builtin function
+     */
+    registerBuiltin(name, fn) {
+        this.builtins.set(name, fn);
+    }
+
+    /**
+     * Get all variables in current scope
+     */
+    getVariables() {
+        return this.currentEnv.getAll();
+    }
+
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        // Remove event handlers
+        const EventBus = this.context.EventBus;
+        if (EventBus) {
+            for (const [eventName, handler] of this.eventHandlers) {
+                EventBus.off(eventName, handler);
+            }
+        }
+        this.eventHandlers.clear();
+        this.userFunctions.clear();
+        this.globalEnv.clear();
+    }
+}
+
+export default Interpreter;

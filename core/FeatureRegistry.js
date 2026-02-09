@@ -1,0 +1,506 @@
+/**
+ * FeatureRegistry - Central registry for all features
+ * Manages feature registration, initialization, enabling/disabling, and querying
+ *
+ * Similar to AppRegistry but for system features
+ *
+ * Usage:
+ *   FeatureRegistry.register(featureInstance);
+ *   await FeatureRegistry.initializeAll();
+ *   FeatureRegistry.enable('featureid');
+ *   FeatureRegistry.disable('featureid');
+ */
+
+import EventBus from './EventBus.js';
+import StorageManager from './StorageManager.js';
+
+// Feature categories
+export const FEATURE_CATEGORIES = {
+    CORE: 'core',           // Essential system features (can't be disabled)
+    ENHANCEMENT: 'enhancement',  // Optional enhancements (can be disabled)
+    PLUGIN: 'plugin'        // Third-party plugins
+};
+
+class FeatureRegistryClass {
+    constructor() {
+        // Map of feature id -> FeatureBase instance
+        this.features = new Map();
+
+        // Map of feature id -> metadata
+        this.metadata = new Map();
+
+        // Global hooks that run for all features
+        this.globalHooks = new Map(); // hookName -> [handlers]
+
+        // Initialization order (dependency-sorted)
+        this.initOrder = [];
+
+        // Track initialization state
+        this.initialized = false;
+    }
+
+    /**
+     * Register a feature
+     * @param {FeatureBase} feature - Feature instance
+     * @param {Object} overrideMeta - Optional metadata overrides
+     */
+    register(feature, overrideMeta = {}) {
+        // Validate feature object
+        if (!feature || typeof feature !== 'object') {
+            console.error('[FeatureRegistry] Invalid feature object:', feature);
+            return;
+        }
+
+        if (!feature.id) {
+            console.error('[FeatureRegistry] Feature missing id:', feature);
+            return;
+        }
+
+        if (this.features.has(feature.id)) {
+            console.warn(`[FeatureRegistry] Feature "${feature.id}" already registered`);
+            return;
+        }
+
+        this.features.set(feature.id, feature);
+
+        // Build metadata from feature instance and overrides
+        const meta = {
+            ...feature.getMetadata(),
+            ...overrideMeta
+        };
+        this.metadata.set(feature.id, meta);
+
+        console.log(`[FeatureRegistry] Registered: ${feature.name} (${feature.id}) [${meta.category}]`);
+        console.log(`[FeatureRegistry] Total registered: ${this.features.size} features, ${this.metadata.size} metadata entries`);
+
+        // Emit registration event
+        EventBus.emit('feature:registered', { featureId: feature.id, name: feature.name, category: meta.category });
+    }
+
+    /**
+     * Register multiple features at once
+     * @param {FeatureBase[]} features - Array of feature instances
+     */
+    registerAll(features) {
+        console.log(`[FeatureRegistry] registerAll called with ${features?.length || 0} features`);
+
+        if (!Array.isArray(features)) {
+            console.error('[FeatureRegistry] registerAll: features is not an array:', features);
+            return;
+        }
+
+        features.forEach((feature, index) => {
+            console.log(`[FeatureRegistry] Registering feature ${index + 1}/${features.length}: ${feature?.id || 'INVALID'}`);
+            this.register(feature);
+        });
+
+        console.log(`[FeatureRegistry] registerAll complete. Total: ${this.features.size} features`);
+    }
+
+    /**
+     * Initialize all registered features in dependency order
+     */
+    async initializeAll() {
+        console.log('[FeatureRegistry] Initializing all features...');
+
+        // Sort by dependencies
+        this.initOrder = this.resolveDependencies();
+
+        // Initialize in order
+        for (const featureId of this.initOrder) {
+            const feature = this.features.get(featureId);
+            if (!feature) continue;
+
+            // Load saved enabled state
+            feature.loadEnabledState();
+
+            // Update metadata with current enabled state
+            const meta = this.metadata.get(featureId);
+            if (meta) {
+                meta.enabled = feature.isEnabled();
+                meta.config = feature.getAllConfig();
+            }
+
+            // Check if feature should be enabled
+            if (feature.isEnabled()) {
+                try {
+                    // Trigger before-init hook
+                    this.triggerGlobalHook('feature:before-init', { featureId });
+
+                    await feature.initialize();
+                    feature.initialized = true;
+
+                    // Update initialized state in metadata
+                    if (meta) {
+                        meta.initialized = true;
+                    }
+
+                    // Trigger after-init hook
+                    this.triggerGlobalHook('feature:after-init', { featureId });
+
+                    console.log(`[FeatureRegistry] Initialized: ${feature.name}`);
+                } catch (error) {
+                    console.error(`[FeatureRegistry] Failed to initialize ${feature.name}:`, error);
+                }
+            } else {
+                console.log(`[FeatureRegistry] Skipped (disabled): ${feature.name}`);
+            }
+        }
+
+        this.initialized = true;
+        console.log(`[FeatureRegistry] Initialization complete - ${this.features.size} features registered`);
+
+        // Emit initialization complete event
+        EventBus.emit('features:initialized');
+    }
+
+    /**
+     * Enable a feature at runtime
+     * @param {string} featureId - Feature ID
+     */
+    async enable(featureId) {
+        const feature = this.features.get(featureId);
+        if (!feature) {
+            throw new Error(`Feature ${featureId} not found`);
+        }
+
+        // Check dependencies
+        if (!feature.checkDependencies((depId) => this.isEnabled(depId))) {
+            throw new Error(`Cannot enable ${featureId}: dependencies not met`);
+        }
+
+        await feature.enable();
+
+        // Update metadata
+        const meta = this.metadata.get(featureId);
+        if (meta) {
+            meta.enabled = true;
+            this.metadata.set(featureId, meta);
+        }
+
+        // Emit event
+        EventBus.emit('feature:enabled', { featureId });
+        this.triggerGlobalHook('feature:enabled', { featureId });
+    }
+
+    /**
+     * Disable a feature at runtime
+     * @param {string} featureId - Feature ID
+     */
+    async disable(featureId) {
+        const feature = this.features.get(featureId);
+        if (!feature) {
+            throw new Error(`Feature ${featureId} not found`);
+        }
+
+        // Check if this is a core feature (can't be disabled)
+        const meta = this.metadata.get(featureId);
+        if (meta && meta.category === FEATURE_CATEGORIES.CORE) {
+            throw new Error(`Cannot disable core feature: ${featureId}`);
+        }
+
+        // Check if other features depend on this one
+        const dependents = this.getDependents(featureId);
+        if (dependents.length > 0) {
+            // Disable dependents first
+            for (const depId of dependents) {
+                if (this.isEnabled(depId)) {
+                    await this.disable(depId);
+                }
+            }
+        }
+
+        await feature.disable();
+
+        // Update metadata
+        if (meta) {
+            meta.enabled = false;
+            this.metadata.set(featureId, meta);
+        }
+
+        // Emit event
+        EventBus.emit('feature:disabled', { featureId });
+        this.triggerGlobalHook('feature:disabled', { featureId });
+    }
+
+    /**
+     * Toggle a feature's enabled state
+     * @param {string} featureId - Feature ID
+     * @returns {boolean} New enabled state
+     */
+    async toggle(featureId) {
+        if (this.isEnabled(featureId)) {
+            await this.disable(featureId);
+            return false;
+        } else {
+            await this.enable(featureId);
+            return true;
+        }
+    }
+
+    /**
+     * Check if a feature is enabled
+     * @param {string} featureId - Feature ID
+     * @returns {boolean}
+     */
+    isEnabled(featureId) {
+        const feature = this.features.get(featureId);
+        return feature?.isEnabled() ?? false;
+    }
+
+    /**
+     * Check if a feature is initialized
+     * @param {string} featureId - Feature ID
+     * @returns {boolean}
+     */
+    isInitialized(featureId) {
+        const feature = this.features.get(featureId);
+        return feature?.initialized ?? false;
+    }
+
+    /**
+     * Get a feature instance
+     * @param {string} featureId - Feature ID
+     * @returns {FeatureBase|undefined}
+     */
+    get(featureId) {
+        return this.features.get(featureId);
+    }
+
+    /**
+     * Get all feature metadata with current state
+     * @returns {Object[]}
+     */
+    getAll() {
+        console.log('[FeatureRegistry] getAll() - metadata size:', this.metadata.size, 'features size:', this.features.size);
+        // Return metadata merged with current feature state
+        return Array.from(this.metadata.values()).map(meta => {
+            const feature = this.features.get(meta.id);
+            if (feature) {
+                return {
+                    ...meta,
+                    enabled: feature.isEnabled(),
+                    initialized: feature.initialized,
+                    config: feature.getAllConfig()
+                };
+            }
+            return meta;
+        });
+    }
+
+    /**
+     * Get features by category
+     * @param {string} category - Category name
+     * @returns {Object[]}
+     */
+    getByCategory(category) {
+        return Array.from(this.metadata.values())
+            .filter(m => m.category === category);
+    }
+
+    /**
+     * Get all enabled features
+     * @returns {Object[]}
+     */
+    getEnabled() {
+        return Array.from(this.metadata.values())
+            .filter(m => m.enabled);
+    }
+
+    /**
+     * Get all disabled features
+     * @returns {Object[]}
+     */
+    getDisabled() {
+        return Array.from(this.metadata.values())
+            .filter(m => !m.enabled);
+    }
+
+    /**
+     * Get features that depend on a given feature
+     * @param {string} featureId - Feature ID
+     * @returns {string[]} Array of dependent feature IDs
+     */
+    getDependents(featureId) {
+        const dependents = [];
+        for (const [id, feature] of this.features) {
+            if (feature.dependencies.includes(featureId)) {
+                dependents.push(id);
+            }
+        }
+        return dependents;
+    }
+
+    /**
+     * Resolve dependencies and return initialization order
+     * Uses topological sort to ensure dependencies are initialized first
+     * @returns {string[]} Feature IDs in initialization order
+     */
+    resolveDependencies() {
+        const visited = new Set();
+        const order = [];
+        const visiting = new Set(); // For cycle detection
+
+        const visit = (featureId) => {
+            if (visited.has(featureId)) return;
+            if (visiting.has(featureId)) {
+                console.warn(`[FeatureRegistry] Circular dependency detected involving: ${featureId}`);
+                return;
+            }
+
+            visiting.add(featureId);
+
+            const feature = this.features.get(featureId);
+            if (feature) {
+                // Visit dependencies first
+                for (const depId of feature.dependencies) {
+                    if (this.features.has(depId)) {
+                        visit(depId);
+                    } else {
+                        console.warn(`[FeatureRegistry] Unknown dependency: ${depId} for feature ${featureId}`);
+                    }
+                }
+            }
+
+            visiting.delete(featureId);
+            visited.add(featureId);
+            order.push(featureId);
+        };
+
+        // Visit all features
+        for (const featureId of this.features.keys()) {
+            visit(featureId);
+        }
+
+        return order;
+    }
+
+    // ===== GLOBAL HOOKS =====
+
+    /**
+     * Register a global hook that runs for all features
+     * @param {string} hookName - Hook name (e.g., 'feature:before-init')
+     * @param {Function} handler - Hook handler
+     * @returns {Function} Unregister function
+     */
+    registerGlobalHook(hookName, handler) {
+        if (!this.globalHooks.has(hookName)) {
+            this.globalHooks.set(hookName, []);
+        }
+        this.globalHooks.get(hookName).push(handler);
+
+        return () => {
+            const handlers = this.globalHooks.get(hookName);
+            const index = handlers.indexOf(handler);
+            if (index > -1) {
+                handlers.splice(index, 1);
+            }
+        };
+    }
+
+    /**
+     * Trigger a global hook
+     * @param {string} hookName - Hook name
+     * @param {*} data - Data to pass to handlers
+     */
+    triggerGlobalHook(hookName, data) {
+        const handlers = this.globalHooks.get(hookName) || [];
+        handlers.forEach(handler => {
+            try {
+                handler(data);
+            } catch (error) {
+                console.error(`[FeatureRegistry] Global hook ${hookName} error:`, error);
+            }
+        });
+    }
+
+    // ===== CONFIGURATION =====
+
+    /**
+     * Get a feature's config value
+     * @param {string} featureId - Feature ID
+     * @param {string} key - Config key
+     * @param {*} defaultValue - Default value
+     * @returns {*}
+     */
+    getFeatureConfig(featureId, key, defaultValue) {
+        const feature = this.features.get(featureId);
+        return feature?.getConfig(key, defaultValue);
+    }
+
+    /**
+     * Set a feature's config value
+     * @param {string} featureId - Feature ID
+     * @param {string} key - Config key
+     * @param {*} value - Value to set
+     */
+    setFeatureConfig(featureId, key, value) {
+        const feature = this.features.get(featureId);
+        if (feature) {
+            feature.setConfig(key, value);
+            EventBus.emit('feature:config-changed', { featureId, key, value });
+        }
+    }
+
+    /**
+     * Reset a feature's config to defaults
+     * @param {string} featureId - Feature ID
+     */
+    resetFeatureConfig(featureId) {
+        const feature = this.features.get(featureId);
+        if (feature) {
+            feature.resetConfig();
+            EventBus.emit('feature:config-reset', { featureId });
+        }
+    }
+
+    // ===== DEBUGGING =====
+
+    /**
+     * Get debug info about all features
+     * @returns {Object}
+     */
+    getDebugInfo() {
+        const info = {
+            totalFeatures: this.features.size,
+            initialized: this.initialized,
+            initOrder: this.initOrder,
+            features: {}
+        };
+
+        for (const [id, feature] of this.features) {
+            info.features[id] = {
+                name: feature.name,
+                enabled: feature.isEnabled(),
+                initialized: feature.initialized,
+                category: feature.category,
+                dependencies: feature.dependencies,
+                config: feature.getAllConfig()
+            };
+        }
+
+        return info;
+    }
+
+    /**
+     * Log feature status to console
+     */
+    logStatus() {
+        console.group('[FeatureRegistry] Status');
+        console.log('Total features:', this.features.size);
+        console.log('Initialization order:', this.initOrder);
+
+        for (const [id, feature] of this.features) {
+            const status = feature.isEnabled() ? '✅' : '❌';
+            const init = feature.initialized ? '(initialized)' : '(not initialized)';
+            console.log(`  ${status} ${feature.name} [${feature.category}] ${init}`);
+        }
+
+        console.groupEnd();
+    }
+}
+
+// Singleton instance
+const FeatureRegistry = new FeatureRegistryClass();
+
+export default FeatureRegistry;
