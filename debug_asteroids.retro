@@ -1,0 +1,10 @@
+# Debug Asteroids Score Event - Detailed
+print "=== DEBUG SCRIPT STARTING ==="
+print "Registering handler for game:score..."
+
+on game:score { print "--- EVENT RECEIVED ---"; print "Full event:"; print $event; print "Checking appId..."; set testAppId = $event.appId; print "appId value:"; print $testAppId; set testScore = $event.score; print "score value:"; print $testScore; if $event.appId == "asteroids" then { print "*** ASTEROIDS MATCHED ***"; print "Score is:"; print $event.score; if $event.score >= 1000 then { print "*** 1000+ REACHED! ***" } } else { print "appId did NOT match asteroids" } }
+
+print "Handler registered!"
+print "Launching Asteroids..."
+launch asteroids
+print "Play and watch for debug output above!"

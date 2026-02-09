@@ -1,0 +1,83 @@
+# ═══════════════════════════════════════════════════════════
+# Unified ScriptEngine Test Suite
+# Tests unquoted print, string interpolation, and legacy features
+# ═══════════════════════════════════════════════════════════
+
+# Test 1: Unquoted print statements (NEW FEATURE)
+print ═══════════════════════════════════════════════════════════
+print Test 1: Unquoted Print Statements
+print ═══════════════════════════════════════════════════════════
+print Hello World!
+print This is a test of unquoted text
+print Multiple words work just fine
+
+# Test 2: String interpolation with $variables (NEW FEATURE)
+print ═══════════════════════════════════════════════════════════
+print Test 2: String Interpolation
+print ═══════════════════════════════════════════════════════════
+set $name = "RetrOS"
+set $version = 4.0
+set $status = "operational"
+print Welcome to $name version $version
+print System status: $status
+print The year is 2025 and $name is amazing!
+
+# Test 3: Quoted strings (LEGACY COMPATIBILITY)
+print ═══════════════════════════════════════════════════════════
+print Test 3: Quoted String Compatibility
+print ═══════════════════════════════════════════════════════════
+print "This is a quoted string"
+print "Variables work here too: " + $name
+
+# Test 4: Math operations
+print ═══════════════════════════════════════════════════════════
+print Test 4: Math Operations
+print ═══════════════════════════════════════════════════════════
+set $x = 10
+set $y = 20
+set $sum = $x + $y
+print The sum of $x and $y is $sum
+
+# Test 5: Complex interpolation
+print ═══════════════════════════════════════════════════════════
+print Test 5: Complex Interpolation
+print ═══════════════════════════════════════════════════════════
+set $user = "Administrator"
+set $computer = "RETROS-PC"
+print Logged in as $user on $computer
+print Current session: User=$user Computer=$computer Status=$status
+
+# Test 6: Arrays and loops
+print ═══════════════════════════════════════════════════════════
+print Test 6: Arrays and Loops
+print ═══════════════════════════════════════════════════════════
+set $items = ["CPU", "RAM", "GPU", "SSD"]
+foreach $item in $items {
+    print  - Item: $item
+}
+
+# Test 7: Conditionals
+print ═══════════════════════════════════════════════════════════
+print Test 7: Conditionals
+print ═══════════════════════════════════════════════════════════
+set $temperature = 75
+if $temperature > 70 {
+    print Temperature is $temperature degrees - system is warm!
+} else {
+    print Temperature is $temperature degrees - system is cool
+}
+
+# Test 8: Functions
+print ═══════════════════════════════════════════════════════════
+print Test 8: Built-in Functions
+print ═══════════════════════════════════════════════════════════
+set $now = call now
+set $random = call random 1 100
+print Current timestamp: $now
+print Random number: $random
+set $upper = call upper "hello world"
+print Uppercase test: $upper
+
+print ═══════════════════════════════════════════════════════════
+print All tests completed successfully!
+print ═══════════════════════════════════════════════════════════

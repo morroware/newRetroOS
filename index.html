@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IlluminatOS! - Desktop</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <!-- Boot Screen -->
+    <div class="boot-screen" id="bootScreen">
+        <div class="boot-logo">IlluminatOS!</div>
+        <div class="boot-version">Version 95.0 - Modular Edition</div>
+        <div>Starting Windows 95...</div>
+        <div class="loading-bar">
+            <div class="loading-fill"></div>
+        </div>
+        <div class="boot-tips">
+            <span id="bootTip">Loading your personalized experience...</span>
+        </div>
+    </div>
+    
+    <!-- CRT Effect Overlay -->
+    <div class="crt-overlay" id="crtOverlay"></div>
+    
+    <!-- Screensaver -->
+    <div class="screensaver" id="screensaver">
+        <div class="flying-toasters" id="flyingToasters"></div>
+        <div class="screensaver-text">Move mouse or press any key to wake</div>
+    </div>
+    
+    <!-- Desktop -->
+    <div class="desktop" id="desktop">
+        <!-- Icons rendered by DesktopRenderer -->
+        
+        <!-- Clippy Assistant -->
+        <div class="clippy" id="clippy">
+            <div class="clippy-character" id="clippyCharacter">📎</div>
+            <div class="clippy-bubble" id="clippyBubble">
+                <div class="clippy-text" id="clippyText"></div>
+                <div class="clippy-buttons">
+                    <button class="clippy-btn" id="clippyYes">Thanks!</button>
+                    <button class="clippy-btn" id="clippyNo">Go away</button>
+                </div>
+                <button class="clippy-close" id="clippyClose">×</button>
+            </div>
+        </div>
+        
+        <!-- Desktop Pet -->
+        <div class="desktop-pet" id="desktopPet">🐕</div>
+    </div>
+    
+    <!-- Right-click Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <!-- Content rendered by ContextMenuRenderer -->
+    </div>
+    
+    <!-- Start Menu -->
+    <div class="start-menu" id="startMenu">
+        <div class="start-menu-sidebar">
+            <span class="sidebar-text">IlluminatOS!</span>
+        </div>
+        <div class="start-menu-content">
+            <div class="start-menu-items" id="startMenuItems">
+                <!-- Content rendered by StartMenuRenderer -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Taskbar -->
+    <div class="taskbar" id="taskbar">
+        <button class="start-button" id="startButton">
+            <div class="start-logo">
+                <div class="windows-flag"></div>
+            </div>
+            <span>Start</span>
+        </button>
+        <div class="taskbar-divider"></div>
+        <div class="quick-launch" id="quickLaunch">
+            <button class="quick-launch-btn" data-app="terminal" title="Terminal">💻</button>
+            <button class="quick-launch-btn" data-app="notepad" title="Notepad">📝</button>
+            <button class="quick-launch-btn" data-link="https://sethmorrow.com" title="Internet">🌀</button>
+        </div>
+        <div class="taskbar-divider"></div>
+        <div class="taskbar-buttons" id="taskbarButtons">
+            <!-- Window buttons rendered by TaskbarRenderer -->
+        </div>
+        <div class="system-tray" id="systemTray">
+            <div class="tray-icon" id="volumeIcon" title="Volume">📊</div>
+            <div class="tray-icon" id="networkIcon" title="Connected">📶</div>
+            <div class="taskbar-divider-small"></div>
+            <div class="taskbar-time" id="clock">12:00 PM</div>
+        </div>
+    </div>
+    
+    <!-- Calendar Popup -->
+    <div class="calendar-popup" id="calendarPopup">
+        <!-- Content rendered by TaskbarRenderer -->
+    </div>
+    
+    <!-- Selection Box (for multi-select) -->
+    <div class="selection-box" id="selectionBox"></div>
+    
+    <!-- BSOD Screen -->
+    <div class="bsod" id="bsod">
+        <div class="bsod-content">
+            <h1>IlluminatOS!</h1>
+            <p>A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36.</p>
+            <br>
+            <p>* Press any key to terminate the current application.</p>
+            <p>* Press CTRL+ALT+DEL again to restart your computer.</p>
+            <br>
+            <p>Press any key to continue _</p>
+        </div>
+    </div>
+    
+    <!-- Dialog Overlay (for alerts) -->
+    <div class="dialog-overlay" id="dialogOverlay">
+        <div class="dialog-box" id="dialogBox">
+            <div class="dialog-icon" id="dialogIcon">ℹ️</div>
+            <div class="dialog-text" id="dialogText"></div>
+            <div class="dialog-buttons">
+                <button class="btn btn-primary" id="dialogOk">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Achievement Toast -->
+    <div class="achievement-toast" id="achievementToast">
+        <div class="achievement-icon" id="achievementIcon">🏆</div>
+        <div class="achievement-title">Achievement Unlocked!</div>
+        <div class="achievement-desc" id="achievementDesc"></div>
+    </div>
+
+    <!-- CRITICAL: Global error handler BEFORE module loads -->
+    <!-- This catches module import errors that happen before DOMContentLoaded -->
+    <script>
+        // Catch any uncaught errors (including module load failures)
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('[IlluminatOS!] Fatal error:', msg, 'at', url, line, col);
+            showBootError('JavaScript Error: ' + msg + '\n\nFile: ' + url + ':' + line);
+            return true;
+        };
+
+        // Catch unhandled promise rejections
+        window.onunhandledrejection = function(event) {
+            console.error('[IlluminatOS!] Unhandled rejection:', event.reason);
+            showBootError('Unhandled Error: ' + (event.reason?.message || event.reason));
+        };
+
+        // Show boot error on screen
+        function showBootError(message) {
+            var bootScreen = document.getElementById('bootScreen');
+            if (bootScreen && !bootScreen.dataset.errorShown) {
+                bootScreen.dataset.errorShown = 'true';
+                bootScreen.innerHTML =
+                    '<div style="color: white; text-align: center; padding: 20px; font-family: Courier New, monospace;">' +
+                    '<h2 style="color: #ff6b6b;">⚠️ IlluminatOS! Boot Error</h2>' +
+                    '<p style="color: #aaa; margin: 15px 0;">A fatal error occurred during startup:</p>' +
+                    '<pre style="background: #1a1a1a; padding: 15px; margin: 15px auto; border-radius: 4px; text-align: left; max-width: 600px; overflow: auto; border: 1px solid #333; color: #ff6b6b; font-size: 12px; white-space: pre-wrap;">' + message + '</pre>' +
+                    '<p style="color: #888; font-size: 12px; margin: 10px 0;">Check browser console (F12) for full details</p>' +
+                    '<button onclick="location.reload()" style="padding: 12px 24px; cursor: pointer; margin-top: 15px; background: #4a4a4a; color: white; border: 2px outset #666; font-size: 14px;">🔄 Restart</button>' +
+                    '<button onclick="localStorage.clear(); location.reload()" style="padding: 12px 24px; cursor: pointer; margin-top: 15px; margin-left: 10px; background: #8b0000; color: white; border: 2px outset #666; font-size: 14px;">🗑️ Reset All Data</button>' +
+                    '</div>';
+            }
+        }
+
+        // Start a fallback animation in case main script fails
+        // This will be overridden by the real boot sequence if it loads successfully
+        document.addEventListener('DOMContentLoaded', function() {
+            var fill = document.querySelector('.loading-fill');
+            var tip = document.getElementById('bootTip');
+            if (fill && !window.bootSequenceStarted) {
+                var progress = 0;
+                var fallbackInterval = setInterval(function() {
+                    if (window.bootSequenceStarted) {
+                        clearInterval(fallbackInterval);
+                        return;
+                    }
+                    progress += 0.5; // Very slow progress
+                    fill.style.width = Math.min(progress, 15) + '%'; // Cap at 15%
+                    if (tip && progress < 15) {
+                        tip.textContent = 'Loading modules...';
+                    } else if (tip) {
+                        tip.textContent = 'Waiting for initialization...';
+                    }
+                }, 100);
+
+                // If still not loaded after 10 seconds, show warning
+                setTimeout(function() {
+                    if (!window.bootSequenceStarted && tip) {
+                        tip.textContent = 'Loading is taking longer than expected...';
+                        tip.style.color = '#ffaa00';
+                    }
+                }, 10000);
+            }
+        });
+    </script>
+
+    <!-- Main Script (ES Modules) - Cache bust v6 -->
+    <script type="module" src="index.js?v=6"></script>
+</body>
+</html>

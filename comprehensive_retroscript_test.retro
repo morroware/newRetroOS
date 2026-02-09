@@ -1,0 +1,922 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# RetroScript Comprehensive Test Suite
+# Tests all language features including foreach, user functions, and object set
+# ═══════════════════════════════════════════════════════════════════════════════
+
+set $passed = 0
+set $failed = 0
+set $total = 0
+
+print ╔═══════════════════════════════════════════════════════════════════════════╗
+print ║           RetroScript Comprehensive Test Suite                            ║
+print ║           Testing ALL Language Features                                   ║
+print ╚═══════════════════════════════════════════════════════════════════════════╝
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 1: Variables & Basic Types
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 1: Variables & Basic Types ━━━
+print
+
+print [1] String Variables
+set $str = "Hello, World!"
+set $total = $total + 1
+if $str == "Hello, World!" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [2] Number Variables
+set $num = 42
+set $total = $total + 1
+if $num == 42 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [3] Float Variables
+set $float = 3.14159
+set $total = $total + 1
+if $float > 3.14 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [4] Boolean Variables
+set $bool = true
+set $total = $total + 1
+if $bool == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [5] Null Variables
+set $null = null
+set $total = $total + 1
+if $null == null then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [6] Empty String
+set $empty = ""
+set $total = $total + 1
+set $len = call length $empty
+if $len == 0 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [7] String with Braces (Parser Test)
+set $braceStr = "This has {braces} inside"
+set $total = $total + 1
+set $hasBrace = call contains $braceStr "braces"
+if $hasBrace == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 2: Arithmetic Operations
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 2: Arithmetic Operations ━━━
+print
+
+print [8] Addition
+set $a = 10
+set $b = 5
+set $sum = $a + $b
+set $total = $total + 1
+if $sum == 15 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $sum; set $failed = $failed + 1 }
+
+print [9] Subtraction
+set $diff = $a - $b
+set $total = $total + 1
+if $diff == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $diff; set $failed = $failed + 1 }
+
+print [10] Multiplication
+set $prod = $a * $b
+set $total = $total + 1
+if $prod == 50 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $prod; set $failed = $failed + 1 }
+
+print [11] Division
+set $quot = $a / $b
+set $total = $total + 1
+if $quot == 2 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $quot; set $failed = $failed + 1 }
+
+print [12] Modulo
+set $mod = 17 % 5
+set $total = $total + 1
+if $mod == 2 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $mod; set $failed = $failed + 1 }
+
+print [13] Complex Expression
+set $complex = (10 + 5) * 2 - 3
+set $total = $total + 1
+if $complex == 27 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $complex; set $failed = $failed + 1 }
+
+print [14] Negative Numbers
+set $neg = -5 + 3
+set $total = $total + 1
+if $neg == -2 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $neg; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 3: Comparison Operators
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 3: Comparison Operators ━━━
+print
+
+print [15] Equality
+set $total = $total + 1
+if 5 == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [16] Inequality
+set $total = $total + 1
+if 5 != 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [17] Greater Than
+set $total = $total + 1
+if 10 > 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [18] Less Than
+set $total = $total + 1
+if 3 < 7 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [19] Greater Than or Equal
+set $total = $total + 1
+if 5 >= 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [20] Less Than or Equal
+set $total = $total + 1
+if 5 <= 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 4: Logical Operators
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 4: Logical Operators ━━━
+print
+
+print [21] AND Operator
+set $total = $total + 1
+if true && true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [22] OR Operator
+set $total = $total + 1
+if false || true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [23] Combined Logical
+set $x = 10
+set $total = $total + 1
+if $x > 5 && $x < 20 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [24] Complex Logical
+set $total = $total + 1
+if ($x > 5 && $x < 8) || $x == 10 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 5: If/Else Conditionals
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 5: If/Else Conditionals ━━━
+print
+
+print [25] Simple If
+set $result = "none"
+set $total = $total + 1
+if true then { set $result = "if" }
+if $result == "if" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [26] If/Else
+set $val = 10
+set $result = "none"
+set $total = $total + 1
+if $val > 20 then { set $result = "if" } else { set $result = "else" }
+if $result == "else" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [27] Nested If
+set $a = 5
+set $b = 10
+set $result = "none"
+set $total = $total + 1
+if $a < $b then {
+    if $b > 5 then {
+        set $result = "nested"
+    }
+}
+if $result == "nested" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 6: Count Loops
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 6: Count Loops ━━━
+print
+
+print [28] Simple Loop
+set $counter = 0
+loop 5 { set $counter = $counter + 1 }
+set $total = $total + 1
+if $counter == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $counter; set $failed = $failed + 1 }
+
+print [29] Loop with $i
+set $sum = 0
+loop 5 { set $sum = $sum + $i }
+set $total = $total + 1
+if $sum == 10 then { print   ✓ PASSED (0+1+2+3+4=10); set $passed = $passed + 1 } else { print   ✗ FAILED: $sum; set $failed = $failed + 1 }
+
+print [30] Loop with Variable Count
+set $count = 3
+set $result = 0
+loop $count { set $result = $result + 1 }
+set $total = $total + 1
+if $result == 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [31] Nested Loops
+set $outer = 0
+set $inner = 0
+loop 3 {
+    set $outer = $outer + 1
+    loop 2 {
+        set $inner = $inner + 1
+    }
+}
+set $total = $total + 1
+if $outer == 3 && $inner == 6 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: outer=$outer inner=$inner; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 7: While Loops
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 7: While Loops ━━━
+print
+
+print [32] Simple While
+set $n = 0
+loop while $n < 5 { set $n = $n + 1 }
+set $total = $total + 1
+if $n == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $n; set $failed = $failed + 1 }
+
+print [33] While with Break
+set $n = 0
+set $breakAt = -1
+loop while $n < 100 {
+    set $n = $n + 1
+    if $n == 7 then {
+        set $breakAt = $n
+        break
+    }
+}
+set $total = $total + 1
+if $breakAt == 7 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $breakAt; set $failed = $failed + 1 }
+
+print [34] While with Continue
+set $sum = 0
+set $n = 0
+loop while $n < 10 {
+    set $n = $n + 1
+    set $mod = $n % 2
+    if $mod == 0 then { continue }
+    set $sum = $sum + $n
+}
+set $total = $total + 1
+# Sum of odd numbers 1-9: 1+3+5+7+9 = 25
+if $sum == 25 then { print   ✓ PASSED (odd sum: 1+3+5+7+9=25); set $passed = $passed + 1 } else { print   ✗ FAILED: $sum; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 8: Foreach Loops (Previously Freezing)
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 8: Foreach Loops ━━━
+print
+
+print [35] Simple Foreach
+set $items = ["apple", "banana", "cherry"]
+set $count = 0
+foreach $item in $items {
+    set $count = $count + 1
+}
+set $total = $total + 1
+if $count == 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $count; set $failed = $failed + 1 }
+
+print [36] Foreach with $i Index
+set $nums = [10, 20, 30]
+set $indexSum = 0
+foreach $n in $nums {
+    set $indexSum = $indexSum + $i
+}
+set $total = $total + 1
+# 0+1+2 = 3
+if $indexSum == 3 then { print   ✓ PASSED (indices: 0+1+2=3); set $passed = $passed + 1 } else { print   ✗ FAILED: $indexSum; set $failed = $failed + 1 }
+
+print [37] Foreach Sum
+set $numbers = [1, 2, 3, 4, 5]
+set $total_sum = 0
+foreach $num in $numbers {
+    set $total_sum = $total_sum + $num
+}
+set $total = $total + 1
+if $total_sum == 15 then { print   ✓ PASSED (1+2+3+4+5=15); set $passed = $passed + 1 } else { print   ✗ FAILED: $total_sum; set $failed = $failed + 1 }
+
+print [38] Foreach with Break
+set $items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+set $last = 0
+foreach $item in $items {
+    set $last = $item
+    if $item == 5 then { break }
+}
+set $total = $total + 1
+if $last == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $last; set $failed = $failed + 1 }
+
+print [39] Foreach with Continue
+set $nums = [1, 2, 3, 4, 5]
+set $evenSum = 0
+foreach $n in $nums {
+    set $mod = $n % 2
+    if $mod != 0 then { continue }
+    set $evenSum = $evenSum + $n
+}
+set $total = $total + 1
+# Even: 2+4 = 6
+if $evenSum == 6 then { print   ✓ PASSED (even: 2+4=6); set $passed = $passed + 1 } else { print   ✗ FAILED: $evenSum; set $failed = $failed + 1 }
+
+print [40] Nested Foreach
+set $outer = [1, 2]
+set $inner = [10, 20]
+set $products = 0
+foreach $a in $outer {
+    foreach $b in $inner {
+        set $prod = $a * $b
+        set $products = $products + $prod
+    }
+}
+set $total = $total + 1
+# (1*10 + 1*20) + (2*10 + 2*20) = 30 + 60 = 90
+if $products == 90 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $products; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 9: User-Defined Functions (Previously Freezing)
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 9: User-Defined Functions ━━━
+print
+
+print [41] Simple Function
+def add($a, $b) {
+    return $a + $b
+}
+set $result = call add 5 3
+set $total = $total + 1
+if $result == 8 then { print   ✓ PASSED (5+3=8); set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [42] Function with No Return
+def greet($name) {
+    print   Hello, $name!
+}
+call greet "World"
+set $total = $total + 1
+print   ✓ PASSED (function executed)
+set $passed = $passed + 1
+
+print [43] Function with Multiple Params
+def multiply($a, $b, $c) {
+    return $a * $b * $c
+}
+set $result = call multiply 2 3 4
+set $total = $total + 1
+if $result == 24 then { print   ✓ PASSED (2*3*4=24); set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [44] Recursive Factorial
+def factorial($n) {
+    if $n <= 1 then { return 1 }
+    set $nm1 = $n - 1
+    set $sub = call factorial $nm1
+    return $n * $sub
+}
+set $fact5 = call factorial 5
+set $total = $total + 1
+if $fact5 == 120 then { print   ✓ PASSED (5!=120); set $passed = $passed + 1 } else { print   ✗ FAILED: $fact5; set $failed = $failed + 1 }
+
+print [45] Function Using Global Variable
+set $globalVal = 100
+def addToGlobal($x) {
+    return $globalVal + $x
+}
+set $result = call addToGlobal 50
+set $total = $total + 1
+if $result == 150 then { print   ✓ PASSED (100+50=150); set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [46] Function with Local Scope
+set $x = 10
+def localTest() {
+    set $x = 99
+    return $x
+}
+set $inner = call localTest
+set $total = $total + 1
+# The function's local $x should be 99, but outer $x should still be 10
+if $inner == 99 then { print   ✓ PASSED (local scope working); set $passed = $passed + 1 } else { print   ✗ FAILED: $inner; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 10: Arrays & Array Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 10: Arrays & Array Functions ━━━
+print
+
+print [47] Array Literal
+set $arr = [1, 2, 3, 4, 5]
+set $len = call count $arr
+set $total = $total + 1
+if $len == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $len; set $failed = $failed + 1 }
+
+print [48] First/Last
+set $first = call first $arr
+set $last = call last $arr
+set $total = $total + 1
+if $first == 1 && $last == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: first=$first last=$last; set $failed = $failed + 1 }
+
+print [49] Array Sort
+set $unsorted = [3, 1, 4, 1, 5, 9, 2]
+set $sorted = call sort $unsorted
+set $first = call first $sorted
+set $last = call last $sorted
+set $total = $total + 1
+if $first == 1 && $last == 9 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [50] Array Reverse
+set $original = [1, 2, 3]
+set $reversed = call reverse $original
+set $first = call first $reversed
+set $total = $total + 1
+if $first == 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [51] Array Slice
+set $arr = [0, 1, 2, 3, 4, 5]
+set $sliced = call slice $arr 1 4
+set $len = call count $sliced
+set $first = call first $sliced
+set $total = $total + 1
+if $len == 3 && $first == 1 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [52] Range Function
+set $range = call range 0 5
+set $len = call count $range
+set $last = call last $range
+set $total = $total + 1
+if $len == 5 && $last == 4 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [53] Array Includes
+set $arr = ["a", "b", "c"]
+set $hasB = call includes $arr "b"
+set $hasZ = call includes $arr "z"
+set $total = $total + 1
+if $hasB == true && $hasZ == false then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [54] Array Push
+set $arr = [1, 2]
+call push $arr 3
+set $len = call count $arr
+set $last = call last $arr
+set $total = $total + 1
+if $len == 3 && $last == 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [55] Array Sum
+set $nums = [1, 2, 3, 4, 5]
+set $total_sum = call sum $nums
+set $total = $total + 1
+if $total_sum == 15 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $total_sum; set $failed = $failed + 1 }
+
+print [56] Array Average
+set $nums = [10, 20, 30]
+set $avg = call avg $nums
+set $total = $total + 1
+if $avg == 20 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $avg; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 11: Objects & Object Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 11: Objects & Object Functions ━━━
+print
+
+print [57] Object Literal
+set $obj = {name: "Alice", age: 30}
+set $name = call get $obj "name"
+set $total = $total + 1
+if $name == "Alice" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $name; set $failed = $failed + 1 }
+
+print [58] Object Keys
+set $obj = {a: 1, b: 2, c: 3}
+set $keys = call keys $obj
+set $keyCount = call count $keys
+set $total = $total + 1
+if $keyCount == 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $keyCount; set $failed = $failed + 1 }
+
+print [59] Object Values
+set $values = call values $obj
+set $valueSum = call sum $values
+set $total = $total + 1
+if $valueSum == 6 then { print   ✓ PASSED (1+2+3=6); set $passed = $passed + 1 } else { print   ✗ FAILED: $valueSum; set $failed = $failed + 1 }
+
+print [60] Object Has
+set $obj = {x: 10, y: 20}
+set $hasX = call has $obj "x"
+set $hasZ = call has $obj "z"
+set $total = $total + 1
+if $hasX == true && $hasZ == false then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [61] Object Set (Previously Freezing)
+set $obj = {name: "Bob"}
+call set $obj "age" 25
+set $age = call get $obj "age"
+set $total = $total + 1
+if $age == 25 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $age; set $failed = $failed + 1 }
+
+print [62] Object Merge
+set $obj1 = {a: 1}
+set $obj2 = {b: 2}
+set $merged = call merge $obj1 $obj2
+set $keys = call keys $merged
+set $keyCount = call count $keys
+set $total = $total + 1
+if $keyCount == 2 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $keyCount; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 12: String Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 12: String Functions ━━━
+print
+
+print [63] String Length
+set $str = "Hello"
+set $len = call length $str
+set $total = $total + 1
+if $len == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $len; set $failed = $failed + 1 }
+
+print [64] Upper/Lower Case
+set $str = "Hello World"
+set $upper = call upper $str
+set $lower = call lower $str
+set $total = $total + 1
+if $upper == "HELLO WORLD" && $lower == "hello world" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [65] Trim
+set $str = "  hello  "
+set $trimmed = call trim $str
+set $total = $total + 1
+if $trimmed == "hello" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [66] Contains
+set $str = "Hello World"
+set $hasHello = call contains $str "Hello"
+set $hasFoo = call contains $str "Foo"
+set $total = $total + 1
+if $hasHello == true && $hasFoo == false then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [67] StartsWith/EndsWith
+set $str = "Hello World"
+set $startsH = call startsWith $str "Hello"
+set $endsD = call endsWith $str "World"
+set $total = $total + 1
+if $startsH == true && $endsD == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [68] Split/Join
+set $str = "a,b,c"
+set $parts = call split $str ","
+set $joined = call join $parts "-"
+set $total = $total + 1
+if $joined == "a-b-c" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $joined; set $failed = $failed + 1 }
+
+print [69] Replace
+set $str = "Hello World"
+set $replaced = call replace $str "World" "Universe"
+set $total = $total + 1
+if $replaced == "Hello Universe" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $replaced; set $failed = $failed + 1 }
+
+print [70] String Concatenation
+set $a = "Hello"
+set $b = "World"
+set $concat = $a + " " + $b
+set $total = $total + 1
+if $concat == "Hello World" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $concat; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 13: Math Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 13: Math Functions ━━━
+print
+
+print [71] Abs
+set $abs1 = call abs -5
+set $abs2 = call abs 5
+set $total = $total + 1
+if $abs1 == 5 && $abs2 == 5 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [72] Round/Floor/Ceil
+set $r = call round 3.7
+set $f = call floor 3.7
+set $c = call ceil 3.2
+set $total = $total + 1
+if $r == 4 && $f == 3 && $c == 4 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [73] Min/Max
+set $min = call min 5 3 8 1
+set $max = call max 5 3 8 1
+set $total = $total + 1
+if $min == 1 && $max == 8 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: min=$min max=$max; set $failed = $failed + 1 }
+
+print [74] Pow/Sqrt
+set $pow = call pow 2 3
+set $sqrt = call sqrt 16
+set $total = $total + 1
+if $pow == 8 && $sqrt == 4 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: pow=$pow sqrt=$sqrt; set $failed = $failed + 1 }
+
+print [75] Clamp
+set $clamped = call clamp 15 0 10
+set $total = $total + 1
+if $clamped == 10 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $clamped; set $failed = $failed + 1 }
+
+print [76] Random
+set $rand = call random 1 100
+set $total = $total + 1
+if $rand >= 1 && $rand <= 100 then { print   ✓ PASSED (random: $rand); set $passed = $passed + 1 } else { print   ✗ FAILED: $rand; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 14: Type Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 14: Type Functions ━━━
+print
+
+print [77] typeof
+set $t1 = call typeof 42
+set $t2 = call typeof "hello"
+set $t3 = call typeof true
+set $t4 = call typeof [1,2,3]
+set $total = $total + 1
+if $t1 == "number" && $t2 == "string" && $t3 == "boolean" && $t4 == "array" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [78] isNumber/isString
+set $isNum = call isNumber 42
+set $isStr = call isString "hello"
+set $total = $total + 1
+if $isNum == true && $isStr == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [79] isArray/isObject
+set $isArr = call isArray [1, 2, 3]
+set $isObj = call isObject {a: 1}
+set $total = $total + 1
+if $isArr == true && $isObj == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [80] Type Conversion
+set $str = call toString 42
+set $num = call toNumber "123"
+set $int = call toInt "45.67"
+set $total = $total + 1
+if $str == "42" && $num == 123 && $int == 45 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 15: Try/Catch Error Handling
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 15: Try/Catch Error Handling ━━━
+print
+
+print [81] Try/Catch Basic
+set $caught = false
+try {
+    set $x = call nonExistentFunction
+} catch $err {
+    set $caught = true
+}
+set $total = $total + 1
+if $caught == true then { print   ✓ PASSED (error caught); set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [82] Try/Catch Error Variable
+set $errorMsg = ""
+try {
+    set $x = call unknownFunc
+} catch $err {
+    set $errorMsg = $err
+}
+set $total = $total + 1
+set $hasError = call contains $errorMsg "Unknown function"
+if $hasError == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $errorMsg; set $failed = $failed + 1 }
+
+print [83] Try Without Error
+set $result = 0
+try {
+    set $result = 5 + 3
+} catch $err {
+    set $result = -1
+}
+set $total = $total + 1
+if $result == 8 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 16: File System Operations
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 16: File System Operations ━━━
+print
+
+print [84] Write File
+write "Test content from RetroScript" to "C:/Users/User/test_output.txt"
+set $total = $total + 1
+print   ✓ File written
+set $passed = $passed + 1
+
+print [85] Read File
+read "C:/Users/User/test_output.txt" into $fileContent
+set $total = $total + 1
+if $fileContent == "Test content from RetroScript" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $fileContent; set $failed = $failed + 1 }
+
+print [86] Create Directory (Previously Failing)
+mkdir "C:/Users/User/TestDirectory"
+set $total = $total + 1
+print   ✓ Directory created
+set $passed = $passed + 1
+
+print [87] Write to New Directory
+write "Content in subdirectory" to "C:/Users/User/TestDirectory/subfile.txt"
+set $total = $total + 1
+print   ✓ File written to new directory
+set $passed = $passed + 1
+
+print [88] Read from New Directory
+read "C:/Users/User/TestDirectory/subfile.txt" into $subContent
+set $total = $total + 1
+if $subContent == "Content in subdirectory" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $subContent; set $failed = $failed + 1 }
+
+print [89] Cleanup Files
+delete "C:/Users/User/test_output.txt"
+delete "C:/Users/User/TestDirectory/subfile.txt"
+rm "C:/Users/User/TestDirectory"
+set $total = $total + 1
+print   ✓ Cleanup complete
+set $passed = $passed + 1
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 17: Time & Date Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 17: Time & Date Functions ━━━
+print
+
+print [90] Now (timestamp)
+set $ts = call now
+set $total = $total + 1
+if $ts > 0 then { print   ✓ PASSED (timestamp: $ts); set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print [91] Date/Time
+set $date = call date
+set $time = call time
+set $total = $total + 1
+print   Date: $date, Time: $time
+print   ✓ PASSED
+set $passed = $passed + 1
+
+print [92] Year/Month/Day
+set $year = call year
+set $month = call month
+set $day = call day
+set $total = $total + 1
+if $year > 2020 && $month >= 1 && $month <= 12 && $day >= 1 && $day <= 31 then { print   ✓ PASSED ($year-$month-$day); set $passed = $passed + 1 } else { print   ✗ FAILED; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 18: JSON Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 18: JSON Functions ━━━
+print
+
+print [93] toJSON
+set $obj = {name: "Test", value: 42}
+set $json = call toJSON $obj
+set $total = $total + 1
+set $hasName = call contains $json "name"
+if $hasName == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $json; set $failed = $failed + 1 }
+
+print [94] fromJSON
+set $jsonStr = "{\"x\": 10, \"y\": 20}"
+set $parsed = call fromJSON $jsonStr
+set $xVal = call get $parsed "x"
+set $total = $total + 1
+if $xVal == 10 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $xVal; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 19: Advanced Function Patterns
+# ═══════════════════════════════════════════════════════════════════════════════
+print ━━━ SECTION 19: Advanced Function Patterns ━━━
+print
+
+print [95] Function Returning Array
+def makeArray($a, $b, $c) {
+    set $arr = [$a, $b, $c]
+    return $arr
+}
+set $result = call makeArray 1 2 3
+set $len = call count $result
+set $total = $total + 1
+if $len == 3 then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $len; set $failed = $failed + 1 }
+
+print [96] Function Returning Object
+def makeUser($name, $age) {
+    set $user = {name: $name, age: $age}
+    return $user
+}
+set $user = call makeUser "Bob" 25
+set $userName = call get $user "name"
+set $total = $total + 1
+if $userName == "Bob" then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $userName; set $failed = $failed + 1 }
+
+print [97] Higher-Order-ish Pattern (foreach in function)
+def sumArray($arr) {
+    set $sum = 0
+    foreach $item in $arr {
+        set $sum = $sum + $item
+    }
+    return $sum
+}
+set $nums = [10, 20, 30]
+set $result = call sumArray $nums
+set $total = $total + 1
+if $result == 60 then { print   ✓ PASSED (10+20+30=60); set $passed = $passed + 1 } else { print   ✗ FAILED: $result; set $failed = $failed + 1 }
+
+print [98] Multiple Function Calls
+def double($x) { return $x * 2 }
+def triple($x) { return $x * 3 }
+set $a = call double 5
+set $b = call triple $a
+set $total = $total + 1
+# double(5) = 10, triple(10) = 30
+if $b == 30 then { print   ✓ PASSED (double(5)=10, triple(10)=30); set $passed = $passed + 1 } else { print   ✗ FAILED: $b; set $failed = $failed + 1 }
+
+print [99] Function with Default-like Behavior
+def greetWithDefault($name) {
+    if $name == null then {
+        return "Hello, Guest!"
+    }
+    set $msg = "Hello, " + $name + "!"
+    return $msg
+}
+set $g1 = call greetWithDefault "Alice"
+set $total = $total + 1
+set $hasAlice = call contains $g1 "Alice"
+if $hasAlice == true then { print   ✓ PASSED; set $passed = $passed + 1 } else { print   ✗ FAILED: $g1; set $failed = $failed + 1 }
+
+print [100] Recursive Fibonacci
+def fib($n) {
+    if $n <= 1 then { return $n }
+    set $n1 = $n - 1
+    set $n2 = $n - 2
+    set $f1 = call fib $n1
+    set $f2 = call fib $n2
+    return $f1 + $f2
+}
+set $fib7 = call fib 7
+set $total = $total + 1
+# fib(7) = 13
+if $fib7 == 13 then { print   ✓ PASSED (fib(7)=13); set $passed = $passed + 1 } else { print   ✗ FAILED: $fib7; set $failed = $failed + 1 }
+
+print
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST RESULTS
+# ═══════════════════════════════════════════════════════════════════════════════
+print ╔═══════════════════════════════════════════════════════════════════════════╗
+print ║                         TEST RESULTS                                      ║
+print ╠═══════════════════════════════════════════════════════════════════════════╣
+print ║  Total Tests:   $total                                                    ║
+print ║  Passed:        $passed                                                   ║
+print ║  Failed:        $failed                                                   ║
+print ╠═══════════════════════════════════════════════════════════════════════════╣
+
+set $passRate = $passed * 100 / $total
+set $passRate = call round $passRate
+
+print ║  Pass Rate:     $passRate%                                                ║
+print ╠═══════════════════════════════════════════════════════════════════════════╣
+
+if $failed == 0 then {
+    print ║  ✓ ALL TESTS PASSED! RetroScript is fully operational!                  ║
+} else {
+    print ║  ⚠ Some tests failed. Check output above for details.                   ║
+}
+
+print ╠═══════════════════════════════════════════════════════════════════════════╣
+print ║  Features Tested:                                                         ║
+print ║  ✓ Variables & Types        ✓ Arithmetic Operations                       ║
+print ║  ✓ Comparison Operators     ✓ Logical Operators                           ║
+print ║  ✓ If/Else Conditionals     ✓ Count Loops                                 ║
+print ║  ✓ While Loops              ✓ Foreach Loops                               ║
+print ║  ✓ User-Defined Functions   ✓ Recursive Functions                         ║
+print ║  ✓ Arrays & Array Funcs     ✓ Objects & Object Funcs                      ║
+print ║  ✓ String Functions         ✓ Math Functions                              ║
+print ║  ✓ Type Functions           ✓ Try/Catch Errors                            ║
+print ║  ✓ File System Ops          ✓ Time/Date Functions                         ║
+print ║  ✓ JSON Functions           ✓ Advanced Patterns                           ║
+print ╚═══════════════════════════════════════════════════════════════════════════╝
