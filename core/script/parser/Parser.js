@@ -530,19 +530,22 @@ export class Parser {
 
     /**
      * Parse event name which may be namespaced like "app:launch"
-     * Collects IDENTIFIER:IDENTIFIER:... sequences
+     * Collects name:name:... sequences where each name can be an identifier or keyword
+     * (e.g., "sound:play", "dialog:alert", "window:focus", "file:read")
      * @returns {string} Event name
      */
     parseEventName() {
-        if (!this.check(TokenType.IDENTIFIER)) {
+        const token = this.peek();
+        if (token.type !== TokenType.IDENTIFIER && !token.isKeyword()) {
             throw this.error('Expected event name');
         }
         let eventName = this.advance().value;
 
-        // Collect any additional namespaced parts (colon followed by identifier)
+        // Collect any additional namespaced parts (colon followed by identifier or keyword)
         while (this.check(TokenType.COLON)) {
             this.advance(); // consume ':'
-            if (this.check(TokenType.IDENTIFIER)) {
+            const next = this.peek();
+            if (next && (next.type === TokenType.IDENTIFIER || next.isKeyword())) {
                 eventName += ':' + this.advance().value;
             } else {
                 // Trailing colon - just include it
