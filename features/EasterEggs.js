@@ -56,7 +56,7 @@ class EasterEggs extends FeatureBase {
         if (!this.isEnabled()) return;
 
         // Add keydown handler for cheat codes
-        this.addHandler(document, 'keydown', this.handleKeydown);
+        this.addHandler(document, 'keydown', (e) => this.handleKeydown(e));
 
         this.log('Initialized');
     }
