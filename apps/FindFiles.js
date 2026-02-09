@@ -495,7 +495,7 @@ class FindFiles extends AppBase {
 
         if (result.isDirectory) {
             // Open in My Computer
-            AppRegistry.launch('mycomputer', { path: result.path });
+            AppRegistry.launch('mycomputer', { initialPath: result.path });
         } else {
             // Open file based on type
             if (result.extension === 'txt' || result.extension === 'md' || result.extension === 'log') {
@@ -504,7 +504,7 @@ class FindFiles extends AppBase {
                 AppRegistry.launch('paint', { filePath: result.path });
             } else {
                 // Try to open parent folder
-                AppRegistry.launch('mycomputer', { path: result.path.slice(0, -1) });
+                AppRegistry.launch('mycomputer', { initialPath: result.path.slice(0, -1) });
             }
         }
     }
