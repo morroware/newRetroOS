@@ -529,24 +529,51 @@ export class Parser {
     }
 
     /**
+     * Check if token is a valid event name part (identifier or keyword)
+     * @returns {boolean}
+     */
+    isEventNamePart() {
+        const t = this.peek();
+        return t && (t.type === TokenType.IDENTIFIER || t.isKeyword());
+    }
+
+    /**
+     * Consume an event name segment which may contain hyphens
+     * e.g., "bg-change", "settings-change", "file-open"
+     * @returns {string} The segment including any hyphenated parts
+     */
+    consumeEventSegment() {
+        let segment = this.advance().value;
+        // Consume hyphen-joined parts: bg-change, settings-change, etc.
+        while (this.check(TokenType.MINUS) && this.current + 1 < this.tokens.length) {
+            const afterMinus = this.tokens[this.current + 1];
+            if (afterMinus && (afterMinus.type === TokenType.IDENTIFIER || afterMinus.isKeyword())) {
+                this.advance(); // consume '-'
+                segment += '-' + this.advance().value;
+            } else {
+                break;
+            }
+        }
+        return segment;
+    }
+
+    /**
      * Parse event name which may be namespaced like "app:launch"
-     * Collects name:name:... sequences where each name can be an identifier or keyword
-     * (e.g., "sound:play", "dialog:alert", "window:focus", "file:read")
+     * Supports identifiers, keywords, and hyphenated segments as name parts
+     * (e.g., "sound:play", "dialog:alert", "desktop:bg-change", "file:read")
      * @returns {string} Event name
      */
     parseEventName() {
-        const token = this.peek();
-        if (token.type !== TokenType.IDENTIFIER && !token.isKeyword()) {
+        if (!this.isEventNamePart()) {
             throw this.error('Expected event name');
         }
-        let eventName = this.advance().value;
+        let eventName = this.consumeEventSegment();
 
-        // Collect any additional namespaced parts (colon followed by identifier or keyword)
+        // Collect any additional namespaced parts (colon followed by name segment)
         while (this.check(TokenType.COLON)) {
             this.advance(); // consume ':'
-            const next = this.peek();
-            if (next && (next.type === TokenType.IDENTIFIER || next.isKeyword())) {
-                eventName += ':' + this.advance().value;
+            if (this.isEventNamePart()) {
+                eventName += ':' + this.consumeEventSegment();
             } else {
                 // Trailing colon - just include it
                 eventName += ':';
@@ -567,10 +594,11 @@ export class Parser {
         // Parse event name (may include colons like "app:launch")
         const eventName = this.parseEventName();
 
-        // Parse payload key=value pairs
+        // Parse payload key=value pairs (keys can be identifiers or keywords like "repeat")
         const payload = {};
         while (!this.isStatementEnd()) {
-            if (this.check(TokenType.IDENTIFIER)) {
+            const keyToken = this.peek();
+            if (keyToken.type === TokenType.IDENTIFIER || keyToken.isKeyword()) {
                 const key = this.advance().value;
                 if (this.match(TokenType.ASSIGN)) {
                     payload[key] = this.parseExpression();
