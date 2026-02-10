@@ -424,18 +424,19 @@ class SystemDialogs extends FeatureBase {
         const runCancelBtn = document.getElementById('runCancelBtn');
         const runBrowseBtn = document.getElementById('runBrowseBtn');
 
-        runOkBtn?.addEventListener('click', () => this.executeRunCommand());
-        runCancelBtn?.addEventListener('click', () => this.hideRunDialog());
-        runBrowseBtn?.addEventListener('click', () => {
+        if (runOkBtn) this.addHandler(runOkBtn, 'click', () => this.executeRunCommand());
+        if (runCancelBtn) this.addHandler(runCancelBtn, 'click', () => this.hideRunDialog());
+        if (runBrowseBtn) this.addHandler(runBrowseBtn, 'click', () => {
             AppRegistry.launch('mycomputer');
             this.hideRunDialog();
         });
-        runInput?.addEventListener('keydown', (e) => {
+        if (runInput) this.addHandler(runInput, 'keydown', (e) => {
             if (e.key === 'Enter') this.executeRunCommand();
             if (e.key === 'Escape') this.hideRunDialog();
         });
-        runDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.hideRunDialog());
-        runDialog?.addEventListener('click', (e) => {
+        const runCloseBtn = runDialog?.querySelector('.dialog-close-btn');
+        if (runCloseBtn) this.addHandler(runCloseBtn, 'click', () => this.hideRunDialog());
+        if (runDialog) this.addHandler(runDialog, 'click', (e) => {
             if (e.target === runDialog) this.hideRunDialog();
         });
 
@@ -445,14 +446,15 @@ class SystemDialogs extends FeatureBase {
         const shutdownCancelBtn = document.getElementById('shutdownCancelBtn');
         const shutdownHelpBtn = document.getElementById('shutdownHelpBtn');
 
-        shutdownOkBtn?.addEventListener('click', () => this.executeShutdown());
-        shutdownCancelBtn?.addEventListener('click', () => this.hideShutdownDialog());
-        shutdownHelpBtn?.addEventListener('click', () => {
+        if (shutdownOkBtn) this.addHandler(shutdownOkBtn, 'click', () => this.executeShutdown());
+        if (shutdownCancelBtn) this.addHandler(shutdownCancelBtn, 'click', () => this.hideShutdownDialog());
+        if (shutdownHelpBtn) this.addHandler(shutdownHelpBtn, 'click', () => {
             this.hideShutdownDialog();
             this.showAboutDialog();
         });
-        shutdownDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.hideShutdownDialog());
-        shutdownDialog?.addEventListener('click', (e) => {
+        const shutdownCloseBtn = shutdownDialog?.querySelector('.dialog-close-btn');
+        if (shutdownCloseBtn) this.addHandler(shutdownCloseBtn, 'click', () => this.hideShutdownDialog());
+        if (shutdownDialog) this.addHandler(shutdownDialog, 'click', (e) => {
             if (e.target === shutdownDialog) this.hideShutdownDialog();
         });
 
@@ -460,9 +462,10 @@ class SystemDialogs extends FeatureBase {
         const aboutDialog = document.getElementById('aboutDialog');
         const aboutOkBtn = document.getElementById('aboutOkBtn');
 
-        aboutOkBtn?.addEventListener('click', () => this.hideAboutDialog());
-        aboutDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.hideAboutDialog());
-        aboutDialog?.addEventListener('click', (e) => {
+        if (aboutOkBtn) this.addHandler(aboutOkBtn, 'click', () => this.hideAboutDialog());
+        const aboutCloseBtn = aboutDialog?.querySelector('.dialog-close-btn');
+        if (aboutCloseBtn) this.addHandler(aboutCloseBtn, 'click', () => this.hideAboutDialog());
+        if (aboutDialog) this.addHandler(aboutDialog, 'click', (e) => {
             if (e.target === aboutDialog) this.hideAboutDialog();
         });
 
@@ -471,7 +474,7 @@ class SystemDialogs extends FeatureBase {
         const welcomeOkBtn = document.getElementById('welcomeOkBtn');
         const welcomeShowAgain = document.getElementById('welcomeShowAgain');
 
-        welcomeOkBtn?.addEventListener('click', () => {
+        if (welcomeOkBtn) this.addHandler(welcomeOkBtn, 'click', () => {
             if (!welcomeShowAgain?.checked) {
                 StateManager.setState('user.seenWelcome', true, true);
             } else {
@@ -479,15 +482,17 @@ class SystemDialogs extends FeatureBase {
             }
             this.hideWelcomeDialog();
         });
-        welcomeDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.hideWelcomeDialog());
+        const welcomeCloseBtn = welcomeDialog?.querySelector('.dialog-close-btn');
+        if (welcomeCloseBtn) this.addHandler(welcomeCloseBtn, 'click', () => this.hideWelcomeDialog());
 
         // Alert Dialog handlers
         const alertDialog = document.getElementById('alertDialog');
         const alertOkBtn = document.getElementById('alertOkBtn');
 
-        alertOkBtn?.addEventListener('click', () => this.resolveAlert());
-        alertDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.resolveAlert());
-        alertDialog?.addEventListener('click', (e) => {
+        if (alertOkBtn) this.addHandler(alertOkBtn, 'click', () => this.resolveAlert());
+        const alertCloseBtn = alertDialog?.querySelector('.dialog-close-btn');
+        if (alertCloseBtn) this.addHandler(alertCloseBtn, 'click', () => this.resolveAlert());
+        if (alertDialog) this.addHandler(alertDialog, 'click', (e) => {
             if (e.target === alertDialog) this.resolveAlert();
         });
 
@@ -496,10 +501,11 @@ class SystemDialogs extends FeatureBase {
         const confirmYesBtn = document.getElementById('confirmYesBtn');
         const confirmNoBtn = document.getElementById('confirmNoBtn');
 
-        confirmYesBtn?.addEventListener('click', () => this.resolveConfirm(true));
-        confirmNoBtn?.addEventListener('click', () => this.resolveConfirm(false));
-        confirmDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.resolveConfirm(false));
-        confirmDialog?.addEventListener('click', (e) => {
+        if (confirmYesBtn) this.addHandler(confirmYesBtn, 'click', () => this.resolveConfirm(true));
+        if (confirmNoBtn) this.addHandler(confirmNoBtn, 'click', () => this.resolveConfirm(false));
+        const confirmCloseBtn = confirmDialog?.querySelector('.dialog-close-btn');
+        if (confirmCloseBtn) this.addHandler(confirmCloseBtn, 'click', () => this.resolveConfirm(false));
+        if (confirmDialog) this.addHandler(confirmDialog, 'click', (e) => {
             if (e.target === confirmDialog) this.resolveConfirm(false);
         });
 
@@ -509,13 +515,14 @@ class SystemDialogs extends FeatureBase {
         const promptCancelBtn = document.getElementById('promptCancelBtn');
         const promptInput = document.getElementById('promptInput');
 
-        promptOkBtn?.addEventListener('click', () => this.resolvePrompt(promptInput?.value || ''));
-        promptCancelBtn?.addEventListener('click', () => this.resolvePrompt(null));
-        promptDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.resolvePrompt(null));
-        promptDialog?.addEventListener('click', (e) => {
+        if (promptOkBtn) this.addHandler(promptOkBtn, 'click', () => this.resolvePrompt(promptInput?.value || ''));
+        if (promptCancelBtn) this.addHandler(promptCancelBtn, 'click', () => this.resolvePrompt(null));
+        const promptCloseBtn = promptDialog?.querySelector('.dialog-close-btn');
+        if (promptCloseBtn) this.addHandler(promptCloseBtn, 'click', () => this.resolvePrompt(null));
+        if (promptDialog) this.addHandler(promptDialog, 'click', (e) => {
             if (e.target === promptDialog) this.resolvePrompt(null);
         });
-        promptInput?.addEventListener('keydown', (e) => {
+        if (promptInput) this.addHandler(promptInput, 'keydown', (e) => {
             if (e.key === 'Enter') this.resolvePrompt(promptInput?.value || '');
             if (e.key === 'Escape') this.resolvePrompt(null);
         });
@@ -529,13 +536,14 @@ class SystemDialogs extends FeatureBase {
         const fileDialogFilename = document.getElementById('fileDialogFilename');
         const fileDialogPathSelect = document.getElementById('fileDialogPathSelect');
 
-        fileDialogOkBtn?.addEventListener('click', () => this.resolveFileDialog());
-        fileDialogCancelBtn?.addEventListener('click', () => this.cancelFileDialog());
-        fileDialog?.querySelector('.dialog-close-btn')?.addEventListener('click', () => this.cancelFileDialog());
-        fileDialogUp?.addEventListener('click', () => this.fileDialogNavigateUp());
-        fileDialogNewFolder?.addEventListener('click', () => this.fileDialogCreateFolder());
-        fileDialogPathSelect?.addEventListener('change', (e) => this.fileDialogNavigateTo(e.target.value));
-        fileDialogFilename?.addEventListener('keydown', (e) => {
+        if (fileDialogOkBtn) this.addHandler(fileDialogOkBtn, 'click', () => this.resolveFileDialog());
+        if (fileDialogCancelBtn) this.addHandler(fileDialogCancelBtn, 'click', () => this.cancelFileDialog());
+        const fileCloseBtn = fileDialog?.querySelector('.dialog-close-btn');
+        if (fileCloseBtn) this.addHandler(fileCloseBtn, 'click', () => this.cancelFileDialog());
+        if (fileDialogUp) this.addHandler(fileDialogUp, 'click', () => this.fileDialogNavigateUp());
+        if (fileDialogNewFolder) this.addHandler(fileDialogNewFolder, 'click', () => this.fileDialogCreateFolder());
+        if (fileDialogPathSelect) this.addHandler(fileDialogPathSelect, 'change', (e) => this.fileDialogNavigateTo(e.target.value));
+        if (fileDialogFilename) this.addHandler(fileDialogFilename, 'keydown', (e) => {
             if (e.key === 'Enter') this.resolveFileDialog();
             if (e.key === 'Escape') this.cancelFileDialog();
         });
@@ -545,7 +553,7 @@ class SystemDialogs extends FeatureBase {
      * Setup keyboard shortcuts
      */
     setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
+        this.addHandler(document, 'keydown', (e) => {
             // Win+R or Ctrl+R = Run dialog
             if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
                 e.preventDefault();

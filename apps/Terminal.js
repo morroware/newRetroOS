@@ -5,7 +5,7 @@
  */
 
 import AppBase from './AppBase.js';
-import EventBus from '../core/EventBus.js';
+import EventBus, { Events } from '../core/EventBus.js';
 import StateManager from '../core/StateManager.js';
 import FileSystemManager from '../core/FileSystemManager.js';
 import { PATHS } from '../core/Constants.js';
@@ -62,7 +62,7 @@ class Terminal extends AppBase {
             }
             try {
                 this.executeCommand(cmd);
-                EventBus.emit('terminal:command:executed', {
+                EventBus.emit(Events.TERMINAL_COMMAND_EXECUTED, {
                     appId: this.id,
                     windowId: this.windowId,
                     command: cmd,
@@ -70,7 +70,7 @@ class Terminal extends AppBase {
                 });
                 return { success: true, command: cmd, output: this.lastOutput };
             } catch (error) {
-                EventBus.emit('terminal:command:error', {
+                EventBus.emit(Events.TERMINAL_COMMAND_ERROR, {
                     appId: this.id,
                     command: cmd,
                     error: error.message
@@ -95,7 +95,7 @@ class Terminal extends AppBase {
         // Clear the terminal screen
         this.registerCommand('clear', () => {
             this.cmdClear();
-            EventBus.emit('terminal:cleared', {
+            EventBus.emit(Events.TERMINAL_CLEARED, {
                 appId: this.id,
                 windowId: this.windowId,
                 timestamp: Date.now()
@@ -128,7 +128,7 @@ class Terminal extends AppBase {
             }
             try {
                 this.cmdCd([path]);
-                EventBus.emit('terminal:directory:changed', {
+                EventBus.emit(Events.TERMINAL_DIRECTORY_CHANGED, {
                     appId: this.id,
                     path: this.currentPath,
                     timestamp: Date.now()
@@ -237,7 +237,7 @@ class Terminal extends AppBase {
         // Focus the terminal window
         this.registerCommand('focus', () => {
             if (this.windowId) {
-                EventBus.emit('window:focus', { windowId: this.windowId });
+                EventBus.emit(Events.WINDOW_FOCUS, { windowId: this.windowId });
                 return { success: true };
             }
             return { success: false, error: 'Window not available' };
@@ -246,7 +246,7 @@ class Terminal extends AppBase {
         // Minimize the terminal window
         this.registerCommand('minimize', () => {
             if (this.windowId) {
-                EventBus.emit('window:minimize', { windowId: this.windowId });
+                EventBus.emit(Events.WINDOW_MINIMIZE, { windowId: this.windowId });
                 return { success: true };
             }
             return { success: false, error: 'Window not available' };
@@ -255,7 +255,7 @@ class Terminal extends AppBase {
         // Maximize the terminal window
         this.registerCommand('maximize', () => {
             if (this.windowId) {
-                EventBus.emit('window:maximize', { windowId: this.windowId });
+                EventBus.emit(Events.WINDOW_MAXIMIZE, { windowId: this.windowId });
                 return { success: true };
             }
             return { success: false, error: 'Window not available' };
@@ -530,16 +530,18 @@ class Terminal extends AppBase {
         const input = this.getElement('#terminalInput');
         const scroller = this.getElement('#terminalScroller');
 
-        scroller?.addEventListener('click', () => {
-            if (window.getSelection().toString().length === 0) {
-                input?.focus();
-            }
-        });
+        if (scroller) {
+            this.addHandler(scroller, 'click', () => {
+                if (window.getSelection().toString().length === 0) {
+                    input?.focus();
+                }
+            });
+        }
 
         this.runBootSequence();
 
         // Emit terminal opened event for script handlers
-        EventBus.emit('app:terminal:opened', {
+        EventBus.emit(Events.APP_TERMINAL_OPENED, {
             appId: this.id,
             windowId: this.windowId,
             currentPath: this.currentPath,
@@ -645,7 +647,7 @@ class Terminal extends AppBase {
         this.lastOutput = String(text);
 
         // Emit semantic event for output
-        EventBus.emit('terminal:output', {
+        EventBus.emit(Events.TERMINAL_OUTPUT, {
             appId: this.id,
             windowId: this.windowId,
             text: String(text),
@@ -835,7 +837,7 @@ class Terminal extends AppBase {
         }
 
         // Emit command executed event for script handlers
-        EventBus.emit('app:terminal:command', {
+        EventBus.emit(Events.APP_TERMINAL_COMMAND, {
             appId: this.id,
             windowId: this.windowId,
             command: trimmed,
@@ -1926,7 +1928,7 @@ Active Connections
 
     startParty() {
         document.body.classList.add('disco-mode');
-        EventBus.emit('pet:toggle', { enabled: true });
+        EventBus.emit(Events.PET_TOGGLE, { enabled: true });
         setTimeout(() => document.body.classList.remove('disco-mode'), 10000);
         return 'PARTY TIME!';
     }
@@ -1970,7 +1972,7 @@ Active Connections
     }
 
     triggerBSOD() {
-        EventBus.emit('bsod:show', {
+        EventBus.emit(Events.BSOD_SHOW, {
             title: 'KERNEL_PANIC',
             msg: 'System halted. Just kidding!'
         });
@@ -2847,7 +2849,7 @@ ECHO Batch script completed!
         }
 
         // Emit terminal closed event for script handlers
-        EventBus.emit('app:terminal:closed', {
+        EventBus.emit(Events.APP_TERMINAL_CLOSED, {
             appId: this.id,
             windowId: this.windowId,
             commandHistory: [...this.commandHistory],

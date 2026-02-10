@@ -3,9 +3,11 @@
  * Provides localStorage wrapper with JSON serialization and fallbacks
  */
 
+import { STORAGE_KEYS } from './Constants.js';
+
 class StorageManagerClass {
     constructor() {
-        this.prefix = 'illuminatos_'; // IlluminatOS! prefix
+        this.prefix = STORAGE_KEYS.PREFIX;
         this.available = this.checkAvailability();
         this.memoryFallback = new Map();
     }

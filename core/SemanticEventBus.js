@@ -1331,6 +1331,16 @@ export const Events = {
     TERMINAL_ERROR: 'terminal:error',
     TERMINAL_CWD_CHANGE: 'terminal:cwd:change',
     TERMINAL_MATRIX: 'terminal:matrix',
+    TERMINAL_COMMAND_EXECUTED: 'terminal:command:executed',
+    TERMINAL_COMMAND_ERROR: 'terminal:command:error',
+    TERMINAL_CLEARED: 'terminal:cleared',
+    TERMINAL_DIRECTORY_CHANGED: 'terminal:directory:changed',
+    APP_TERMINAL_OPENED: 'app:terminal:opened',
+    APP_TERMINAL_COMMAND: 'app:terminal:command',
+    APP_TERMINAL_CLOSED: 'app:terminal:closed',
+
+    // App error events
+    APP_LAUNCH_ERROR: 'app:launch:error',
 
     // BSOD events
     BSOD_SHOW: 'bsod:show'

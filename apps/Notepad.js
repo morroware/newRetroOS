@@ -116,11 +116,16 @@ class Notepad extends AppBase {
 
     onMount() {
         // Button handlers
-        this.getElement('#btnNew')?.addEventListener('click', () => this.newDocument());
-        this.getElement('#btnOpen')?.addEventListener('click', () => this.openFile());
-        this.getElement('#btnSave')?.addEventListener('click', () => this.save());
-        this.getElement('#btnSaveAs')?.addEventListener('click', () => this.saveAs());
-        this.getElement('#btnDownload')?.addEventListener('click', () => this.download());
+        const btnNew = this.getElement('#btnNew');
+        const btnOpen = this.getElement('#btnOpen');
+        const btnSave = this.getElement('#btnSave');
+        const btnSaveAs = this.getElement('#btnSaveAs');
+        const btnDownload = this.getElement('#btnDownload');
+        if (btnNew) this.addHandler(btnNew, 'click', () => this.newDocument());
+        if (btnOpen) this.addHandler(btnOpen, 'click', () => this.openFile());
+        if (btnSave) this.addHandler(btnSave, 'click', () => this.save());
+        if (btnSaveAs) this.addHandler(btnSaveAs, 'click', () => this.saveAs());
+        if (btnDownload) this.addHandler(btnDownload, 'click', () => this.download());
 
         // Keyboard shortcut
         this.addHandler(document, 'keydown', this.handleKeypress);

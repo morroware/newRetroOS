@@ -136,7 +136,7 @@ class AppRegistryClass {
             new Terminal(),
             new Defrag(),
             new TaskManager(),
-            ScriptRunner,
+            new ScriptRunner(),
         ]);
 
         // --- Games ---

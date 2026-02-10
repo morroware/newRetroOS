@@ -165,7 +165,6 @@ class CommandBusClass {
             const app = AppRegistry.get(appId);
             const windowId = app?._currentWindowId || app?.windowId;
 
-            EventBus.emit('app:launched', { appId, windowId, params });
             return { appId, windowId, success: true };
         });
 
