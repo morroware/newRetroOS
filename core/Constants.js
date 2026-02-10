@@ -151,7 +151,7 @@ export const CATEGORY_INFO = Object.freeze({
 // ============================================
 
 export const STORAGE_KEYS = Object.freeze({
-    PREFIX: 'smos_',
+    PREFIX: 'illuminatos_',
     DESKTOP_ICONS: 'desktopIcons',
     FILE_POSITIONS: 'filePositions',
     MENU_ITEMS: 'menuItems',

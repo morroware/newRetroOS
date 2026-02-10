@@ -3989,4 +3989,4 @@ into the editor to modify and run it!
     }
 }
 
-export default new ScriptRunner();
+export default ScriptRunner;

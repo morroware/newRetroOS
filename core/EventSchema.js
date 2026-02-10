@@ -4961,6 +4961,115 @@ export const EventSchema = {
         example: {}
     },
 
+    'terminal:command:executed': {
+        namespace: 'terminal',
+        action: 'command:executed',
+        description: 'Terminal command successfully executed',
+        payload: {
+            appId: 'string',
+            windowId: 'string?',
+            command: 'string',
+            timestamp: 'number?'
+        },
+        example: { appId: 'terminal', windowId: 'win-1', command: 'dir', timestamp: 1700000000000 }
+    },
+
+    'terminal:command:error': {
+        namespace: 'terminal',
+        action: 'command:error',
+        description: 'Terminal command execution error',
+        payload: {
+            appId: 'string',
+            command: 'string',
+            error: 'string'
+        },
+        example: { appId: 'terminal', command: 'badcmd', error: 'Command not found' }
+    },
+
+    'terminal:cleared': {
+        namespace: 'terminal',
+        action: 'cleared',
+        description: 'Terminal screen cleared',
+        payload: {
+            appId: 'string',
+            windowId: 'string?',
+            timestamp: 'number?'
+        },
+        example: { appId: 'terminal', windowId: 'win-1', timestamp: 1700000000000 }
+    },
+
+    'terminal:directory:changed': {
+        namespace: 'terminal',
+        action: 'directory:changed',
+        description: 'Terminal working directory changed',
+        payload: {
+            appId: 'string',
+            path: 'array',
+            timestamp: 'number?'
+        },
+        example: { appId: 'terminal', path: ['C:', 'Users', 'User'], timestamp: 1700000000000 }
+    },
+
+    'app:terminal:opened': {
+        namespace: 'app',
+        action: 'terminal:opened',
+        description: 'Terminal window opened',
+        payload: {
+            appId: 'string',
+            windowId: 'string?',
+            currentPath: 'array?',
+            pathString: 'string?',
+            timestamp: 'number?'
+        },
+        example: { appId: 'terminal', windowId: 'win-1', pathString: 'C:\\Users\\User' }
+    },
+
+    'app:terminal:command': {
+        namespace: 'app',
+        action: 'terminal:command',
+        description: 'Terminal command processed with full context',
+        payload: {
+            appId: 'string',
+            windowId: 'string?',
+            command: 'string',
+            cmd: 'string?',
+            args: 'array?',
+            output: 'string?',
+            currentPath: 'array?',
+            pathString: 'string?',
+            timestamp: 'number?'
+        },
+        example: { appId: 'terminal', command: 'dir /w', cmd: 'dir', args: ['/w'] }
+    },
+
+    'app:terminal:closed': {
+        namespace: 'app',
+        action: 'terminal:closed',
+        description: 'Terminal window closed',
+        payload: {
+            appId: 'string',
+            windowId: 'string?',
+            commandHistory: 'array?',
+            historyCount: 'number?',
+            timestamp: 'number?'
+        },
+        example: { appId: 'terminal', windowId: 'win-1', historyCount: 42 }
+    },
+
+    'app:launch:error': {
+        namespace: 'app',
+        action: 'launch:error',
+        description: 'App launch failed with error',
+        payload: {
+            appId: 'string',
+            appName: 'string?',
+            error: 'string',
+            stack: 'string?',
+            timestamp: 'number?'
+        },
+        example: { appId: 'notepad', error: 'Failed to initialize' }
+    },
+
     // ==========================================
     // BSOD EVENTS (Blue Screen of Death)
     // ==========================================
