@@ -1,5 +1,0 @@
-# Test bracket syntax in unquoted print
-print [1] First test with brackets
-print [2] Second test with brackets
-print [3] Third test {with braces too}
-print Test complete!
