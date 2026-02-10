@@ -187,10 +187,46 @@ class StorageManagerClass {
 
     /**
      * Cleanup old/unnecessary data when storage is full
+     * Removes the largest non-essential items to free space
      */
     cleanup() {
         console.log('[StorageManager] Running cleanup...');
-        // Could implement LRU cache or remove old data here
+        if (!this.available) return;
+
+        // Collect all app items with their sizes
+        const items = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith(this.prefix)) {
+                const value = localStorage.getItem(key);
+                items.push({ key, size: (key.length + value.length) * 2 });
+            }
+        }
+
+        // Sort by size descending - remove largest items first
+        items.sort((a, b) => b.size - a.size);
+
+        // Essential keys that should not be cleaned up
+        const essential = new Set([
+            this.getKey('desktopIcons'),
+            this.getKey('soundEnabled'),
+            this.getKey('crtEnabled'),
+            this.getKey('petEnabled'),
+            this.getKey('hasVisited'),
+            this.getKey('achievements')
+        ]);
+
+        let freed = 0;
+        for (const item of items) {
+            if (essential.has(item.key)) continue;
+            localStorage.removeItem(item.key);
+            freed += item.size;
+            console.log(`[StorageManager] Removed ${item.key} (${item.size} bytes)`);
+            // Free at least 100KB
+            if (freed > 100 * 1024) break;
+        }
+
+        console.log(`[StorageManager] Freed ~${Math.round(freed / 1024)}KB`);
     }
 
     /**

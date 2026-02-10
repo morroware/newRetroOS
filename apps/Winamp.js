@@ -398,13 +398,13 @@ class Winamp extends AppBase {
             this.oscillator.frequency.setValueAtTime(track.freq, this.audioContext.currentTime);
 
             // Add some modulation for interest
-            const lfo = this.audioContext.createOscillator();
-            const lfoGain = this.audioContext.createGain();
-            lfo.frequency.setValueAtTime(5, this.audioContext.currentTime);
-            lfoGain.gain.setValueAtTime(10, this.audioContext.currentTime);
-            lfo.connect(lfoGain);
-            lfoGain.connect(this.oscillator.frequency);
-            lfo.start();
+            this.lfo = this.audioContext.createOscillator();
+            this.lfoGain = this.audioContext.createGain();
+            this.lfo.frequency.setValueAtTime(5, this.audioContext.currentTime);
+            this.lfoGain.gain.setValueAtTime(10, this.audioContext.currentTime);
+            this.lfo.connect(this.lfoGain);
+            this.lfoGain.connect(this.oscillator.frequency);
+            this.lfo.start();
 
             this.oscillator.connect(this.analyser);
             this.oscillator.start();
@@ -443,6 +443,10 @@ class Winamp extends AppBase {
     pause() {
         if (!this.isPlaying) return;
 
+        if (this.lfo) {
+            this.lfo.stop();
+            this.lfo = null;
+        }
         if (this.oscillator) {
             this.oscillator.stop();
             this.oscillator = null;

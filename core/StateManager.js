@@ -129,10 +129,12 @@ class StateManagerClass {
         const keys = path.split('.');
         const lastKey = keys.pop();
         
-        // Navigate to parent object
+        // Navigate to parent object, creating intermediate objects as needed
         let obj = this.state;
         for (const key of keys) {
-            if (!obj[key]) obj[key] = {};
+            if (obj[key] === undefined || obj[key] === null || typeof obj[key] !== 'object') {
+                obj[key] = {};
+            }
             obj = obj[key];
         }
         
