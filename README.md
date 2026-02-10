@@ -4,7 +4,7 @@
 
 **A Retro Operating System Simulator**
 
-*Version 95.0*
+*Version 95.0 - Modular Edition*
 
 [![Made with JavaScript](https://img.shields.io/badge/Made%20with-JavaScript-f7df1e?style=flat-square&logo=javascript)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![No Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen?style=flat-square)](https://github.com/morroware/RetrOS)
@@ -23,11 +23,12 @@ IlluminatOS! is a fully-functional retro desktop environment simulator built ent
 This project demonstrates advanced JavaScript patterns, event-driven architecture, and sophisticated UI/UX implementation—all without any external frameworks or dependencies.
 
 **Project Stats:**
-- **~59,000+ lines of JavaScript** across 127+ files
+- **~67,000+ lines of JavaScript** across 90+ files
 - **~5,300+ lines of modular CSS** across 37 files
-- **31 fully-functional applications**
+- **32+ fully-functional applications**
 - **200+ semantic events** for complete system observability
 - **15 core system modules** powering the OS
+- **170+ built-in scripting functions** across 11 modules
 - **Extensible plugin system** with example plugins
 - **Full scripting support** via RetroScript language with autoexec support
 - **Zero external dependencies** - pure vanilla JavaScript
@@ -116,10 +117,10 @@ IlluminatOS! requires no build process, package installation, or compilation. Si
 
 | Browser | Minimum Version |
 |---------|-----------------|
-| Chrome  | 61+             |
-| Firefox | 60+             |
-| Safari  | 11+             |
-| Edge    | 79+             |
+| Chrome  | 90+             |
+| Firefox | 88+             |
+| Safari  | 14+             |
+| Edge    | 90+             |
 
 **Required Browser APIs:**
 - ES6 Modules
@@ -170,7 +171,9 @@ When you first load IlluminatOS!, you'll experience an authentic boot sequence:
 
 | Shortcut | Application | Action |
 |----------|-------------|--------|
+| `Ctrl+Shift+T` | Global | Open Terminal |
 | `Ctrl+R` | Global | Open Run dialog |
+| `Escape` | Global | Close menus |
 | `Ctrl+S` | Notepad/Paint | Save file |
 | `0-9`, `+-*/` | Calculator | Input |
 | `Enter` | Calculator | Calculate |
@@ -178,6 +181,7 @@ When you first load IlluminatOS!, you'll experience an authentic boot sequence:
 | `Arrow Keys` | Snake/SkiFree | Move |
 | `WASD` | Snake | Move (alt) |
 | `Arrow Keys` | Terminal | Command history |
+| `Tab` | Terminal | Command/file completion |
 | `Space` | SkiFree | Start/Restart |
 | `F` | SkiFree | Speed boost |
 | `P` | SkiFree | Pause |
@@ -186,7 +190,7 @@ When you first load IlluminatOS!, you'll experience an authentic boot sequence:
 
 ## Applications
 
-IlluminatOS! includes 31 fully-functional applications organized into categories:
+IlluminatOS! includes 32+ fully-functional applications organized into categories:
 
 ### Productivity (6 apps)
 
@@ -224,12 +228,13 @@ IlluminatOS! includes 31 fully-functional applications organized into categories
 | **DOOM** | Classic 1993 FPS via WebAssembly (Chocolate Doom port) |
 | **Zork** | Classic text adventure game - explore the Great Underground Empire |
 
-### Multimedia (2 apps)
+### Multimedia (3 apps)
 
 | App | Description |
 |-----|-------------|
 | **Winamp** | Legendary music player with visualizer, playlist, 8-band EQ, shuffle/repeat |
-| **Media Player** | Audio/video player |
+| **Media Player** | Audio player |
+| **Video Player** | Video playback with controls |
 
 ### Internet & Communication (2 apps)
 
@@ -255,21 +260,23 @@ IlluminatOS! includes 31 fully-functional applications organized into categories
 
 #### Terminal
 
-A command-line interface with extensive command set.
+A command-line interface with 70+ commands, tab completion, command history, pipe operators, environment variables, and aliases.
 
 **Core Commands:**
 
 | Command | Description |
 |---------|-------------|
-| `help` | Display available commands |
+| `help` / `?` | Display available commands |
 | `dir` / `ls` | List directory contents |
 | `cd <path>` | Change directory |
-| `cat <file>` | Display file contents |
+| `type` / `cat <file>` | Display file contents |
+| `more <file>` | Paginated file view |
 | `cls` / `clear` | Clear screen |
-| `echo <text>` | Print text |
+| `echo <text>` | Print text (supports `>` and `>>` redirection) |
 | `date` | Display current date |
 | `time` | Display current time |
 | `ver` | Show system version |
+| `whoami` | Display current user |
 | `exit` | Close terminal |
 
 **File System Commands:**
@@ -277,14 +284,47 @@ A command-line interface with extensive command set.
 | Command | Description |
 |---------|-------------|
 | `tree` | Display directory tree |
-| `type <file>` | Display file contents |
-| `mkdir <name>` | Create directory |
-| `del <file>` | Delete file |
-| `copy <src> <dst>` | Copy file |
-| `move <src> <dst>` | Move file |
-| `find <text>` | Search for text |
+| `mkdir` / `md` | Create directory |
+| `rmdir` / `rd` | Remove directory |
+| `del` / `rm` | Delete file |
+| `copy` / `cp` | Copy file |
+| `move` / `mv` | Move file |
+| `ren` / `rename` | Rename file |
+| `touch` | Create empty file |
+| `find <text>` | Search for text in file |
+| `grep <pattern>` | Pattern search |
+| `head <file>` | First lines of file |
+| `tail <file>` | Last lines of file |
+| `wc <file>` | Word/line count |
+| `diff <a> <b>` | Compare files |
+| `attrib <file>` | Show file attributes |
+| `edit` / `notepad` | Open file in Notepad |
+| `start` / `open` | Open file or app |
+
+**System & Network Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `set` | Environment variables |
+| `mem` | Memory stats |
+| `systeminfo` | Detailed system info |
+| `chkdsk` | Disk check |
+| `ipconfig` | Network configuration |
 | `ping <host>` | Simulate network ping |
-| `run <script.retro>` | Execute a RetroScript file |
+| `netstat` | Network stats |
+| `tracert <host>` | Trace route |
+| `nslookup <host>` | DNS lookup |
+
+**Scripting Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `retro` / `script <file>` | Execute a RetroScript file |
+| `call` / `bat <file>` | Execute a batch file |
+| `newscript` | Create script template |
+| `newbatch` | Create batch template |
+| `alias <name> <cmd>` | Create command alias |
+| `unalias <name>` | Remove alias |
 
 **Fun Commands:**
 
@@ -292,10 +332,19 @@ A command-line interface with extensive command set.
 |---------|-------------|
 | `matrix` | Enter the Matrix |
 | `disco` | Start disco mode |
+| `party` | Disco + pet toggle |
 | `zork` | Play text adventure |
 | `bsod` | Blue Screen of Death |
 | `fortune` | Random fortune |
 | `cowsay <text>` | ASCII cow says text |
+| `color <code>` | Change terminal colors |
+
+**Advanced Features:**
+- **Command history** - Use Up/Down arrows to navigate previous commands
+- **Tab completion** - Auto-complete commands and file names
+- **Pipe operators** (`|`) - Chain command output
+- **Variable interpolation** - Use `%VAR%` for environment variable substitution
+- **God Mode** - Enter the Konami Code (Up Up Down Down Left Right Left Right B A) for admin access
 
 #### Winamp
 
@@ -459,16 +508,18 @@ Activates after configurable inactivity period (1, 3, 5, 10 minutes, or never). 
 
 Unlock achievements by performing various actions:
 
-| Achievement | How to Unlock |
-|-------------|---------------|
-| First Boot | Launch IlluminatOS! for the first time |
-| Konami Master | Enter the Konami Code |
-| Disco Fever | Click the clock 10 times |
-| Multitasker | Open 10+ windows simultaneously |
-| Clippy Hater | Dismiss Clippy 5 times |
-| Neo | Enter Matrix mode in Terminal |
+| Achievement | ID | How to Unlock |
+|-------------|-----|---------------|
+| Welcome! | `first_boot` | Launch IlluminatOS! for the first time |
+| Konami Code | `konami_master` | Enter the Konami Code |
+| Disco Fever | `disco_fever` | Click the taskbar clock 10 times |
+| Multitasker | `multitasker` | Open 10+ windows simultaneously |
+| Clippy Hater | `clippy_hater` | Dismiss Clippy 5 times |
+| Clippy Terminator | `clippy_terminator` | Dismiss Clippy 10 times |
+| Matrix Mode | `matrix_mode` | Enter Matrix mode in Terminal |
+| Secret Admin | `secret_admin` | Type "rosebud" to unlock admin access |
 
-Achievements persist between sessions and display as toast notifications when unlocked.
+Achievements persist between sessions and display as toast notifications when unlocked. Custom achievements can be registered via `AchievementSystem.registerAchievement()`.
 
 ### DVD Bouncer Screensaver
 
@@ -644,7 +695,7 @@ IlluminatOS!/
 │   ├── effects/            # Animations and color schemes
 │   └── utilities/          # Helper utilities
 │
-├── apps/                   # Application implementations (31 apps)
+├── apps/                   # Application implementations (32+ apps)
 │   ├── AppBase.js          # Base class for all apps
 │   ├── AppRegistry.js      # Central app registry & launcher
 │   └── [App].js            # Individual app implementations
@@ -669,8 +720,9 @@ IlluminatOS!/
 │       ├── lexer/          # Tokenizer
 │       ├── parser/         # Recursive descent parser
 │       ├── interpreter/    # AST visitor & executor
-│       ├── builtins/       # Built-in functions (9 modules)
-│       └── errors/         # Error types
+│       ├── builtins/       # Built-in functions (11 modules, 170+ functions)
+│       ├── errors/         # Error types
+│       └── utils/          # Safety limits
 │
 ├── features/               # Core system features (7 modules)
 │   ├── ClippyAssistant.js  # Clippy helper popup
@@ -774,20 +826,23 @@ Settings are stored in localStorage and can be modified via Control Panel:
 
 ### LocalStorage Keys
 
-IlluminatOS! uses the prefix `smos_` for all stored data:
+IlluminatOS! uses the prefix `illuminatos_` for all stored data:
 
 | Key | Purpose |
 |-----|---------|
-| `smos_desktopIcons` | Icon positions |
-| `smos_achievements` | Unlocked achievements |
-| `smos_snakeHigh` | Snake high score |
-| `smos_soundEnabled` | Sound preference |
-| `smos_crtEnabled` | CRT effect preference |
-| `smos_petEnabled` | Pet visibility |
-| `smos_currentPet` | Selected pet type |
-| `smos_fileSystem` | Virtual file system data |
-| `smos_recycledItems` | Recycle bin contents |
-| `smos_adminPassword` | Admin panel password |
+| `illuminatos_desktopIcons` | Desktop icon data |
+| `illuminatos_filePositions` | Icon positions on desktop |
+| `illuminatos_achievements` | Unlocked achievements |
+| `illuminatos_soundEnabled` | Sound preference |
+| `illuminatos_crtEnabled` | CRT effect preference |
+| `illuminatos_petEnabled` | Pet visibility |
+| `illuminatos_currentPet` | Selected pet type |
+| `illuminatos_filesystem` | Virtual file system data |
+| `illuminatos_menuItems` | Custom menu items |
+| `illuminatos_recycledItems` | Recycle bin contents |
+| `illuminatos_adminPassword` | Admin panel password |
+| `illuminatos_desktopBg` | Desktop background |
+| `illuminatos_hasVisited` | First-visit flag |
 
 ### Clearing Data
 
@@ -796,7 +851,7 @@ To reset IlluminatOS! to default state:
 ```javascript
 // In browser console
 Object.keys(localStorage)
-    .filter(key => key.startsWith('smos_'))
+    .filter(key => key.startsWith('illuminatos_'))
     .forEach(key => localStorage.removeItem(key));
 location.reload();
 ```
@@ -816,22 +871,29 @@ IlluminatOS! features a comprehensive event system with 200+ semantic events org
 
 ### Event Namespaces
 
-| Namespace | Events | Description |
-|-----------|--------|-------------|
-| `window` | 18 | Window lifecycle (create, open, close, focus, resize, move, snap) |
-| `app` | 12 | App lifecycle (launch, ready, close, focus, blur, state, messaging) |
-| `system` | 18 | System events (boot, ready, idle, sleep, wake, network, fullscreen) |
-| `mouse` | 10 | Mouse input (move, click, dblclick, down, up, scroll, contextmenu) |
-| `keyboard` | 5 | Keyboard input (keydown, keyup, combo, shortcut, input) |
-| `touch` | 4 | Touch input (start, move, end, cancel) |
-| `gesture` | 6 | Gesture detection (tap, doubletap, swipe, pinch, rotate, longpress) |
-| `fs` | 12 | File system (create, read, update, delete, rename, move, copy) |
-| `feature` | 5 | Feature lifecycle (initialize, ready, enable, disable, config) |
-| `script` | 10 | Script execution (start, statement, complete, error, output) |
-| `audio` | 8 | Audio playback (play, pause, resume, stop, ended, error) |
-| `dialog` | 8 | System dialogs (alert, confirm, prompt, file dialogs) |
+| Namespace | Description |
+|-----------|-------------|
+| `window` | Window lifecycle (create, open, close, focus, minimize, maximize, restore, resize, move) |
+| `app` | App lifecycle (launch, open, close, focus, blur, ready, busy, idle, state:change, error, message, broadcast) |
+| `system` | System events (boot, ready, shutdown, idle, active, sleep, wake, online, offline, resize, fullscreen) |
+| `mouse` | Mouse input (move, click, dblclick, down, up, scroll, contextmenu, enter, leave) |
+| `keyboard` | Keyboard input (keydown, keyup, combo, shortcut, input) |
+| `touch` | Touch input (start, move, end, cancel) |
+| `gesture` | Gesture detection (tap, doubletap, swipe, pinch, rotate, longpress) |
+| `fs` | File system (file:create, file:read, file:update, file:delete, file:rename, file:move, file:copy, directory:create, directory:delete) |
+| `feature` | Feature lifecycle (initialize, ready, enable, disable, config:change, config:reset, registered, error) |
+| `audio` | Audio playback (play, pause, resume, stop, stopall, ended, error, loaded, timeupdate) |
+| `dialog` | System dialogs (alert, confirm, prompt, file-open, file-save, and response variants) |
+| `script` | Script execution (execute, complete, error, output) |
+| `command` | Command bus (app, window, fs, dialog, sound, setting, desktop, notification, terminal, notepad, calculator, browser) |
+| `desktop` | Desktop events (render, refresh, arrange, bg-change, settings-change) |
+| `notification` | Notifications (show, dismiss) |
+| `achievement` | Achievements (unlock) |
+| `drag` | Drag operations (start, move, end) |
+| `icon` | Icon events (click, dblclick, move, delete) |
+| `channel` | Channels (message, subscribe, unsubscribe) |
 
-See [SEMANTIC_EVENTS.md](SEMANTIC_EVENTS.md) for complete documentation.
+The full event definitions are in `core/EventSchema.js`.
 
 ### Quick Example
 

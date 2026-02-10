@@ -152,7 +152,7 @@ IlluminatOS! is built on these core modules in `/core/`:
 | `PluginLoader.js` | Plugin loading and management |
 | `FeatureRegistry.js` | Feature registration and lifecycle management |
 | `FeatureBase.js` | Base class for system features |
-| `EventBus.js` | Backward compatibility wrapper for SemanticEventBus |
+| `EventBus.js` | Facade re-export of SemanticEventBus |
 
 ### App Base Class
 
@@ -343,7 +343,7 @@ this.emit(Events.APP_STATE_CHANGE, {
 | `system:online` | `{}` | Network connected |
 | `system:offline` | `{}` | Network disconnected |
 
-See [SEMANTIC_EVENTS.md](SEMANTIC_EVENTS.md) for complete event documentation.
+See `core/EventSchema.js` for complete event definitions.
 
 ### App-to-App Messaging
 
@@ -490,19 +490,23 @@ IlluminatOS! uses FontAwesome 6.5.1 for icons with automatic emoji fallback.
 ### Using Icons in Apps
 
 ```javascript
-import IconSystem from '../core/IconSystem.js';
+import { icon, emoji, renderIcon, getIconClass, getEmoji } from '../core/IconSystem.js';
 
-// Get icon HTML - works with FontAwesome classes or emojis
-const icon1 = IconSystem.getIcon('fa-solid fa-folder');  // FontAwesome
-const icon2 = IconSystem.getIcon('folder');              // Shorthand
-const icon3 = IconSystem.getIcon('🎮');                   // Emoji
+// Get icon HTML - returns HTML string with <i> or <span> element
+const icon1 = icon('folder');                // FontAwesome shorthand
+const icon2 = icon('fa-solid fa-folder');    // Full FontAwesome class
+const icon3 = emoji('game');                 // Force emoji rendering
+
+// icon() options: { emoji, class, size, label, color, spin, pulse }
+const spinningIcon = icon('loading', { spin: true });
+const coloredIcon = icon('error', { color: 'red' });
 
 // In your HTML template
 onOpen() {
     return `
         <div class="toolbar">
-            <button>${IconSystem.getIcon('fa-solid fa-save')} Save</button>
-            <button>${IconSystem.getIcon('fa-solid fa-folder-open')} Open</button>
+            <button>${icon('save')} Save</button>
+            <button>${icon('folder-open')} Open</button>
         </div>
     `;
 }
@@ -527,6 +531,14 @@ If FontAwesome fails to load, the IconSystem automatically falls back to emojis:
 - `fa-solid fa-folder` → `📁`
 - `fa-solid fa-file` → `📄`
 - `fa-solid fa-computer` → `💻`
+
+You can control icon mode globally:
+```javascript
+import { setIconMode, getIconMode, toggleIconMode } from '../core/IconSystem.js';
+
+setIconMode(false);   // Switch to emoji-only mode
+toggleIconMode();     // Toggle between FontAwesome and emoji
+```
 
 ---
 
@@ -577,7 +589,7 @@ WINDOW.BASE_Z_INDEX  // 1000
 TIMING.ANIMATION_DURATION  // Animation timing in ms
 TIMING.SCREENSAVER_DELAY   // Default screensaver delay
 
-// Storage keys (all prefixed with 'smos_')
+// Storage keys (all prefixed with 'illuminatos_')
 STORAGE_KEYS.DESKTOP_ICONS
 STORAGE_KEYS.FILE_SYSTEM
 STORAGE_KEYS.ACHIEVEMENTS
@@ -1292,10 +1304,18 @@ await CommandBus.execute('window:close', { id: 'window-1' });
 await CommandBus.execute('fs:create', { path: ['C:', 'test.txt'], content: 'Hello' });
 
 // Available command namespaces:
-// - app:* - Application commands (launch, close, focus)
-// - window:* - Window commands (open, close, minimize, maximize)
-// - fs:* - File system commands (create, read, update, delete)
-// - dialog:* - Dialog commands (alert, confirm, prompt)
+// - app:launch, app:close - Application commands
+// - window:focus, window:minimize, window:maximize, window:restore, window:close
+// - fs:read, fs:write, fs:delete, fs:mkdir, fs:copy, fs:move
+// - dialog:show - Dialog commands (alert, confirm, prompt)
+// - sound:play - Sound playback
+// - setting:set - Change settings
+// - desktop:refresh - Refresh desktop
+// - notification:show - Show notifications
+// - achievement:unlock - Unlock achievements
+// - terminal:execute, terminal:print, terminal:clear, terminal:cd, etc.
+// - notepad:new, notepad:open, notepad:save, notepad:setText
+// - calculator:clear, calculator:input
 ```
 
 ### Registering App Commands
@@ -1495,11 +1515,11 @@ SystemMonitor.recordAction('button-click', 'submit-form', { form: 'login' });
 |----------|-------------|
 | `accessories` | Productivity tools (Calculator, Notepad, Paint, Calendar, Clock, HyperCard) |
 | `games` | Games (Minesweeper, Snake, Solitaire, FreeCell, SkiFree, Asteroids, DOOM) |
-| `multimedia` | Media apps (Media Player, Winamp) |
+| `multimedia` | Media apps (Media Player, Video Player, Winamp) |
 | `internet` | Network apps (Browser, Chat Room) |
 | `systemtools` | Utilities (Terminal, Defrag, Find Files, Task Manager, Script Runner) |
 | `settings` | Settings apps (Control Panel, Display Properties, Sound Settings, Features Settings) |
-| `system` | System apps (hidden from menu: My Computer, Recycle Bin, Admin Panel) |
+| `system` | System apps (hidden from menu: My Computer, Recycle Bin, Admin Panel, Run, Shutdown) |
 
 ---
 
@@ -1521,7 +1541,7 @@ RetrOS/
 │   ├── effects/            # Animations and color schemes
 │   └── utilities/          # Helper utilities
 │
-├── apps/                   # Application implementations (31 apps)
+├── apps/                   # Application implementations (32+ apps)
 │   ├── AppBase.js          # Base class - extend this
 │   ├── AppRegistry.js      # Register apps here
 │   └── [App].js            # Individual apps
@@ -1535,19 +1555,23 @@ RetrOS/
 │   ├── StateManager.js     # State management
 │   ├── WindowManager.js    # Window management
 │   ├── FileSystemManager.js # Virtual file system
-│   ├── StorageManager.js   # LocalStorage
+│   ├── StorageManager.js   # LocalStorage (illuminatos_ prefix)
 │   ├── IconSystem.js       # Icon rendering
-│   ├── ScriptEngine.js     # Legacy scripting engine
+│   ├── ScriptEngine.js     # Script engine coordinator
 │   ├── PluginLoader.js     # Plugin loading
 │   ├── FeatureRegistry.js  # Feature lifecycle
 │   ├── FeatureBase.js      # Feature base class
+│   ├── EventBus.js         # SemanticEventBus facade
 │   └── script/             # Modular script engine
+│       ├── ScriptEngine.js # Main script executor
 │       ├── AutoexecLoader.js
-│       ├── lexer/
-│       ├── parser/
-│       ├── interpreter/
-│       ├── builtins/
-│       └── errors/
+│       ├── lexer/          # Tokenizer (60+ token types)
+│       ├── parser/         # Recursive descent parser
+│       ├── interpreter/    # AST visitor & executor
+│       ├── ast/            # AST node definitions
+│       ├── builtins/       # Built-in functions (11 modules, 170+ functions)
+│       ├── errors/         # Error types (7 error classes)
+│       └── utils/          # Safety limits
 │
 ├── features/               # Optional features (7 modules)
 │   ├── SystemDialogs.js    # Dialogs
@@ -1583,4 +1607,5 @@ RetrOS/
   - **Calendar.js** - Date navigation and selection
   - **FreeCell.js** - Complex card game with drag-and-drop
 - See [SCRIPTING_GUIDE.md](SCRIPTING_GUIDE.md) for RetroScript documentation
-- See [SEMANTIC_EVENTS.md](SEMANTIC_EVENTS.md) for event reference
+- See [docs/TERMINAL_SCRIPTING.md](docs/TERMINAL_SCRIPTING.md) for terminal scripting
+- See `core/EventSchema.js` for complete event definitions

@@ -411,13 +411,15 @@ while $counter < 5 {
 
 ### For-Each Loop
 
+Both `for` and `foreach` keywords work identically. The loop variable `$i` is also available as the current index:
+
 ```retro
 set $fruits = ["apple", "banana", "cherry"]
 for $fruit in $fruits {
     print "Fruit: " + $fruit
 }
 
-# With index
+# With index ($i is automatically available)
 foreach $fruit in $fruits {
     print "Fruit " + $i + ": " + $fruit
 }
@@ -445,8 +447,10 @@ loop 10 {
 
 ### User-Defined Functions
 
+Three keywords are available: `func`, `function`, and `def`. All work identically.
+
 ```retro
-# Define a function
+# Define a function (space-separated params)
 func greet $name {
     print "Hello, " + $name + "!"
 }
@@ -462,7 +466,7 @@ func add $a $b {
 set $sum = call add 5 3
 print $sum  # 8
 
-# Alternative syntax
+# Alternative syntax with parentheses and commas
 def multiply($a, $b) {
     return $a * $b
 }
@@ -602,106 +606,217 @@ on system:active {
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `random(min, max)` | Random integer | `call random 1 100` |
-| `random` | Random 0-1 | `call random` |
+| `random(min, max)` | Random integer in range | `call random 1 100` |
 | `abs(n)` | Absolute value | `call abs -5` → 5 |
-| `round(n)` | Round to nearest | `call round 3.7` → 4 |
+| `round(n)` | Round to nearest integer | `call round 3.7` → 4 |
 | `floor(n)` | Round down | `call floor 3.9` → 3 |
 | `ceil(n)` | Round up | `call ceil 3.1` → 4 |
-| `min(...)` | Minimum value | `call min 5 3 8` → 3 |
-| `max(...)` | Maximum value | `call max 5 3 8` → 8 |
-| `pow(base, exp)` | Power | `call pow 2 8` → 256 |
 | `sqrt(n)` | Square root | `call sqrt 16` → 4 |
+| `pow(base, exp)` | Power | `call pow 2 8` → 256 |
+| `mod(x, y)` | Modulo/remainder | `call mod 17 5` → 2 |
+| `sign(n)` | Sign (-1, 0, or 1) | `call sign -5` → -1 |
+| `min(...)` | Minimum of values | `call min 5 3 8` → 3 |
+| `max(...)` | Maximum of values | `call max 5 3 8` → 8 |
+| `clamp(val, min, max)` | Constrain to range | `call clamp 15 0 10` → 10 |
 | `sin(n)` | Sine (radians) | `call sin 0` → 0 |
 | `cos(n)` | Cosine (radians) | `call cos 0` → 1 |
+| `tan(n)` | Tangent (radians) | `call tan 0` → 0 |
+| `asin(n)` | Arcsine | `call asin 1` → 1.5708 |
+| `acos(n)` | Arccosine | `call acos 1` → 0 |
+| `atan(n)` | Arctangent | `call atan 1` → 0.7854 |
+| `atan2(y, x)` | Arctangent of y/x | `call atan2 1 1` → 0.7854 |
+| `exp(n)` | e^n | `call exp 1` → 2.7183 |
+| `log(n)` | Natural logarithm | `call log 10` → 2.3026 |
+| `log10(n)` | Base-10 logarithm | `call log10 100` → 2 |
+| `log2(n)` | Base-2 logarithm | `call log2 8` → 3 |
+| `PI()` | Constant pi | `call PI` → 3.14159 |
+| `E()` | Constant e | `call E` → 2.71828 |
 
 ### String Functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `length(s)` | String length | `call length "hello"` → 5 |
+| `length(s)` | String/array length | `call length "hello"` → 5 |
 | `upper(s)` | Uppercase | `call upper "hello"` → "HELLO" |
 | `lower(s)` | Lowercase | `call lower "HELLO"` → "hello" |
 | `trim(s)` | Remove whitespace | `call trim "  hi  "` → "hi" |
-| `split(s, sep)` | Split to array | `call split "a,b,c" ","` |
-| `join(arr, sep)` | Join array | `call join $arr ", "` |
-| `substring(s, start, len)` | Substring | `call substring "hello" 0 3` → "hel" |
-| `replace(s, old, new)` | Replace text | `call replace "hello" "l" "w"` |
+| `trimStart(s)` | Remove leading whitespace | `call trimStart "  hi"` → "hi" |
+| `trimEnd(s)` | Remove trailing whitespace | `call trimEnd "hi  "` → "hi" |
+| `charAt(s, i)` | Character at index | `call charAt "hello" 1` → "e" |
+| `charCode(s, i)` | Character code at index | `call charCode "A" 0` → 65 |
+| `fromCharCode(...)` | String from char codes | `call fromCharCode 65 66` → "AB" |
+| `concat(...)` | Concatenate strings | `call concat "a" "b" "c"` → "abc" |
+| `substr(s, start, len)` | Substring by length | `call substr "hello" 1 3` → "ell" |
+| `substring(s, start, end)` | Substring by position | `call substring "hello" 0 3` → "hel" |
+| `slice(s, start, end)` | Slice string or array | `call slice "hello" 1 3` → "el" |
+| `indexOf(s, search)` | Find first index | `call indexOf "hello" "l"` → 2 |
+| `lastIndexOf(s, search)` | Find last index | `call lastIndexOf "hello" "l"` → 3 |
 | `contains(s, search)` | Contains check | `call contains "hello" "ell"` → true |
 | `startsWith(s, prefix)` | Starts with | `call startsWith "hello" "he"` → true |
 | `endsWith(s, suffix)` | Ends with | `call endsWith "hello" "lo"` → true |
-| `indexOf(s, search)` | Find position | `call indexOf "hello" "l"` → 2 |
+| `replace(s, old, new)` | Replace first occurrence | `call replace "hello" "l" "w"` → "hewlo" |
+| `replaceAll(s, old, new)` | Replace all occurrences | `call replaceAll "hello" "l" "w"` → "hewwo" |
+| `split(s, sep)` | Split to array | `call split "a,b,c" ","` |
+| `join(arr, sep)` | Join array to string | `call join $arr ", "` |
+| `padStart(s, len, pad)` | Pad string start | `call padStart "5" 3 "0"` → "005" |
+| `padEnd(s, len, pad)` | Pad string end | `call padEnd "hi" 5 "."` → "hi..." |
+| `repeat(s, count)` | Repeat string | `call repeat "ab" 3` → "ababab" |
+| `reverse(s)` | Reverse string or array | `call reverse "hello"` → "olleh" |
 
 ### Array Functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `length(arr)` | Array length | `call length $arr` |
-| `push(arr, item)` | Add to end | `call push $arr "new"` |
-| `pop(arr)` | Remove from end | `call pop $arr` |
-| `shift(arr)` | Remove from start | `call shift $arr` |
-| `unshift(arr, item)` | Add to start | `call unshift $arr "new"` |
+| `count(arr)` | Length (arrays, objects, strings) | `call count $arr` |
+| `first(arr)` | Get first element | `call first $arr` |
+| `last(arr)` | Get last element | `call last $arr` |
+| `at(arr, i)` | Get element at index | `call at $arr 2` |
+| `push(arr, ...)` | Add to end (mutates) | `call push $arr "new"` |
+| `pop(arr)` | Remove last (mutates) | `call pop $arr` |
+| `shift(arr)` | Remove first (mutates) | `call shift $arr` |
+| `unshift(arr, ...)` | Add to start (mutates) | `call unshift $arr "new"` |
 | `includes(arr, item)` | Contains item | `call includes $arr "x"` |
-| `sort(arr)` | Sort array | `call sort $arr` |
-| `reverse(arr)` | Reverse array | `call reverse $arr` |
-| `slice(arr, start, end)` | Slice array | `call slice $arr 1 3` |
-| `get(arr, idx)` | Get element | `call get $arr 0` |
+| `findIndex(arr, item)` | Find index of item | `call findIndex $arr "x"` |
+| `find(arr, value)` | Find item by value | `call find $arr "x"` |
+| `sort(arr)` | Sort ascending (non-mutating) | `call sort $arr` |
+| `sortDesc(arr)` | Sort descending (non-mutating) | `call sortDesc $arr` |
+| `unique(arr)` | Remove duplicates | `call unique $arr` |
+| `flatten(arr, depth)` | Flatten nested arrays | `call flatten $nested 2` |
+| `range(start, end, step)` | Create number array | `call range 1 5` → [1,2,3,4] |
+| `fill(count, value)` | Create filled array | `call fill 3 "x"` → ["x","x","x"] |
+| `sum(arr)` | Sum of elements | `call sum $nums` |
+| `avg(arr)` | Average of elements | `call avg $nums` |
+| `product(arr)` | Product of elements | `call product $nums` |
+| `filter(arr, value)` | Keep items matching value | `call filter $arr "a"` |
+| `reject(arr, value)` | Exclude items matching value | `call reject $arr "a"` |
+| `map(arr, op)` | Simple map (ops: "double", "square", "string", "number", "boolean") | `call map $nums "double"` |
+| `splice(arr, start, del, ...)` | Splice (non-mutating) | `call splice $arr 1 2` |
+| `arrayConcat(...)` | Concatenate arrays | `call arrayConcat $a $b` |
 
 ### Object Functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `keys(obj)` | Get keys | `call keys $obj` |
-| `values(obj)` | Get values | `call values $obj` |
-| `entries(obj)` | Get [key,val] pairs | `call entries $obj` |
-| `get(obj, key)` | Get property | `call get $obj "name"` |
+| `keys(obj)` | Get property names | `call keys $obj` |
+| `values(obj)` | Get property values | `call values $obj` |
+| `entries(obj)` | Get [key, value] pairs | `call entries $obj` |
+| `get(obj, key, default)` | Get property with default | `call get $obj "name" "unknown"` |
 | `set(obj, key, val)` | Set property | `call set $obj "age" 25` |
 | `has(obj, key)` | Has property | `call has $obj "name"` |
-| `merge(obj1, obj2)` | Merge objects | `call merge $a $b` |
+| `delete(obj, key)` | Delete property | `call delete $obj "temp"` |
+| `merge(...)` | Merge objects | `call merge $a $b $c` |
+| `clone(obj)` | Deep clone (via JSON) | `call clone $obj` |
+| `freeze(obj)` | Freeze object (returns copy) | `call freeze $obj` |
+| `getPath(obj, path, def)` | Get nested property (dot notation) | `call getPath $obj "a.b.c"` |
+| `setPath(obj, path, val)` | Set nested property | `call setPath $obj "a.b" 5` |
 
 ### Type Functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `typeof(val)` | Get type | `call typeof $x` → "string" |
+| `typeof(val)` | Get type ("string", "number", "boolean", "array", "object", "null") | `call typeof $x` |
 | `isNumber(val)` | Is number | `call isNumber 5` → true |
 | `isString(val)` | Is string | `call isString "hi"` → true |
+| `isBoolean(val)` | Is boolean | `call isBoolean true` → true |
 | `isArray(val)` | Is array | `call isArray [1,2]` → true |
-| `isObject(val)` | Is object | `call isObject {a:1}` → true |
-| `toNumber(val)` | Convert to number | `call toNumber "42"` → 42 |
+| `isObject(val)` | Is object (not array, not null) | `call isObject {a:1}` → true |
+| `isNull(val)` | Is null | `call isNull $x` |
+| `isUndefined(val)` | Is undefined | `call isUndefined $x` |
+| `isNaN(val)` | Is NaN | `call isNaN $x` |
+| `isFinite(val)` | Is finite number | `call isFinite 5` → true |
+| `isInteger(val)` | Is integer | `call isInteger 5` → true |
+| `isEmpty(val)` | Is empty ([], {}, "", null, undefined) | `call isEmpty ""` → true |
+| `isNotEmpty(val)` | Is not empty | `call isNotEmpty "hi"` → true |
+| `toNumber(val)` | Convert to number (0 on NaN) | `call toNumber "42"` → 42 |
+| `toInt(val)` | Convert to integer | `call toInt "3.7"` → 3 |
+| `toFloat(val)` | Convert to float | `call toFloat "3.14"` → 3.14 |
 | `toString(val)` | Convert to string | `call toString 42` → "42" |
+| `toBoolean(val)` | Convert to boolean ("true", "1", "yes" → true) | `call toBoolean "yes"` → true |
+| `toArray(val)` | Convert to array | `call toArray "abc"` → ["a","b","c"] |
+| `toObject(val)` | Convert to object | `call toObject $arr` |
+| `default(val, fallback)` | Return value or fallback if null/undefined | `call default $x 0` |
+| `coalesce(...)` | First non-null/undefined value | `call coalesce $a $b $c` |
 
 ### Date/Time Functions
 
+All time functions accept an optional timestamp parameter. Without it, they use the current time.
+
 | Function | Description | Example |
 |----------|-------------|---------|
-| `now()` | Current timestamp (ms) | `call now` |
-| `time()` | Current time string | `call time` |
-| `date()` | Current date string | `call date` |
-| `year()` | Current year | `call year` |
-| `month()` | Current month (1-12) | `call month` |
-| `day()` | Current day | `call day` |
-| `hour()` | Current hour | `call hour` |
-| `minute()` | Current minute | `call minute` |
-| `second()` | Current second | `call second` |
-| `formatTime(ts)` | Format timestamp | `call formatTime $ts` |
+| `now()` | Current timestamp (milliseconds) | `call now` |
+| `timestamp()` | Current timestamp (seconds) | `call timestamp` |
+| `time()` | Formatted current time (locale) | `call time` |
+| `date()` | Formatted current date (locale) | `call date` |
+| `datetime()` | Formatted current date+time | `call datetime` |
+| `year(ts?)` | Year | `call year` |
+| `month(ts?)` | Month (1-12) | `call month` |
+| `day(ts?)` | Day of month | `call day` |
+| `weekday(ts?)` | Weekday number (0-6) | `call weekday` |
+| `weekdayName(ts?)` | Weekday name | `call weekdayName` → "Monday" |
+| `hour(ts?)` | Hour (0-23) | `call hour` |
+| `minute(ts?)` | Minute (0-59) | `call minute` |
+| `second(ts?)` | Second (0-59) | `call second` |
+| `millisecond(ts?)` | Millisecond | `call millisecond` |
+| `elapsed(startTime)` | Milliseconds elapsed since | `call elapsed $start` |
+| `addDays(ts, days)` | Add days to timestamp | `call addDays $ts 7` |
+| `addHours(ts, hours)` | Add hours to timestamp | `call addHours $ts 3` |
+| `addMinutes(ts, min)` | Add minutes to timestamp | `call addMinutes $ts 30` |
+| `addSeconds(ts, sec)` | Add seconds to timestamp | `call addSeconds $ts 60` |
+| `formatDate(ts, fmt?)` | Format date (default "YYYY-MM-DD") | `call formatDate $ts` |
+| `formatTime(ts, fmt?)` | Format time (default "HH:mm:ss") | `call formatTime $ts` |
+| `parseDate(str)` | Parse date string to timestamp | `call parseDate "2024-01-15"` |
+| `toISO(ts)` | Convert to ISO format string | `call toISO $ts` |
 
 ### System Functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `getWindows` | Get open windows | `call getWindows` |
-| `getApps` | Get available apps | `call getApps` |
-| `getFocusedWindow` | Get active window | `call getFocusedWindow` |
-| `sleep(ms)` | Pause execution | `call sleep 1000` |
+| `sleep(ms)` | Pause execution (max 30 seconds) | `call sleep 1000` |
+| `wait(ms)` | Alias for sleep | `call wait 1000` |
+| `getFocusedWindow()` | Get focused window info | `call getFocusedWindow` |
+| `getWindows()` | List all open windows | `call getWindows` |
+| `getApps()` | List all registered apps | `call getApps` |
+| `getEnv()` | Get environment info | `call getEnv` |
+| `emitEvent(name, data)` | Emit custom event | `call emitEvent "myEvent" $data` |
+| `query(type, ...)` | Query system state | `call query "windows"` |
+| `exec(cmd, ...)` | Execute command via CommandBus | `call exec "app:launch" $params` |
+| `copyToClipboard(text)` | Copy text to clipboard | `call copyToClipboard "Hello"` |
+| `getStorage(key)` | Get stored value | `call getStorage "myKey"` |
+| `setStorage(key, val)` | Store persistent value | `call setStorage "myKey" "value"` |
 
 ### Debug Functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `debug(...)` | Log debug message | `call debug "value:" $x` |
-| `inspect(val)` | Pretty print value | `call inspect $obj` |
-| `assert(cond, msg)` | Assert condition | `call assert $x > 0 "Must be positive"` |
+| `debug(...)` | Log debug output | `call debug "value:" $x` |
+| `inspect(val)` | Inspect value with type info | `call inspect $obj` |
+| `assert(cond, msg)` | Throw if condition is false | `call assert ($x > 0) "Must be positive"` |
+| `assertEqual(a, b, msg)` | Assert equality | `call assertEqual $x 5 "Should be 5"` |
+| `assertType(val, type, msg)` | Assert type | `call assertType $x "string" "Must be string"` |
+| `trace(...)` | Log with timestamp | `call trace "checkpoint reached"` |
+| `timeStart(label)` | Start a timer | `call timeStart "operation"` |
+| `timeEnd(label)` | End timer, log duration | `call timeEnd "operation"` |
+| `getCallStack()` | Get current call stack | `call getCallStack` |
+| `dumpVars()` | Log all variables | `call dumpVars` |
+
+### JSON Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `toJSON(val)` | Stringify to JSON | `call toJSON $obj` |
+| `prettyJSON(val, indent?)` | Stringify with formatting | `call prettyJSON $obj 2` |
+| `fromJSON(str)` | Parse JSON string | `call fromJSON $jsonStr` |
+| `parseJSON(str)` | Alias for fromJSON | `call parseJSON $jsonStr` |
+| `isValidJSON(str)` | Check if valid JSON | `call isValidJSON $str` |
+
+### Dialog Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `alert(msg)` | Show alert dialog | `call alert "Hello!"` |
+| `confirm(msg)` | Show confirm dialog (async) | `set $ok = call confirm "Sure?"` |
+| `prompt(msg, default?)` | Show input dialog (async) | `set $name = call prompt "Name?"` |
+| `validateInput(input, type)` | Validate input ("number", "email", "url", "nonempty") | `call validateInput $x "email"` |
 
 ### Terminal Functions
 
@@ -787,12 +902,6 @@ read "C:/Users/User/Desktop/hello.txt" into $content
 print $content
 ```
 
-### Appending to Files
-
-```retro
-append "\nNew line" to "C:/Users/User/Desktop/log.txt"
-```
-
 ### Directory Operations
 
 ```retro
@@ -801,18 +910,29 @@ mkdir "C:/Users/User/Desktop/NewFolder"
 
 # Delete file or directory
 delete "C:/Users/User/Desktop/oldfile.txt"
+```
 
-# Check if exists
-set $exists = call exists "C:/path/to/file.txt"
+### File Existence Check
+
+Use the terminal builtin to check if a file exists:
+
+```retro
+set $exists = call terminalFileExists "C:/path/to/file.txt"
 if $exists then {
     print "File exists!"
 }
+```
 
-# Copy file
-copy "C:/source.txt" to "C:/destination.txt"
+### Copy & Move Files
 
-# Move file
-move "C:/old/location.txt" to "C:/new/location.txt"
+File copy and move operations are available through the CommandBus system functions:
+
+```retro
+# Copy a file via exec
+call exec "fs:copy" {source: "C:/source.txt", destination: "C:/destination.txt"}
+
+# Move a file via exec
+call exec "fs:move" {source: "C:/old/file.txt", destination: "C:/new/file.txt"}
 ```
 
 ---
@@ -1213,12 +1333,44 @@ The RetroScript engine is modular:
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| ScriptEngine | `/core/ScriptEngine.js` | Main coordinator |
-| Lexer | `/core/script/lexer/` | Tokenizes script text |
-| Parser | `/core/script/parser/` | Builds AST from tokens |
-| Interpreter | `/core/script/interpreter/` | Executes AST |
-| Builtins | `/core/script/builtins/` | Built-in functions |
+| ScriptEngine | `/core/script/ScriptEngine.js` | Main coordinator & public API |
+| Lexer | `/core/script/lexer/` | Tokenizes script text (60+ token types) |
+| Parser | `/core/script/parser/` | Recursive descent parser, builds AST (34 statement + 11 expression types) |
+| AST | `/core/script/ast/` | Abstract syntax tree node definitions |
+| Interpreter | `/core/script/interpreter/` | AST visitor & executor with Environment scoping |
+| Builtins | `/core/script/builtins/` | 170+ built-in functions across 11 modules |
 | AutoexecLoader | `/core/script/AutoexecLoader.js` | Boot script execution |
+| Errors | `/core/script/errors/` | 7 error classes (ParseError, RuntimeError, TimeoutError, RecursionError, etc.) |
+| SafetyLimits | `/core/script/utils/` | Execution limits (recursion, timeouts, array/string sizes) |
+
+### Built-in Module Summary
+
+| Module | Functions | Purpose |
+|--------|-----------|---------|
+| MathBuiltins | 25 | Arithmetic, trigonometry, constants |
+| StringBuiltins | 26 | String manipulation and search |
+| ArrayBuiltins | 25 | Array operations and aggregation |
+| ObjectBuiltins | 12 | Object property manipulation |
+| TypeBuiltins | 22 | Type checking and conversion |
+| TimeBuiltins | 23 | Date/time operations and formatting |
+| SystemBuiltins | 12 | System interaction, clipboard, storage |
+| TerminalBuiltins | 32 | Terminal app control and automation |
+| DialogBuiltins | 4 | Alert, confirm, prompt, validate |
+| JsonBuiltins | 5 | JSON serialization/parsing |
+| DebugBuiltins | 10 | Debugging, assertions, timing |
+
+### Safety Limits
+
+| Limit | Default | Description |
+|-------|---------|-------------|
+| `MAX_RECURSION_DEPTH` | 1000 | Maximum function recursion depth |
+| `MAX_LOOP_ITERATIONS` | 100,000 | Maximum loop iterations |
+| `MAX_STRING_LENGTH` | 1,000,000 | Maximum string length (1MB) |
+| `MAX_ARRAY_LENGTH` | 100,000 | Maximum array elements |
+| `MAX_OBJECT_KEYS` | 10,000 | Maximum object properties |
+| `MAX_EVENT_HANDLERS` | 1,000 | Maximum registered event handlers |
+| `DEFAULT_EXECUTION_TIMEOUT` | 30,000ms | Default script timeout (30 seconds) |
+| `AUTOEXEC_TIMEOUT` | 10,000ms | Autoexec script timeout (10 seconds) |
 
 ---
 
@@ -1226,4 +1378,5 @@ The RetroScript engine is modular:
 
 - Check the example scripts in the Script Runner app
 - Review [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for integration
-- See [SEMANTIC_EVENTS.md](SEMANTIC_EVENTS.md) for all events
+- See [docs/TERMINAL_SCRIPTING.md](docs/TERMINAL_SCRIPTING.md) for advanced terminal control
+- See `core/EventSchema.js` for complete event definitions
