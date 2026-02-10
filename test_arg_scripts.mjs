@@ -1,6 +1,6 @@
 /**
  * Test harness for ARG RetroScript files
- * Tests minesweeper_challenge.retro and project_erebus.retro
+ * Tests minesweeper_challenge.retro, project_erebus.retro, and autoexec.retro
  */
 
 import { readFileSync } from 'fs';
@@ -68,16 +68,18 @@ async function testScript(name, filePath) {
 }
 
 async function main() {
-    const results = [];
+    const results = {};
 
-    results.push(await testScript('Minesweeper Challenge', join(__dirname, 'minesweeper_challenge.retro')));
-    results.push(await testScript('Project Erebus', join(__dirname, 'project_erebus.retro')));
+    results['Autoexec (v5.0)'] = await testScript('Autoexec (v5.0)', join(__dirname, 'autoexec.retro'));
+    results['Minesweeper'] = await testScript('Minesweeper Challenge', join(__dirname, 'minesweeper_challenge.retro'));
+    results['Erebus (v4.0)'] = await testScript('Project Erebus (v4.0)', join(__dirname, 'project_erebus.retro'));
 
     console.log(`\n${'='.repeat(60)}`);
     console.log(`  Summary`);
     console.log(`${'='.repeat(60)}`);
-    console.log(`Minesweeper: ${results[0] ? '✓ PASS' : '✗ FAIL'}`);
-    console.log(`Erebus:      ${results[1] ? '✓ PASS' : '✗ FAIL'}`);
+    for (const [name, passed] of Object.entries(results)) {
+        console.log(`${name}: ${passed ? '\u2713 PASS' : '\u2717 FAIL'}`);
+    }
 }
 
 main();
