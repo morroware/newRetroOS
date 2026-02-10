@@ -5,7 +5,7 @@
 
 import AppBase from './AppBase.js';
 import StateManager from '../core/StateManager.js';
-import EventBus from '../core/SemanticEventBus.js';
+import EventBus from '../core/EventBus.js';
 
 class Asteroids extends AppBase {
     constructor() {

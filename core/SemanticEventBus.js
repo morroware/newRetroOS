@@ -17,6 +17,22 @@
 
 import EventSchema from './EventSchema.js';
 
+// Legacy event name mapping - maps old event names to semantic ones
+// This is integrated directly into the bus so ALL consumers get mapping automatically
+const LEGACY_EVENT_MAPPING = {
+    'startmenu:toggle': 'ui:menu:start:toggle',
+    'contextmenu:show': 'ui:menu:context:show',
+    'contextmenu:hide': 'ui:menu:context:hide',
+    'taskbar:update': 'ui:taskbar:update',
+    'menu:action': 'ui:menu:action',
+    'boot:complete': 'system:ready',
+    'screensaver:end': 'system:screensaver:end',
+    'pet:toggle': 'feature:pet:toggle',
+    'pet:change': 'feature:pet:change',
+    'setting:changed': 'setting:changed',
+    'desktop:render': 'desktop:render'
+};
+
 class SemanticEventBusClass {
     constructor() {
         // Map of event names to arrays of listener objects { callback, priority, once }
@@ -102,6 +118,9 @@ class SemanticEventBusClass {
     on(eventName, callback, options = {}) {
         const { priority = this.PRIORITY.NORMAL, once = false } = options;
 
+        // Map legacy event names
+        eventName = LEGACY_EVENT_MAPPING[eventName] || eventName;
+
         // Check for pattern (wildcard)
         if (eventName.includes('*')) {
             return this._onPattern(eventName, callback, { priority, once });
@@ -130,6 +149,7 @@ class SemanticEventBusClass {
      * @param {object} options - Subscription options
      */
     once(eventName, callback, options = {}) {
+        // Legacy mapping handled by on()
         return this.on(eventName, callback, { ...options, once: true });
     }
 
@@ -139,6 +159,8 @@ class SemanticEventBusClass {
      * @param {Function} callback - Handler to remove
      */
     off(eventName, callback) {
+        // Map legacy event names
+        eventName = LEGACY_EVENT_MAPPING[eventName] || eventName;
         if (this.listeners.has(eventName)) {
             const listeners = this.listeners.get(eventName);
             const index = listeners.findIndex(l => l.callback === callback);
@@ -166,6 +188,9 @@ class SemanticEventBusClass {
      */
     emit(eventName, payload = {}, options = {}) {
         this.stats.emitted++;
+
+        // Map legacy event names
+        eventName = LEGACY_EVENT_MAPPING[eventName] || eventName;
 
         // Handle legacy usage (data as non-object)
         if (payload !== null && typeof payload !== 'object') {
@@ -680,7 +705,12 @@ class SemanticEventBusClass {
             emitted: 0,
             validated: 0,
             validationErrors: 0,
-            middlewareErrors: 0
+            validationWarnings: 0,
+            middlewareErrors: 0,
+            requestsTotal: 0,
+            requestsResolved: 0,
+            requestsTimedOut: 0,
+            eventsCancelled: 0
         };
     }
 
@@ -1065,6 +1095,20 @@ export const Events = {
     AUDIO_LOADED: 'audio:loaded',
     AUDIO_TIME_UPDATE: 'audio:timeupdate',
 
+    // Video playback events
+    VIDEO_PLAY: 'videoplayer:play',
+    VIDEO_PAUSE: 'videoplayer:pause',
+    VIDEO_STOP: 'videoplayer:stop',
+    VIDEO_ENDED: 'videoplayer:ended',
+    VIDEO_LOADED: 'videoplayer:loaded',
+    VIDEO_ERROR: 'videoplayer:error',
+    VIDEO_SEEK: 'videoplayer:seek',
+    VIDEO_TIME_UPDATE: 'videoplayer:timeupdate',
+    VIDEO_FULLSCREEN: 'videoplayer:fullscreen',
+    VIDEO_PLAYING: 'videoplayer:playing',
+    VIDEO_PLAYLIST_ADD: 'videoplayer:playlist:add',
+    VIDEO_PLAYLIST_ENDED: 'videoplayer:playlist:ended',
+
     // State events
     STATE_CHANGE: 'state:change',
 
@@ -1088,7 +1132,7 @@ export const Events = {
     DESKTOP_SETTINGS_CHANGE: 'desktop:settings-change',
 
     // Screensaver events (settings/control)
-    SCREENSAVER_START: 'screensaver:start',
+    SCREENSAVER_SETTINGS_START: 'screensaver:start',
     SCREENSAVER_UPDATE_DELAY: 'screensaver:update-delay',
     SCREENSAVER_UPDATE_TYPE: 'screensaver:update-type',
 
@@ -1378,5 +1422,7 @@ if (typeof window !== 'undefined') {
     };
 }
 
-export { SemanticEventBus };
+// Named exports - both names for backward compat
+const EventBus = SemanticEventBus;
+export { SemanticEventBus, EventBus };
 export default SemanticEventBus;

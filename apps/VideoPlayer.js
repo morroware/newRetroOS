@@ -39,10 +39,6 @@ class VideoPlayer extends AppBase {
 
         // Default playlist
         this.defaultPlaylist = [];
-
-        // Register semantic event commands for scriptability
-        this.registerCommands();
-        this.registerQueries();
     }
 
     /**
@@ -301,6 +297,11 @@ class VideoPlayer extends AppBase {
     }
 
     onMount() {
+        // Register semantic event commands for scriptability
+        // Must be done in onMount (not constructor) so window context is available
+        this.registerCommands();
+        this.registerQueries();
+
         const videoEl = this.getElement('#videoElement');
         const audioEl = this.getElement('#audioElement');
 
@@ -954,16 +955,17 @@ class VideoPlayer extends AppBase {
         if (videoEl) { videoEl.pause(); videoEl.src = ''; }
         if (audioEl) { audioEl.pause(); audioEl.src = ''; }
 
+        // Cleanup AudioContext to prevent resource leak
+        const audioContext = this.getInstanceState('audioContext');
+        if (audioContext) {
+            audioContext.close().catch(() => {});
+        }
+
         // Cleanup resize observer
         const resizeObserver = this.getInstanceState('resizeObserver');
         if (resizeObserver) {
             resizeObserver.disconnect();
         }
-
-        EventBus.emit('videoplayer:closed', {
-            appId: this.id,
-            timestamp: Date.now()
-        });
     }
 }
 

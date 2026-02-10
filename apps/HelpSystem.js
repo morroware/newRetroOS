@@ -5,7 +5,7 @@
 
 import AppBase from './AppBase.js';
 import AppRegistry from './AppRegistry.js';
-import EventBus from '../core/SemanticEventBus.js';
+import EventBus from '../core/EventBus.js';
 
 class HelpSystem extends AppBase {
     constructor() {

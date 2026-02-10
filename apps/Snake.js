@@ -6,7 +6,7 @@
 import AppBase from './AppBase.js';
 import StorageManager from '../core/StorageManager.js';
 import StateManager from '../core/StateManager.js';
-import EventBus from '../core/SemanticEventBus.js';
+import EventBus from '../core/EventBus.js';
 
 class Snake extends AppBase {
     constructor() {

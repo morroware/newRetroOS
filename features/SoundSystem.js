@@ -131,6 +131,26 @@ class SoundSystem extends FeatureBase {
             this.stopAllAudio();
         });
 
+        // Listen for audio pause requests
+        this.subscribe(Events.AUDIO_PAUSE, ({ src }) => {
+            if (src) {
+                const audio = this.getAudio(src);
+                if (audio) audio.pause();
+            } else {
+                this.pauseAllAudio();
+            }
+        });
+
+        // Listen for audio resume requests
+        this.subscribe(Events.AUDIO_RESUME, ({ src }) => {
+            if (src) {
+                const audio = this.getAudio(src);
+                if (audio) audio.play().catch(() => {});
+            } else {
+                this.resumeAllAudio();
+            }
+        });
+
         // Load saved volume setting
         const savedVolume = StateManager.getState('settings.volume');
         if (savedVolume !== undefined) {
