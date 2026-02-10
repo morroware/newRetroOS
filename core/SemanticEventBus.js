@@ -680,7 +680,12 @@ class SemanticEventBusClass {
             emitted: 0,
             validated: 0,
             validationErrors: 0,
-            middlewareErrors: 0
+            validationWarnings: 0,
+            middlewareErrors: 0,
+            requestsTotal: 0,
+            requestsResolved: 0,
+            requestsTimedOut: 0,
+            eventsCancelled: 0
         };
     }
 
@@ -1088,7 +1093,7 @@ export const Events = {
     DESKTOP_SETTINGS_CHANGE: 'desktop:settings-change',
 
     // Screensaver events (settings/control)
-    SCREENSAVER_START: 'screensaver:start',
+    SCREENSAVER_SETTINGS_START: 'screensaver:start',
     SCREENSAVER_UPDATE_DELAY: 'screensaver:update-delay',
     SCREENSAVER_UPDATE_TYPE: 'screensaver:update-type',
 

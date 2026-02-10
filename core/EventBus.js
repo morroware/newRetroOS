@@ -140,7 +140,7 @@ export const Events = {
     DESKTOP_SETTINGS_CHANGE: 'desktop:settings-change',
 
     // Screensaver events (settings/control)
-    SCREENSAVER_START: 'screensaver:start',
+    SCREENSAVER_SETTINGS_START: 'screensaver:start',
     SCREENSAVER_UPDATE_DELAY: 'screensaver:update-delay',
     SCREENSAVER_UPDATE_TYPE: 'screensaver:update-type',
 
@@ -245,18 +245,18 @@ EventBus.emit = function(eventName, payload, options) {
 
 // Wrap on to automatically map legacy event names
 const originalOn = EventBus.on.bind(EventBus);
-EventBus.on = function(eventName, callback) {
+EventBus.on = function(eventName, callback, options) {
     // Map legacy event names to new semantic ones
     const mappedEventName = LEGACY_EVENT_MAPPING[eventName] || eventName;
-    return originalOn(mappedEventName, callback);
+    return originalOn(mappedEventName, callback, options);
 };
 
 // Wrap once to automatically map legacy event names
 const originalOnce = EventBus.once.bind(EventBus);
-EventBus.once = function(eventName, callback) {
+EventBus.once = function(eventName, callback, options) {
     // Map legacy event names to new semantic ones
     const mappedEventName = LEGACY_EVENT_MAPPING[eventName] || eventName;
-    return originalOnce(mappedEventName, callback);
+    return originalOnce(mappedEventName, callback, options);
 };
 
 // Wrap off to automatically map legacy event names

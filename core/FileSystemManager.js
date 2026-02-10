@@ -497,6 +497,8 @@ class FileSystemManager {
       children[fileName].size = content.length;
       children[fileName].modified = now;
 
+      this.saveFileSystem();
+
       EventBus.emit(Events.FS_FILE_UPDATE, {
         path: pathStr,
         content: content
@@ -512,14 +514,14 @@ class FileSystemManager {
         modified: now
       };
 
+      this.saveFileSystem();
+
       EventBus.emit(Events.FS_FILE_CREATE, {
         path: pathStr,
         type: 'file',
         content: content
       });
     }
-
-    this.saveFileSystem();
   }
 
   /**
