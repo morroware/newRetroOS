@@ -1,7 +1,0 @@
-# Simple test with proper syntax
-print "Hello World!"
-set $x = 10
-set $y = 20
-set $sum = $x + $y
-print "The sum is: " + $sum
-print "Test complete!"
