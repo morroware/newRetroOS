@@ -4,490 +4,494 @@ This guide explains how to control and automate the Terminal app from RetroScrip
 
 ## Overview
 
-The Terminal app exposes a comprehensive set of **semantic commands** and **queries** that allow RetroScript programs to:
-- Open and control terminal instances
+The Terminal app is controlled from RetroScript via **built-in functions** prefixed with `terminal`. These functions are part of the `TerminalBuiltins` module and allow RetroScript programs to:
+- Open and control the terminal
 - Execute commands programmatically
-- Read and write files
-- Monitor terminal output
+- Read and write files relative to the terminal's working directory
+- Monitor terminal output and state
 - Create interactive experiences
 
 ## Basic Concepts
 
-### Targeting Terminal Instances
+### Opening a Terminal
 
-When you launch a terminal, you get back an instance ID that you can use to send commands:
+Use the `terminalOpen` built-in function to launch or focus the terminal:
 
-```retroscript
-# Launch a new terminal
-launch "terminal" into $term
+```retro
+# Open a terminal (or focus if already open)
+call terminalOpen
 
-# Send a command to that specific terminal
-send "execute" to $term with "dir"
+# Open terminal and run an initial command
+call terminalOpen "ver"
+```
 
-# Print text to the terminal
-send "print" to $term with "Hello from RetroScript!" and "#00ff00"
+You can also use the `launch` statement:
+
+```retro
+launch terminal
+```
+
+### Executing Commands
+
+Use `terminalExecute` to run commands in the terminal:
+
+```retro
+call terminalExecute "dir"
+call terminalExecute "echo Hello World"
+```
+
+### Printing to Terminal
+
+Output text directly to the terminal display:
+
+```retro
+# Print with optional color
+call terminalPrint "Hello from RetroScript!" "#00ff00"
+
+# Print HTML content
+call terminalPrintHtml "<b>Bold text</b>"
 ```
 
 ### Event Listening
 
-You can listen to terminal events to create reactive experiences:
+Listen for terminal events to create reactive experiences:
 
-```retroscript
-# Listen for command execution
-on terminal:command:executed {
-    print "Command was executed: " + $event.command
+```retro
+# React when terminal opens
+on app:terminal:opened {
+    print "Terminal opened!"
+    set $path = $event.pathString
+    print "Current path: " + $path
 }
 
-# Listen for directory changes
-on terminal:directory:changed {
-    print "Changed to: " + $event.path
+# React to terminal commands
+on app:terminal:command {
+    print "Command executed: " + $event.command
+    print "Output: " + $event.output
+}
+
+# React when terminal closes
+on app:terminal:closed {
+    print "Terminal closed. History count: " + $event.historyCount
 }
 ```
 
-## Available Commands
+---
+
+## Available Built-in Functions
 
 ### Basic Terminal Control
 
-#### `execute` - Execute a terminal command
-```retroscript
-send "execute" to $term with "dir"
-send "execute" to $term with "echo Hello World"
+#### `terminalExecute(command)` - Execute a terminal command
+```retro
+call terminalExecute "dir"
+call terminalExecute "echo Hello World"
 ```
 
-#### `executeSequence` - Execute multiple commands
-```retroscript
-send "executeSequence" to $term with ["cd C:\\Projects", "dir", "type readme.txt"]
+#### `terminalExecuteSequence(commands)` - Execute multiple commands
+```retro
+call terminalExecuteSequence ["cd C:/Projects", "dir", "type readme.txt"]
 ```
 
-#### `clear` - Clear the terminal screen
-```retroscript
-send "clear" to $term
+#### `terminalClear()` - Clear the terminal screen
+```retro
+call terminalClear
 ```
 
-#### `print` - Print text to terminal
-```retroscript
-send "print" to $term with "Message text" and "#00ff00"
-send "print" to $term with "Info message"  # Default color
+#### `terminalPrint(text, color?)` - Print text to terminal
+```retro
+call terminalPrint "Message text" "#00ff00"
+call terminalPrint "Info message"  # Default color
 ```
 
-#### `printHtml` - Print HTML to terminal
-```retroscript
-send "printHtml" to $term with "<b>Bold text</b>"
+#### `terminalPrintHtml(html)` - Print HTML to terminal
+```retro
+call terminalPrintHtml "<b>Bold text</b>"
 ```
 
 ### Directory & File Operations
 
-#### `cd` - Change directory
-```retroscript
-send "cd" to $term with "C:\\Users\\User\\Documents"
+#### `terminalCd(path)` - Change directory
+```retro
+call terminalCd "C:/Users/User/Documents"
 ```
 
-#### `dir` - List directory
-```retroscript
-send "dir" to $term with "C:\\Projects"
-send "dir" to $term  # Current directory
+#### `terminalDir(path?)` - List directory
+```retro
+call terminalDir "C:/Projects"
+call terminalDir  # Current directory
 ```
 
-#### `readFile` - Read a file's contents
-```retroscript
-send "readFile" to $term with "readme.txt" into $content
-print "File contains: " + $content.content
+#### `terminalReadFile(path)` - Read a file's contents
+```retro
+set $content = call terminalReadFile "readme.txt"
+print "File contains: " + $content
 ```
 
-#### `writeFile` - Write to a file
-```retroscript
-send "writeFile" to $term with "test.txt" and "Hello World" and "txt"
+#### `terminalWriteFile(path, content)` - Write to a file
+```retro
+call terminalWriteFile "test.txt" "Hello World"
 ```
 
-#### `createFile` - Create a new file
-```retroscript
-send "createFile" to $term with "newfile.txt" and "Initial content"
-```
-
-#### `deleteFile` - Delete a file
-```retroscript
-send "deleteFile" to $term with "oldfile.txt"
-```
-
-#### `fileExists` - Check if a file exists
-```retroscript
-send "fileExists" to $term with "secret.txt" into $result
-if $result.exists {
+#### `terminalFileExists(path)` - Check if a file exists
+```retro
+set $exists = call terminalFileExists "secret.txt"
+if $exists then {
     print "Secret file found!"
 }
 ```
 
 ### Environment Variables
 
-#### `setEnvVar` - Set an environment variable
-```retroscript
-send "setEnvVar" to $term with "MYVAR" and "Hello"
+#### `terminalSetEnvVar(name, value)` - Set an environment variable
+```retro
+call terminalSetEnvVar "MYVAR" "Hello"
 ```
 
-#### `getEnvVar` - Get an environment variable
-```retroscript
-send "getEnvVar" to $term with "USERNAME" into $result
-print "User is: " + $result.value
+#### `terminalGetEnvVar(name)` - Get an environment variable
+```retro
+set $user = call terminalGetEnvVar "USERNAME"
+print "User is: " + $user
+```
+
+#### `terminalGetEnvVars()` - Get all environment variables
+```retro
+set $env = call terminalGetEnvVars
 ```
 
 ### Aliases
 
-#### `createAlias` - Create a command alias
-```retroscript
-send "createAlias" to $term with "ll" and "dir /w"
+#### `terminalAlias(name, command)` - Create a command alias
+```retro
+call terminalAlias "ll" "dir /w"
 ```
 
-#### `removeAlias` - Remove an alias
-```retroscript
-send "removeAlias" to $term with "ll"
+#### `terminalGetAliases()` - Get all aliases
+```retro
+set $aliases = call terminalGetAliases
 ```
 
 ### Script Execution
 
-#### `runScript` - Run a .retro or .bat script
-```retroscript
-send "runScript" to $term with "C:\\scripts\\setup.bat"
-send "runScript" to $term with "automation.retro"
+#### `terminalRunScript(path)` - Run a .retro or .bat script
+```retro
+call terminalRunScript "C:/scripts/setup.bat"
+call terminalRunScript "automation.retro"
 ```
 
 ### Window Management
 
-#### `focus` - Focus the terminal window
-```retroscript
-send "focus" to $term
+#### `terminalOpen(command?)` - Open/focus terminal
+```retro
+call terminalOpen
+call terminalOpen "ver"  # Open and run command
 ```
 
-#### `minimize` - Minimize the terminal
-```retroscript
-send "minimize" to $term
+#### `terminalFocus()` - Focus the terminal window
+```retro
+call terminalFocus
 ```
 
-#### `maximize` - Maximize the terminal
-```retroscript
-send "maximize" to $term
+#### `terminalMinimize()` - Minimize the terminal
+```retro
+call terminalMinimize
 ```
 
-#### `closeTerminal` - Close the terminal
-```retroscript
-send "closeTerminal" to $term
+#### `terminalClose()` - Close the terminal
+```retro
+call terminalClose
+```
+
+### State Queries
+
+#### `isTerminalOpen()` - Check if terminal is open
+```retro
+set $open = call isTerminalOpen
+if $open then {
+    print "Terminal is running"
+}
+```
+
+#### `terminalGetState()` - Get full terminal state
+```retro
+set $state = call terminalGetState
+```
+
+#### `terminalGetPath()` - Get current working directory
+```retro
+set $path = call terminalGetPath
+print "Working in: " + $path
+```
+
+#### `terminalGetOutput()` - Get last command output
+```retro
+call terminalExecute "dir"
+set $output = call terminalGetOutput
+print "Output: " + $output
+```
+
+#### `terminalGetAllOutput()` - Get all terminal output
+```retro
+set $all = call terminalGetAllOutput
+```
+
+#### `terminalGetHistory()` - Get command history
+```retro
+set $history = call terminalGetHistory
 ```
 
 ### Visual Effects
 
-#### `showMessage` - Show colored message
-```retroscript
-send "showMessage" to $term with "Success!" and "success"
-send "showMessage" to $term with "Warning!" and "warning"
-send "showMessage" to $term with "Error!" and "error"
-send "showMessage" to $term with "Info" and "info"
-send "showMessage" to $term with "Cyan text" and "cyan"
-send "showMessage" to $term with "Magenta text" and "magenta"
+#### `terminalMatrix()` - Start matrix effect
+```retro
+call terminalMatrix
 ```
 
-#### `startMatrix` - Enable matrix mode
-```retroscript
-send "startMatrix" to $term
-wait 5000
-send "stopMatrix" to $term
+#### `terminalGodMode()` - Enable god mode
+```retro
+call terminalGodMode
 ```
 
-#### `stopMatrix` - Disable matrix mode
-```retroscript
-send "stopMatrix" to $term
-```
-
-#### `enableGodMode` - Activate god mode
-```retroscript
-send "enableGodMode" to $term
-```
-
-### Application Integration
-
-#### `launchApp` - Launch another application
-```retroscript
-send "launchApp" to $term with "notepad" and {filePath: ["C:", "test.txt"]}
-send "launchApp" to $term with "paint"
-```
-
-## Available Queries
-
-### Terminal State
-
-#### `getState` - Get full terminal state
-```retroscript
-query "getState" from $term into $state
-print "Current path: " + $state.pathString
-print "God mode: " + $state.godMode
-print "Active process: " + $state.activeProcessType
-```
-
-#### `getCurrentPath` - Get current directory
-```retroscript
-query "getCurrentPath" from $term into $path
-print "Working in: " + $path.pathString
-```
-
-#### `getHistory` - Get command history
-```retroscript
-query "getHistory" from $term into $history
-print "Last command: " + $history.history[-1]
-```
-
-#### `getLastOutput` - Get last command output
-```retroscript
-send "execute" to $term with "dir"
-query "getLastOutput" from $term into $output
-print "Command output: " + $output.output
-```
-
-#### `getAllOutput` - Get all terminal output
-```retroscript
-query "getAllOutput" from $term into $output
-print "Full output: " + $output.outputText
-```
-
-### Environment
-
-#### `getEnvVars` - Get all environment variables
-```retroscript
-query "getEnvVars" from $term into $env
-print "PATH: " + $env.envVars.PATH
-```
-
-#### `getAliases` - Get all aliases
-```retroscript
-query "getAliases" from $term into $aliases
-for $alias in $aliases.aliases {
-    print $alias.name + " = " + $alias.command
-}
-```
-
-### Window Information
-
-#### `getWindowInfo` - Get window details
-```retroscript
-query "getWindowInfo" from $term into $info
-print "Window ID: " + $info.windowId
-print "App ID: " + $info.appId
-```
-
-### Special States
-
-#### `isGodMode` - Check if god mode is active
-```retroscript
-query "isGodMode" from $term into $god
-if $god.godMode {
+#### `terminalIsGodMode()` - Check god mode status
+```retro
+set $godMode = call terminalIsGodMode
+if $godMode then {
     print "God mode is active!"
 }
 ```
 
-#### `getBatchState` - Get batch execution state
-```retroscript
-query "getBatchState" from $term into $batch
-if $batch.isExecutingBatch {
-    print "Executing batch: " + $batch.currentBatchIndex + "/" + $batch.batchCommandCount
-}
+#### `terminalColor(code)` - Set terminal color scheme
+```retro
+call terminalColor "a"  # Green on black
 ```
+
+### Fun Commands
+
+#### `terminalCowsay(message)` - ASCII cow says message
+```retro
+call terminalCowsay "Hello from RetroScript!"
+```
+
+#### `terminalFortune()` - Display random fortune
+```retro
+call terminalFortune
+```
+
+---
+
+## Complete Function Reference
+
+| Function | Description | Returns |
+|----------|-------------|---------|
+| `terminalOpen(cmd?)` | Open/focus terminal, optionally run command | - |
+| `terminalClose()` | Close terminal window | - |
+| `terminalFocus()` | Focus terminal window | - |
+| `terminalMinimize()` | Minimize terminal window | - |
+| `isTerminalOpen()` | Check if terminal is open | boolean |
+| `terminalPrint(text, color?)` | Print text to terminal | - |
+| `terminalPrintHtml(html)` | Print HTML to terminal | - |
+| `terminalClear()` | Clear terminal screen | - |
+| `terminalExecute(cmd)` | Execute terminal command | - |
+| `terminalExecuteSequence(cmds)` | Execute multiple commands | - |
+| `terminalCd(path)` | Change directory | - |
+| `terminalGetPath()` | Get current path | string |
+| `terminalGetOutput()` | Get last command output | string |
+| `terminalGetAllOutput()` | Get all terminal output | string |
+| `terminalGetHistory()` | Get command history | array |
+| `terminalGetState()` | Get terminal state | object |
+| `terminalGetEnvVars()` | Get all env variables | object |
+| `terminalGetEnvVar(name)` | Get env variable | string |
+| `terminalSetEnvVar(name, val)` | Set env variable | - |
+| `terminalAlias(name, cmd)` | Create command alias | - |
+| `terminalGetAliases()` | Get all aliases | object |
+| `terminalDir(path?)` | List directory | - |
+| `terminalReadFile(path)` | Read file | string |
+| `terminalWriteFile(path, content)` | Write file | - |
+| `terminalFileExists(path)` | Check file exists | boolean |
+| `terminalRunScript(path)` | Run .retro or .bat file | - |
+| `terminalGodMode()` | Enable god mode | - |
+| `terminalIsGodMode()` | Check god mode status | boolean |
+| `terminalMatrix()` | Start matrix effect | - |
+| `terminalCowsay(msg)` | Display cowsay message | - |
+| `terminalFortune()` | Display random fortune | - |
+| `terminalColor(code)` | Set terminal color | - |
+
+---
 
 ## Terminal Events
 
-Listen to these events to react to terminal actions:
+Listen to these events with `on` handlers to react to terminal actions:
 
-### `terminal:command:executed`
-```retroscript
-on terminal:command:executed {
+### `app:terminal:opened`
+Fired when a terminal window is opened.
+```retro
+on app:terminal:opened {
+    print "Terminal opened at: " + $event.pathString
+}
+```
+
+### `app:terminal:command`
+Fired when a command is executed in the terminal.
+```retro
+on app:terminal:command {
     print "Command: " + $event.command
-    print "Window: " + $event.windowId
+    print "Output: " + $event.output
 }
 ```
 
-### `terminal:command:error`
-```retroscript
-on terminal:command:error {
-    print "Error executing: " + $event.command
-    print "Error message: " + $event.error
+### `app:terminal:closed`
+Fired when the terminal window is closed.
+```retro
+on app:terminal:closed {
+    print "Terminal closed"
 }
 ```
 
-### `terminal:cleared`
-```retroscript
-on terminal:cleared {
-    print "Terminal was cleared"
-}
-```
-
-### `terminal:directory:changed`
-```retroscript
-on terminal:directory:changed {
-    print "Changed to: " + $event.path
-}
-```
-
-### `terminal:output`
-```retroscript
-on terminal:output {
-    print "Terminal printed: " + $event.text
-    print "Color: " + $event.color
-}
-```
+---
 
 ## ARG Examples
 
 ### Example 1: Automated Tutorial
 
-```retroscript
+```retro
 # Launch terminal and run a tutorial
-launch "terminal" into $term
+launch terminal
 
 wait 1000
-send "showMessage" to $term with "Welcome to the Terminal Tutorial!" and "success"
+call terminalPrint "Welcome to the Terminal Tutorial!" "#00ff00"
 
 wait 2000
-send "print" to $term with "Let's learn some commands..."
+call terminalPrint "Let's learn some commands..."
 
 wait 2000
-send "execute" to $term with "help"
+call terminalExecute "help"
 
 wait 5000
-send "showMessage" to $term with "Try typing 'dir' to list files!" and "cyan"
+call terminalPrint "Try typing 'dir' to list files!" "#00ffff"
 ```
 
 ### Example 2: Secret File Hunt
 
-```retroscript
+```retro
 # Create a secret file hunt game
-launch "terminal" into $term
+launch terminal
 
 # Hide a secret file
-send "writeFile" to $term with "C:\\Users\\User\\Secret\\password.txt" and "SECRET_CODE_1337" and "txt"
+write "SECRET_CODE_1337" to "C:/Users/User/Secret/password.txt"
 
-send "showMessage" to $term with "Find the password file hidden in the system..." and "warning"
+call terminalPrint "Find the password file hidden in the system..." "#ffff00"
 
 # Listen for when they find it
-on terminal:command:executed {
-    if $event.command includes "password.txt" {
-        send "showMessage" to $term with "You found it! The code is revealed!" and "success"
-        send "enableGodMode" to $term
+on app:terminal:command {
+    set $cmd = $event.command
+    set $hasPassword = call contains $cmd "password.txt"
+    if $hasPassword then {
+        call terminalPrint "You found it! The code is revealed!" "#00ff00"
+        call terminalGodMode
     }
 }
 ```
 
 ### Example 3: Automated System Setup
 
-```retroscript
+```retro
 # Automate terminal setup
-launch "terminal" into $term
+launch terminal
+wait 500
 
-send "executeSequence" to $term with [
-    "cd C:\\Projects",
-    "mkdir MyProject",
-    "cd MyProject",
-    "touch readme.txt",
-    "echo Project initialized! > readme.txt"
-]
+call terminalExecuteSequence ["cd C:/Users/User", "mkdir Projects", "cd Projects", "touch readme.txt"]
 
 wait 1000
-send "showMessage" to $term with "Project setup complete!" and "success"
+call terminalPrint "Project setup complete!" "#00ff00"
 ```
 
 ### Example 4: Interactive Mystery
 
-```retroscript
+```retro
 # Create an interactive mystery
-launch "terminal" into $term
+launch terminal
 
-# Setup the mystery
-send "createFile" to $term with "C:\\clue1.txt" and "The truth lies in the Windows folder..."
-send "createFile" to $term with "C:\\Windows\\clue2.txt" and "Check your documents for the final answer..."
-send "createFile" to $term with "C:\\Users\\User\\Documents\\answer.txt" and "CONGRATULATIONS! You solved it!"
+# Setup the mystery files
+write "The truth lies in the Windows folder..." to "C:/clue1.txt"
+write "Check your documents for the final answer..." to "C:/Windows/clue2.txt"
+write "CONGRATULATIONS! You solved the mystery!" to "C:/Users/User/Documents/answer.txt"
 
-send "print" to $term with "MYSTERY CHALLENGE ACTIVATED" and "#ff00ff"
-send "print" to $term with "Find and read clue1.txt to begin..." and "#ffff00"
+call terminalPrint "MYSTERY CHALLENGE ACTIVATED" "#ff00ff"
+call terminalPrint "Find and read clue1.txt to begin..." "#ffff00"
 
 # Track progress
-on terminal:command:executed {
-    query "getLastOutput" from $term into $output
+on app:terminal:command {
+    set $output = call terminalGetOutput
+    set $hasClue1 = call contains $output "truth lies"
+    set $hasCongrats = call contains $output "CONGRATULATIONS"
 
-    if $output.output includes "clue1.txt" {
-        send "showMessage" to $term with "Good! Now follow the clue!" and "cyan"
+    if $hasClue1 then {
+        call terminalPrint "Good! Now follow the clue!" "#00ffff"
     }
 
-    if $output.output includes "CONGRATULATIONS" {
-        send "startMatrix" to $term
+    if $hasCongrats then {
+        call terminalMatrix
         wait 3000
-        send "stopMatrix" to $term
-        send "enableGodMode" to $term
+        call terminalGodMode
     }
 }
 ```
 
-### Example 5: Terminal-Based Mini Game
+### Example 5: Terminal-Based Guessing Game
 
-```retroscript
+```retro
 # Number guessing game in terminal
-launch "terminal" into $term
+launch terminal
 
-set $secretNumber = random(1, 100)
+set $secret = call random 1 100
 set $attempts = 0
 
-send "showMessage" to $term with "=== NUMBER GUESSING GAME ===" and "cyan"
-send "print" to $term with "I'm thinking of a number between 1 and 100"
-send "print" to $term with "Use: echo <number>"
+call terminalPrint "=== NUMBER GUESSING GAME ===" "#00ffff"
+call terminalPrint "I'm thinking of a number between 1 and 100"
+call terminalPrint "Type: echo <number>"
 
-on terminal:command:executed {
-    if $event.command startsWith "echo " {
-        set $guess = parseInt($event.command.substring(5))
+on app:terminal:command {
+    set $cmd = $event.command
+    set $isGuess = call startsWith $cmd "echo "
+
+    if $isGuess then {
+        set $guessStr = call substring $cmd 5
+        set $guess = call toNumber $guessStr
         set $attempts = $attempts + 1
 
-        if $guess == $secretNumber {
-            send "showMessage" to $term with "CORRECT! You won in " + $attempts + " attempts!" and "success"
-            send "enableGodMode" to $term
-        } else if $guess < $secretNumber {
-            send "showMessage" to $term with "Too low! Try again..." and "warning"
+        if $guess == $secret then {
+            call terminalPrint "CORRECT! You won in " + $attempts + " attempts!" "#00ff00"
+        } else if $guess < $secret then {
+            call terminalPrint "Too low! Try again..." "#ffff00"
         } else {
-            send "showMessage" to $term with "Too high! Try again..." and "warning"
+            call terminalPrint "Too high! Try again..." "#ffff00"
         }
     }
 }
 ```
 
+---
+
 ## Best Practices
 
-1. **Always wait between commands** - Use `wait` to give the terminal time to process
-2. **Check command results** - Query the output to verify commands succeeded
-3. **Use events for reactivity** - Listen to terminal events for dynamic experiences
-4. **Provide user feedback** - Use colored messages to guide users
-5. **Clean up** - Close terminals or clean up files when your script ends
-6. **Error handling** - Always check for file existence before operations
-
-## Advanced: Multi-Terminal Control
-
-```retroscript
-# Control multiple terminals simultaneously
-launch "terminal" into $term1
-launch "terminal" into $term2
-
-send "cd" to $term1 with "C:\\Projects"
-send "cd" to $term2 with "C:\\Users"
-
-send "print" to $term1 with "Terminal 1" and "#00ff00"
-send "print" to $term2 with "Terminal 2" and "#ff00ff"
-
-# Coordinate between them
-send "execute" to $term1 with "dir > filelist.txt"
-wait 1000
-send "execute" to $term2 with "type C:\\Projects\\filelist.txt"
-```
-
-## Troubleshooting
-
-- **Command not executing**: Ensure you're using the correct syntax and the terminal instance is valid
-- **File not found**: Use absolute paths (C:\\...) instead of relative paths
-- **Events not firing**: Make sure event listeners are set up before triggering actions
-- **Terminal closes unexpectedly**: Check for errors in your command sequence
+1. **Wait between commands** - Use `wait` to give the terminal time to process each command
+2. **Check terminal state** - Use `isTerminalOpen` before sending commands
+3. **Use events for reactivity** - Listen to `app:terminal:command` for dynamic experiences
+4. **Provide visual feedback** - Use colored `terminalPrint` to guide users
+5. **Clean up** - Close terminals or clean up created files when your script ends
+6. **Error handling** - Use `terminalFileExists` before reading files, and wrap operations in `try/catch`
 
 ---
 
-**Ready to create amazing ARG experiences!** 🎮
+## Troubleshooting
 
-For more examples, check the `/examples/arg-scripts/` directory in the RetroOS repository.
+- **Function not working**: Ensure the terminal is open before calling terminal functions. Use `call terminalOpen` first.
+- **File not found**: Use absolute paths (C:/...) when working outside the terminal's current directory.
+- **Events not firing**: Make sure event listeners are set up before triggering actions.
+- **Terminal closes unexpectedly**: Check for errors in your command sequence.
+
+---
+
+For more scripting documentation, see:
+- [SCRIPTING_GUIDE.md](../SCRIPTING_GUIDE.md) for complete RetroScript language reference
+- [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md) for app and feature development
