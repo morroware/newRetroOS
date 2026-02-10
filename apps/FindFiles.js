@@ -6,7 +6,7 @@
 import AppBase from './AppBase.js';
 import FileSystemManager from '../core/FileSystemManager.js';
 import AppRegistry from './AppRegistry.js';
-import EventBus from '../core/SemanticEventBus.js';
+import EventBus from '../core/EventBus.js';
 
 class FindFiles extends AppBase {
     constructor() {

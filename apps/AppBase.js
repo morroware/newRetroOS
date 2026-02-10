@@ -25,7 +25,7 @@
  *   - app:broadcast - When app broadcasts to all apps
  */
 
-import EventBus, { Events } from '../core/SemanticEventBus.js';
+import EventBus, { Events } from '../core/EventBus.js';
 import StateManager from '../core/StateManager.js';
 import WindowManager from '../core/WindowManager.js';
 

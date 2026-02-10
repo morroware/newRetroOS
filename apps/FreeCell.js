@@ -10,7 +10,7 @@
  */
 
 import AppBase from './AppBase.js';
-import EventBus from '../core/SemanticEventBus.js';
+import EventBus from '../core/EventBus.js';
 
 class FreeCell extends AppBase {
     constructor() {

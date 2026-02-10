@@ -11,7 +11,7 @@
  */
 
 import StorageManager from './StorageManager.js';
-import EventBus, { Events } from './SemanticEventBus.js';
+import EventBus, { Events } from './EventBus.js';
 import { PATHS } from './Constants.js';
 
 class FileSystemManager {

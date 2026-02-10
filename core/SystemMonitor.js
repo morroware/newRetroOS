@@ -12,7 +12,7 @@
  * All activity is emitted as events for scripting and automation.
  */
 
-import EventBus, { Events } from './SemanticEventBus.js';
+import EventBus, { Events } from './EventBus.js';
 
 class SystemMonitorClass {
     constructor() {

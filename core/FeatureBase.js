@@ -36,7 +36,7 @@
  *   }
  */
 
-import EventBus, { Events } from './SemanticEventBus.js';
+import EventBus, { Events } from './EventBus.js';
 import StateManager from './StateManager.js';
 import StorageManager from './StorageManager.js';
 

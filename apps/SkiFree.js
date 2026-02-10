@@ -4,7 +4,7 @@
  */
 
 import AppBase from './AppBase.js';
-import EventBus, { Events } from '../core/SemanticEventBus.js';
+import EventBus, { Events } from '../core/EventBus.js';
 import StorageManager from '../core/StorageManager.js';
 
 class SkiFree extends AppBase {
