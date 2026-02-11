@@ -255,7 +255,8 @@ class AppBase {
 
         // Call mount hook after slight delay (let DOM render)
         setTimeout(() => {
-            // Set context before calling onMount
+            // Save and restore context to avoid corrupting another window's context
+            const prevWindowId = this._currentWindowId;
             this._currentWindowId = windowId;
             try {
                 this.onMount();
@@ -271,6 +272,11 @@ class AppBase {
                     error: error.message,
                     stack: error.stack
                 });
+            } finally {
+                // Restore previous context if another window was active
+                if (prevWindowId !== windowId && this.openWindows.has(prevWindowId)) {
+                    this._currentWindowId = prevWindowId;
+                }
             }
         }, 50);
     }

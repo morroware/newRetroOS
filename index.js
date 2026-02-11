@@ -417,6 +417,15 @@ function setupGlobalHandlers() {
     // The legacy showDialog() function below is kept for fallback but not subscribed
     // to avoid duplicate dialogs appearing when scripts emit dialog:alert events.
 
+    // Catch unhandled promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+        console.error('[IlluminatOS!] Unhandled promise rejection:', event.reason);
+        EventBus.emit('system:error', {
+            type: 'unhandledrejection',
+            error: event.reason?.message || String(event.reason)
+        });
+    });
+
     // Handle BSOD (Blue Screen of Death)
     EventBus.on('bsod:trigger', () => {
         showBSOD();

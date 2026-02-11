@@ -17,6 +17,9 @@ class ContextMenuRendererClass {
         this.currentContext = null;
         this.initialized = false;
 
+        // Plugin-registered custom menu items, keyed by menu type
+        this._customMenuItems = new Map();
+
         // Clipboard for Copy/Cut/Paste operations
         this.clipboard = {
             items: [],      // Array of { path: [], name: '', type: 'file'|'directory' }
@@ -30,6 +33,41 @@ class ContextMenuRendererClass {
         this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
         this.boundHandleEscape = this.handleEscape.bind(this);
         this.boundHandleMenuClick = this.handleMenuClick.bind(this);
+    }
+
+    /**
+     * Register a custom context menu item for a specific menu type.
+     * Plugins can call this to add actions to context menus.
+     * @param {string} menuType - Menu type: 'desktop', 'icon', 'taskbar'
+     * @param {{ id: string, label: string, handler: Function }} item
+     */
+    registerMenuItem(menuType, item) {
+        if (!item || !item.id || !item.label) {
+            console.error('[ContextMenuRenderer] registerMenuItem requires { id, label, handler }');
+            return;
+        }
+        if (!this._customMenuItems.has(menuType)) {
+            this._customMenuItems.set(menuType, []);
+        }
+        const items = this._customMenuItems.get(menuType);
+        if (!items.find(i => i.id === item.id)) {
+            items.push(item);
+        }
+    }
+
+    /**
+     * Render custom menu items for a given menu type.
+     * @param {string} menuType
+     * @returns {string} HTML string
+     * @private
+     */
+    _renderCustomItems(menuType) {
+        const items = this._customMenuItems.get(menuType) || [];
+        if (items.length === 0) return '';
+        return `<div class="context-divider"></div>` +
+            items.map(item =>
+                `<div class="context-item" data-action="${item.id}">${item.label}</div>`
+            ).join('');
     }
 
     initialize() {
@@ -223,6 +261,7 @@ class ContextMenuRendererClass {
             </div>
             <div class="context-divider"></div>
             <div class="context-item" data-action="open-terminal">💻 Open Terminal Here</div>
+            ${this._renderCustomItems('desktop')}
             <div class="context-divider"></div>
             <div class="context-item" data-action="properties">Properties</div>
         `;
@@ -547,6 +586,22 @@ class ContextMenuRendererClass {
             case 'explorer-properties':
                 this.handleExplorerProperties(context);
                 break;
+            default: {
+                // Check plugin-registered custom actions
+                let handled = false;
+                for (const [, items] of this._customMenuItems) {
+                    const customItem = items.find(i => i.id === action);
+                    if (customItem && typeof customItem.handler === 'function') {
+                        customItem.handler(context);
+                        handled = true;
+                        break;
+                    }
+                }
+                if (!handled) {
+                    console.log('[ContextMenu] Unknown action:', action);
+                }
+                break;
+            }
         }
     }
 

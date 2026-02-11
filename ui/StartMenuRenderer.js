@@ -14,10 +14,29 @@ class StartMenuRendererClass {
         this.isOpen = false;
         this.initialized = false;
 
+        // Plugin-registered custom categories for the Programs submenu
+        this._customCategories = [];
+
         // Bound handlers for cleanup
         this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
         this.boundHandleStartClick = this.handleStartClick.bind(this);
         this.boundHandleMenuClick = this.handleMenuClick.bind(this);
+    }
+
+    /**
+     * Register a custom category in the Programs submenu.
+     * Plugins can call this to add their own app categories.
+     * @param {{ id: string, label: string, icon: string }} category
+     */
+    registerCategory(category) {
+        if (!category || !category.id || !category.label) {
+            console.error('[StartMenuRenderer] registerCategory requires { id, label, icon }');
+            return;
+        }
+        // Avoid duplicates
+        if (!this._customCategories.find(c => c.id === category.id)) {
+            this._customCategories.push(category);
+        }
     }
 
     initialize() {
@@ -249,6 +268,20 @@ class StartMenuRendererClass {
                             ${renderAppList(games)}
                         </div>
                     </div>
+
+                    ${this._customCategories.map(cat => {
+                        const catApps = AppRegistry.getByCategory(cat.id).filter(a => a.showInMenu !== false);
+                        if (catApps.length === 0) return '';
+                        return `
+                        <div class="start-menu-item submenu-trigger">
+                            <span class="start-menu-icon">${cat.icon || '📂'}</span>
+                            <span>${cat.label}</span>
+                            <span class="submenu-arrow">▶</span>
+                            <div class="start-submenu">
+                                ${renderAppList(catApps)}
+                            </div>
+                        </div>`;
+                    }).join('')}
 
                     ${links.length > 0 ? `
                         <div class="start-menu-divider"></div>

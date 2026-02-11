@@ -3,8 +3,8 @@
    ============================================ */
 .context-menu {
     position: fixed;
-    background: var(--win95-gray);
-    border: 2px outset var(--win95-gray);
+    background: var(--win95-menu-bg);
+    border: 2px outset var(--win95-menu-bg);
     padding: 2px;
     min-width: 180px;
     z-index: 10001;

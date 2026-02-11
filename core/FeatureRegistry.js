@@ -57,8 +57,7 @@ class FeatureRegistryClass {
         }
 
         if (this.features.has(feature.id)) {
-            console.warn(`[FeatureRegistry] Feature "${feature.id}" already registered`);
-            return;
+            throw new Error(`[FeatureRegistry] Feature "${feature.id}" already registered. Unregister it first before re-registering.`);
         }
 
         this.features.set(feature.id, feature);
@@ -75,6 +74,45 @@ class FeatureRegistryClass {
 
         // Emit registration event
         EventBus.emit('feature:registered', { featureId: feature.id, name: feature.name, category: meta.category });
+    }
+
+    /**
+     * Unregister a feature (for plugin unload/hot-reload)
+     * Disables the feature if enabled, cleans up resources, and removes from registry.
+     * @param {string} featureId - Feature ID
+     */
+    async unregister(featureId) {
+        const feature = this.features.get(featureId);
+        if (!feature) {
+            console.warn(`[FeatureRegistry] Cannot unregister "${featureId}" - not found`);
+            return;
+        }
+
+        // Disable first if enabled (handles dependents, saves state, emits events)
+        if (feature.isEnabled()) {
+            try {
+                await this.disable(featureId);
+            } catch (error) {
+                console.warn(`[FeatureRegistry] Error disabling "${featureId}" during unregister:`, error);
+            }
+        }
+
+        // Clean up resources
+        try {
+            feature.cleanup();
+        } catch (error) {
+            console.warn(`[FeatureRegistry] Error cleaning up "${featureId}" during unregister:`, error);
+        }
+
+        // Remove from registry
+        this.features.delete(featureId);
+        this.metadata.delete(featureId);
+
+        // Remove from init order
+        this.initOrder = this.initOrder.filter(id => id !== featureId);
+
+        console.log(`[FeatureRegistry] Unregistered: ${feature.name} (${featureId})`);
+        EventBus.emit('feature:unregistered', { featureId, name: feature.name });
     }
 
     /**

@@ -107,19 +107,20 @@
     display: flex;
     gap: 4px;
     flex: 1;
-    overflow-x: auto;
+    overflow: hidden;
     padding: 0 4px;
+    min-width: 0;
 }
 
 .taskbar-button {
     height: 36px;
     padding: 0 15px;
-    background: var(--win95-gray);
+    background: var(--win95-button-face);
     border: none;
-    border-top: 2px solid var(--win95-light);
-    border-left: 2px solid var(--win95-light);
-    border-right: 2px solid #000;
-    border-bottom: 2px solid #000;
+    border-top: 2px solid var(--win95-button-highlight);
+    border-left: 2px solid var(--win95-button-highlight);
+    border-right: 2px solid var(--win95-darkest);
+    border-bottom: 2px solid var(--win95-darkest);
     font-family: 'VT323', monospace;
     font-size: 16px;
     cursor: pointer;
@@ -128,8 +129,16 @@
     gap: 5px;
     white-space: nowrap;
     max-width: 160px;
+    min-width: 60px;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 1;
+}
+
+.taskbar-button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .taskbar-button.active {

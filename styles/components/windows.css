@@ -3,11 +3,11 @@
    ============================================ */
 .window {
     position: absolute;
-    background: var(--win95-gray);
-    border-top: 2px solid var(--win95-light);
-    border-left: 2px solid var(--win95-light);
-    border-right: 2px solid #000;
-    border-bottom: 2px solid #000;
+    background: var(--win95-window-bg);
+    border-top: 2px solid var(--win95-button-highlight);
+    border-left: 2px solid var(--win95-button-highlight);
+    border-right: 2px solid var(--win95-darkest);
+    border-bottom: 2px solid var(--win95-darkest);
     box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.25);
     min-width: 300px;
     display: none;
@@ -99,12 +99,12 @@
 }
 
 .title-bar {
-    background: linear-gradient(90deg, var(--win95-blue) 0%, #1084d0 100%);
+    background: linear-gradient(90deg, var(--win95-window-title) 0%, #1084d0 100%);
     padding: 3px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: white;
+    color: var(--win95-window-title-text);
     font-size: 18px;
     font-weight: bold;
     cursor: move;
@@ -113,7 +113,7 @@
 }
 
 .window:not(.active) .title-bar {
-    background: linear-gradient(90deg, #808080 0%, #a0a0a0 100%);
+    background: linear-gradient(90deg, var(--win95-window-title-inactive) 0%, #a0a0a0 100%);
 }
 
 .title-text {

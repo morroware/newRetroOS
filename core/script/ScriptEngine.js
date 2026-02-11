@@ -42,6 +42,10 @@ class ScriptEngineClass {
         this._activeInterpreters = new Set();
         this._nextInvocationId = 0;
 
+        // Custom builtins registered via defineFunction/registerGlobalBuiltin
+        // These persist across run() invocations and reset() calls
+        this._customBuiltins = new Map();
+
         // Event callbacks
         this.outputCallback = null;
         this.errorCallback = null;
@@ -134,6 +138,11 @@ class ScriptEngineClass {
 
         // Register all built-in functions on this instance
         registerAllBuiltins(interpreter);
+
+        // Register custom builtins (from defineFunction/registerGlobalBuiltin)
+        for (const [name, fn] of this._customBuiltins) {
+            interpreter.registerBuiltin(name, fn);
+        }
 
         // Assign an ID for targeted stop()
         const invocationId = ++this._nextInvocationId;
@@ -262,15 +271,26 @@ class ScriptEngineClass {
     }
 
     /**
-     * Define a custom function (registered on the primary interpreter
-     * and available in future invocations via builtin registration)
+     * Define a custom function available in all future script invocations.
      * @param {string} name - Function name
      * @param {Function} fn - Function implementation
      */
     defineFunction(name, fn) {
+        this._customBuiltins.set(name, fn);
         if (this.interpreter) {
             this.interpreter.registerBuiltin(name, fn);
         }
+    }
+
+    /**
+     * Register a global builtin function (plugin-facing API).
+     * The function will be available in all script invocations, including
+     * after reset(). Plugins should call this in their onLoad() hook.
+     * @param {string} name - Function name (e.g., 'myPluginFunc')
+     * @param {Function} fn - Function implementation
+     */
+    registerGlobalBuiltin(name, fn) {
+        this.defineFunction(name, fn);
     }
 
     /**
@@ -431,6 +451,11 @@ class ScriptEngineClass {
             onError: (error) => this.emitError(error)
         });
         registerAllBuiltins(this.interpreter);
+
+        // Re-register custom builtins on the new primary interpreter
+        for (const [name, fn] of this._customBuiltins) {
+            this.interpreter.registerBuiltin(name, fn);
+        }
     }
 }
 

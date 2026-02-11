@@ -5,11 +5,11 @@
     position: fixed;
     bottom: 50px;
     left: 2px;
-    background: var(--win95-gray);
-    border-top: 2px solid var(--win95-light);
-    border-left: 2px solid var(--win95-light);
-    border-right: 2px solid #000;
-    border-bottom: 2px solid #000;
+    background: var(--win95-menu-bg);
+    border-top: 2px solid var(--win95-button-highlight);
+    border-left: 2px solid var(--win95-button-highlight);
+    border-right: 2px solid var(--win95-darkest);
+    border-bottom: 2px solid var(--win95-darkest);
     box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
     display: none;
     z-index: 10000;

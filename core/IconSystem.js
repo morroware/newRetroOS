@@ -569,6 +569,22 @@ export function toggleIconMode() {
     return IconConfig.useFontAwesome;
 }
 
+/**
+ * Register a custom icon at runtime (for plugins).
+ * @param {string} name - Icon name (e.g., 'MY_PLUGIN_ICON')
+ * @param {{ faClass?: string, emoji?: string, label?: string }} options
+ */
+export function registerCustomIcon(name, { faClass, emoji: emojiChar, label } = {}) {
+    const upperName = name?.toUpperCase().replace(/-/g, '_');
+    if (!upperName) {
+        console.error('[IconSystem] registerCustomIcon requires a name');
+        return;
+    }
+    if (faClass) Icons[upperName] = faClass;
+    if (emojiChar) Emojis[upperName] = emojiChar;
+    if (label) IconLabels[upperName] = label;
+}
+
 // ============================================
 // Default Export
 // ============================================
@@ -588,4 +604,5 @@ export default {
     setIconMode,
     getIconMode,
     toggleIconMode,
+    registerCustomIcon,
 };
