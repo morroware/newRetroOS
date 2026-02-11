@@ -358,7 +358,11 @@ export class Interpreter {
             return;
         }
 
-        const handlerCount = this.eventHandlers.size;
+        // Count total handlers across all events
+        let handlerCount = 0;
+        for (const handlers of this.eventHandlers.values()) {
+            handlerCount += Array.isArray(handlers) ? handlers.length : 1;
+        }
         if (!this.limits.checkEventHandlerCount(handlerCount)) {
             throw new RuntimeError(
                 `Maximum event handlers (${this.limits.get('MAX_EVENT_HANDLERS')}) exceeded`,
@@ -366,15 +370,11 @@ export class Interpreter {
             );
         }
 
-        // Remove any existing handler for this event to prevent memory leaks
-        if (this.eventHandlers.has(stmt.eventName)) {
-            const oldHandler = this.eventHandlers.get(stmt.eventName);
-            EventBus.off(stmt.eventName, oldHandler);
-            this.eventHandlers.delete(stmt.eventName);
-        }
+        // Capture the environment at registration time for proper closure behavior
+        const closureEnv = this.currentEnv;
 
         const handler = async (eventData) => {
-            const handlerEnv = this.currentEnv.extend();
+            const handlerEnv = closureEnv.extend();
             handlerEnv.set('event', eventData);
 
             const previousEnv = this.currentEnv;
@@ -392,7 +392,12 @@ export class Interpreter {
         };
 
         EventBus.on(stmt.eventName, handler);
-        this.eventHandlers.set(stmt.eventName, handler);
+
+        // Store handlers as arrays to support multiple handlers per event
+        if (!this.eventHandlers.has(stmt.eventName)) {
+            this.eventHandlers.set(stmt.eventName, []);
+        }
+        this.eventHandlers.get(stmt.eventName).push(handler);
     }
 
     async visitEmitStatement(stmt) {
@@ -431,8 +436,19 @@ export class Interpreter {
         const CommandBus = this.context.CommandBus;
         if (!CommandBus) return;
 
-        const target = stmt.target ? await this.visitExpression(stmt.target) : null;
-        await CommandBus.execute('window:close', { windowId: target });
+        if (stmt.target) {
+            const target = await this.visitExpression(stmt.target);
+            await CommandBus.execute('window:close', { windowId: target });
+        } else {
+            // Close the most recently focused window
+            const StateManager = this.context.StateManager;
+            if (StateManager) {
+                const activeWindow = StateManager.getState('ui.activeWindow');
+                if (activeWindow) {
+                    await CommandBus.execute('window:close', { windowId: activeWindow });
+                }
+            }
+        }
     }
 
     async visitWaitStatement(stmt) {
@@ -926,8 +942,15 @@ export class Interpreter {
         // Remove event handlers
         const EventBus = this.context.EventBus;
         if (EventBus) {
-            for (const [eventName, handler] of this.eventHandlers) {
-                EventBus.off(eventName, handler);
+            for (const [eventName, handlers] of this.eventHandlers) {
+                if (Array.isArray(handlers)) {
+                    for (const handler of handlers) {
+                        EventBus.off(eventName, handler);
+                    }
+                } else {
+                    // Legacy: single handler (backwards compatibility)
+                    EventBus.off(eventName, handlers);
+                }
             }
         }
         this.eventHandlers.clear();
