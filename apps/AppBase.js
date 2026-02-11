@@ -61,6 +61,10 @@ class AppBase {
         // Legacy support for single-window apps
         this.windowId = null;
         this.isOpen = false;
+
+        // Serialize command handlers to prevent _currentWindowId context races
+        // when multiple script commands are emitted close together.
+        this._commandExecutionChain = Promise.resolve();
     }
 
     /**
@@ -677,41 +681,52 @@ class AppBase {
         const commandName = `command:${this.id}:${action}`;
         const capturedWindowId = this._currentWindowId;
 
-        const unsub = EventBus.on(commandName, (payload) => {
-            // Check if this command targets a specific window
-            const targetWindowId = payload.windowId;
-            if (targetWindowId && targetWindowId !== capturedWindowId) {
-                // Not for this instance
-                return;
-            }
+        const unsub = EventBus.on(commandName, (payload = {}) => {
+            // Queue commands so app window context cannot leak between overlapping handlers
+            this._commandExecutionChain = this._commandExecutionChain
+                .catch(() => {
+                    // Keep the chain alive if a previous command failed
+                })
+                .then(async () => {
+                    // Check if this command targets a specific window
+                    const targetWindowId = payload.windowId;
+                    if (targetWindowId && targetWindowId !== capturedWindowId) {
+                        // Not for this instance
+                        return;
+                    }
 
-            // Set context and execute
-            this._currentWindowId = capturedWindowId;
-            try {
-                const result = handler.call(this, payload);
-                if (payload.requestId) {
-                    EventBus.emit('action:result', {
-                        requestId: payload.requestId,
-                        success: true,
-                        data: result
-                    });
-                }
-            } catch (error) {
-                console.error(`[${this.id}] Command '${action}' failed:`, error.message);
-                EventBus.emit(Events.APP_ERROR, {
-                    appId: this.id,
-                    windowId: capturedWindowId,
-                    error: error.message,
-                    command: action
+                    // Set context and execute
+                    const previousWindowId = this._currentWindowId;
+                    this._currentWindowId = capturedWindowId;
+                    try {
+                        const result = await Promise.resolve(handler.call(this, payload));
+                        if (payload.requestId) {
+                            EventBus.emit('action:result', {
+                                requestId: payload.requestId,
+                                success: true,
+                                data: result
+                            });
+                        }
+                    } catch (error) {
+                        const errorMessage = error?.message || String(error);
+                        console.error(`[${this.id}] Command '${action}' failed:`, errorMessage);
+                        EventBus.emit(Events.APP_ERROR, {
+                            appId: this.id,
+                            windowId: capturedWindowId,
+                            error: errorMessage,
+                            command: action
+                        });
+                        if (payload.requestId) {
+                            EventBus.emit('action:result', {
+                                requestId: payload.requestId,
+                                success: false,
+                                error: errorMessage
+                            });
+                        }
+                    } finally {
+                        this._currentWindowId = previousWindowId;
+                    }
                 });
-                if (payload.requestId) {
-                    EventBus.emit('action:result', {
-                        requestId: payload.requestId,
-                        success: false,
-                        error: error.message
-                    });
-                }
-            }
         });
 
         const instanceData = this.openWindows.get(capturedWindowId);
