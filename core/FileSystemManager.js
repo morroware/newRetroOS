@@ -14,6 +14,15 @@ import StorageManager from './StorageManager.js';
 import EventBus, { Events } from './EventBus.js';
 import { PATHS } from './Constants.js';
 
+/**
+ * Protected system paths that require godMode to modify
+ */
+const PROTECTED_PATHS = [
+    'C:/Windows/System32',
+    'C:/Windows/Media',
+    'C:/Program Files'
+];
+
 class FileSystemManager {
   constructor() {
     if (FileSystemManager.instance) {
@@ -21,7 +30,26 @@ class FileSystemManager {
     }
 
     this.fileSystem = this.loadFileSystem();
+    this.godMode = false; // Admin override for protected path writes
     FileSystemManager.instance = this;
+  }
+
+  /**
+   * Check if a write operation is allowed on the given path
+   * Throws if the path is protected and godMode is not active
+   * @param {string} pathStr - Path string to check
+   */
+  _checkWritePermission(pathStr) {
+    if (this.godMode) return;
+    for (const protectedPath of PROTECTED_PATHS) {
+      if (pathStr.startsWith(protectedPath)) {
+        EventBus.emit(Events.FS_PERMISSION_DENIED, {
+          path: pathStr,
+          reason: 'Protected system path'
+        });
+        throw new Error(`Permission denied: ${pathStr} is a protected system path`);
+      }
+    }
   }
 
   /**
@@ -465,6 +493,7 @@ class FileSystemManager {
   writeFile(path, content, extension = 'txt') {
     const parts = this.parsePath(path);
     const pathStr = parts.join('/');
+    this._checkWritePermission(pathStr);
     const fileName = parts[parts.length - 1];
     const parentPath = parts.slice(0, -1);
 
@@ -531,6 +560,7 @@ class FileSystemManager {
   deleteFile(path) {
     const parts = this.parsePath(path);
     const pathStr = parts.join('/');
+    this._checkWritePermission(pathStr);
     const fileName = parts[parts.length - 1];
     const parentPath = parts.slice(0, -1);
 
@@ -630,6 +660,7 @@ class FileSystemManager {
   deleteDirectory(path, recursive = false) {
     const parts = this.parsePath(path);
     const pathStr = parts.join('/');
+    this._checkWritePermission(pathStr);
     const dirName = parts[parts.length - 1];
     const parentPath = parts.slice(0, -1);
 
@@ -704,8 +735,15 @@ class FileSystemManager {
       const itemPath = [...path, name];
       if (item.type === 'directory') {
         this.deleteDirectoryRecursive(itemPath);
+        EventBus.emit(Events.FS_DIRECTORY_DELETE, {
+          path: itemPath.join('/'),
+          recursive: true
+        });
+      } else {
+        EventBus.emit(Events.FS_FILE_DELETE, {
+          path: itemPath.join('/')
+        });
       }
-      // File will be deleted when parent is deleted
     }
   }
 
@@ -788,6 +826,8 @@ class FileSystemManager {
     const destParts = this.parsePath(destPath);
     const srcPathStr = srcParts.join('/');
     const destPathStr = destParts.join('/');
+    this._checkWritePermission(srcPathStr);
+    this._checkWritePermission(destPathStr);
 
     const srcName = srcParts[srcParts.length - 1];
     const srcParentPath = srcParts.slice(0, -1);
@@ -850,11 +890,12 @@ class FileSystemManager {
       throw new Error(`Item already exists at destination: ${srcName}`);
     }
 
-    // Copy to destination
-    destChildren[srcName] = JSON.parse(JSON.stringify(srcNode));
-
-    // Remove from source
+    // Transfer by reference (atomic in single-threaded JS, preserves all properties)
+    destChildren[srcName] = srcNode;
     delete srcChildren[srcName];
+
+    // Update modified timestamp
+    srcNode.modified = new Date().toISOString();
 
     this.saveFileSystem();
 
@@ -954,6 +995,7 @@ class FileSystemManager {
   renameItem(path, newName) {
     const parts = this.parsePath(path);
     const pathStr = parts.join('/');
+    this._checkWritePermission(pathStr);
     const oldName = parts[parts.length - 1];
     const parentPath = parts.slice(0, -1);
 
@@ -1025,45 +1067,56 @@ class FileSystemManager {
   syncDesktopIcons(icons) {
     if (!icons || !Array.isArray(icons)) return;
 
+    // Temporarily enable godMode since we write to system-managed paths
+    const prevGodMode = this.godMode;
+    this.godMode = true;
+
     const desktopPath = [...PATHS.DESKTOP];
     const desktopNode = this.getNode(desktopPath);
 
-    if (!desktopNode || !desktopNode.children) return;
-
-    const now = new Date().toISOString();
-
-    // Add shortcut files for each icon that doesn't already exist as a real file
-    for (const icon of icons) {
-      const fileName = `${icon.label}.lnk`;
-
-      // Skip if a real file with this name exists (not a shortcut we created)
-      if (desktopNode.children[fileName.replace('.lnk', '.txt')] ||
-          desktopNode.children[fileName.replace('.lnk', '.md')]) {
-        continue;
-      }
-
-      // Create or update the shortcut file
-      desktopNode.children[fileName] = {
-        type: 'file',
-        content: JSON.stringify({
-          type: icon.type || 'app',
-          target: icon.url || icon.id,
-          icon: icon.emoji,
-          label: icon.label
-        }, null, 2),
-        extension: 'lnk',
-        size: 128,
-        created: now,
-        modified: now,
-        isShortcut: true,
-        shortcutTarget: icon.type === 'link' ? icon.url : icon.id,
-        shortcutType: icon.type || 'app',
-        shortcutIcon: icon.emoji
-      };
+    if (!desktopNode || !desktopNode.children) {
+      this.godMode = prevGodMode;
+      return;
     }
 
-    // Note: We don't save here to avoid circular updates
-    // The caller should save if needed
+    try {
+      const now = new Date().toISOString();
+
+      // Add shortcut files for each icon that doesn't already exist as a real file
+      for (const icon of icons) {
+        const fileName = `${icon.label}.lnk`;
+
+        // Skip if a real file with this name exists (not a shortcut we created)
+        if (desktopNode.children[fileName.replace('.lnk', '.txt')] ||
+            desktopNode.children[fileName.replace('.lnk', '.md')]) {
+          continue;
+        }
+
+        // Create or update the shortcut file
+        desktopNode.children[fileName] = {
+          type: 'file',
+          content: JSON.stringify({
+            type: icon.type || 'app',
+            target: icon.url || icon.id,
+            icon: icon.emoji,
+            label: icon.label
+          }, null, 2),
+          extension: 'lnk',
+          size: 128,
+          created: now,
+          modified: now,
+          isShortcut: true,
+          shortcutTarget: icon.type === 'link' ? icon.url : icon.id,
+          shortcutType: icon.type || 'app',
+          shortcutIcon: icon.emoji
+        };
+      }
+
+      // Save filesystem so changes persist even if the caller forgets
+      this.saveFileSystem();
+    } finally {
+      this.godMode = prevGodMode;
+    }
   }
 
   /**
@@ -1074,39 +1127,53 @@ class FileSystemManager {
   syncInstalledApps(apps) {
     if (!apps || !Array.isArray(apps)) return;
 
+    // Temporarily enable godMode since we write to C:/Program Files
+    const prevGodMode = this.godMode;
+    this.godMode = true;
+
     const programFilesPath = ['C:', 'Program Files'];
     const programFilesNode = this.getNode(programFilesPath);
 
-    if (!programFilesNode || !programFilesNode.children) return;
+    if (!programFilesNode || !programFilesNode.children) {
+      this.godMode = prevGodMode;
+      return;
+    }
 
-    const now = new Date().toISOString();
+    try {
+      const now = new Date().toISOString();
 
-    for (const app of apps) {
-      // Skip system apps that shouldn't appear in Program Files
-      if (app.category === 'system' || !app.showInMenu) continue;
+      for (const app of apps) {
+        // Skip system apps that shouldn't appear in Program Files
+        if (app.category === 'system' || !app.showInMenu) continue;
 
-      const folderName = app.name;
+        const folderName = app.name;
 
-      // Create app folder if it doesn't exist
-      if (!programFilesNode.children[folderName]) {
-        programFilesNode.children[folderName] = {
-          type: 'directory',
-          children: {}
+        // Create app folder if it doesn't exist
+        if (!programFilesNode.children[folderName]) {
+          programFilesNode.children[folderName] = {
+            type: 'directory',
+            children: {}
+          };
+        }
+
+        // Create the executable file
+        const exeName = `${app.id}.exe`;
+        programFilesNode.children[folderName].children[exeName] = {
+          type: 'file',
+          content: `[Executable]\nApp: ${app.name}\nID: ${app.id}\nIcon: ${app.icon}`,
+          extension: 'exe',
+          size: 65536,
+          created: now,
+          modified: now,
+          isExecutable: true,
+          appId: app.id
         };
       }
 
-      // Create the executable file
-      const exeName = `${app.id}.exe`;
-      programFilesNode.children[folderName].children[exeName] = {
-        type: 'file',
-        content: `[Executable]\nApp: ${app.name}\nID: ${app.id}\nIcon: ${app.icon}`,
-        extension: 'exe',
-        size: 65536,
-        created: now,
-        modified: now,
-        isExecutable: true,
-        appId: app.id
-      };
+      // Save filesystem so changes persist even if the caller forgets
+      this.saveFileSystem();
+    } finally {
+      this.godMode = prevGodMode;
     }
   }
 

@@ -346,6 +346,7 @@ class Terminal extends AppBase {
         // Enable god mode
         this.registerCommand('enableGodMode', () => {
             this.godMode = true;
+            FileSystemManager.godMode = true;
             this.print('*** GOD MODE ACTIVATED ***', '#ff00ff');
             return { success: true };
         });
@@ -716,6 +717,7 @@ class Terminal extends AppBase {
         // Konami code easter egg
         if (trimmed.replace(/\s/g, '').toLowerCase() === 'uuddlrlrba') {
             this.godMode = true;
+            FileSystemManager.godMode = true;
             this.print('*** GOD MODE ACTIVATED ***', '#ff00ff');
             return;
         }
