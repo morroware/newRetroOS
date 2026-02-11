@@ -42,6 +42,10 @@ class ScriptEngineClass {
         this._activeInterpreters = new Set();
         this._nextInvocationId = 0;
 
+        // Track persistent interpreters (e.g., autoexec session handlers)
+        this._persistentInterpreters = new Map();
+        this._nextPersistentId = 0;
+
         // Custom builtins registered via defineFunction/registerGlobalBuiltin
         // These persist across run() invocations and reset() calls
         this._customBuiltins = new Map();
@@ -57,7 +61,7 @@ class ScriptEngineClass {
      * @returns {boolean}
      */
     get isRunning() {
-        return this._activeInterpreters.size > 0;
+        return this._activeInterpreters.size > 0 || this._persistentInterpreters.size > 0;
     }
 
     /**
@@ -208,6 +212,123 @@ class ScriptEngineClass {
     }
 
     /**
+     * Run a script and keep its event handlers alive after top-level execution.
+     * Useful for long-lived automation (e.g., autoexec scripts with `on event` handlers).
+     * @param {string} source - Script source code
+     * @param {Object} [options] - Execution options
+     * @returns {Object} Execution result with sessionId on success
+     */
+    async runPersistent(source, options = {}) {
+        if (!this.isInitialized) {
+            this.initialize();
+        }
+
+        const invocationLimits = new SafetyLimits();
+        if (options.timeout) {
+            invocationLimits.setTimeout(options.timeout);
+        }
+
+        const interpreter = new Interpreter({
+            limits: invocationLimits,
+            context: this.context,
+            onOutput: (message) => {
+                if (options.onOutput) options.onOutput(message);
+                this.emitOutput(message);
+            },
+            onError: (error) => {
+                if (options.onError) options.onError(error);
+                this.emitError(error);
+            }
+        });
+
+        registerAllBuiltins(interpreter);
+        for (const [name, fn] of this._customBuiltins) {
+            interpreter.registerBuiltin(name, fn);
+        }
+
+        const sessionId = `persistent_${++this._nextPersistentId}`;
+        interpreter._persistentSessionId = sessionId;
+
+        this._activeInterpreters.add(interpreter);
+
+        try {
+            if (options.variables) {
+                for (const [name, value] of Object.entries(options.variables)) {
+                    interpreter.globalEnv.set(name, value);
+                }
+            }
+
+            const lexer = new Lexer(source);
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens);
+            const ast = parser.parse();
+
+            const result = await interpreter.execute(ast);
+            const variables = interpreter.getVariables();
+
+            if (options.onVariables) {
+                options.onVariables(variables);
+            }
+
+            this._persistentInterpreters.set(sessionId, {
+                interpreter,
+                startedAt: Date.now()
+            });
+
+            this.emitComplete({ success: true, result, persistent: true, sessionId });
+
+            return {
+                success: true,
+                result,
+                variables,
+                sessionId
+            };
+        } catch (error) {
+            const errorInfo = this.formatError(error);
+
+            this.emitError(errorInfo.message);
+            this.emitComplete({ success: false, error: errorInfo, persistent: true });
+
+            const variables = interpreter.getVariables();
+            interpreter.cleanup();
+
+            return {
+                success: false,
+                error: errorInfo,
+                variables
+            };
+        } finally {
+            this._activeInterpreters.delete(interpreter);
+        }
+    }
+
+    /**
+     * Stop and cleanup a persistent script session.
+     * @param {string} sessionId - Persistent session ID
+     * @returns {boolean} True if session existed and was stopped
+     */
+    stopPersistent(sessionId) {
+        const session = this._persistentInterpreters.get(sessionId);
+        if (!session) return false;
+
+        session.interpreter.stop();
+        session.interpreter.cleanup();
+        this._persistentInterpreters.delete(sessionId);
+        return true;
+    }
+
+    /**
+     * Stop and cleanup all persistent sessions.
+     */
+    stopAllPersistent() {
+        for (const [sessionId, session] of this._persistentInterpreters) {
+            session.interpreter.stop();
+            session.interpreter.cleanup();
+            this._persistentInterpreters.delete(sessionId);
+        }
+    }
+
+    /**
      * Run a script from a file path
      * @param {string} path - Virtual filesystem path
      * @param {Object} [options] - Execution options
@@ -255,6 +376,11 @@ class ScriptEngineClass {
                     return;
                 }
             }
+
+            // Also allow stopping a persistent session by ID
+            if (typeof id === 'string') {
+                this.stopPersistent(id);
+            }
         } else {
             // Stop all active interpreters
             this.stopAll();
@@ -268,6 +394,7 @@ class ScriptEngineClass {
         for (const interp of this._activeInterpreters) {
             interp.stop();
         }
+        this.stopAllPersistent();
     }
 
     /**

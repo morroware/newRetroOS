@@ -46,6 +46,11 @@ const AUTOEXEC_OPTIONS = {
 };
 
 /**
+ * Active persistent autoexec session ID (if any)
+ */
+let activeAutoexecSessionId = null;
+
+/**
  * Run autoexec script if one exists
  * @param {Object} context - System context with FileSystemManager, EventBus, etc.
  * @returns {Object|null} Execution result or null if no autoexec found
@@ -75,16 +80,20 @@ export async function runAutoexec(context = {}) {
                 EventBus.emit('autoexec:start', { path: REAL_AUTOEXEC_PATH, timestamp: Date.now() });
             }
 
-            // Execute the script directly from content
-            const execContext = {
-                ...context,
-                AUTOEXEC: true,
-                BOOT_TIME: Date.now()
-            };
+            // Keep only one persistent autoexec session alive
+            if (activeAutoexecSessionId) {
+                ScriptEngine.stopPersistent(activeAutoexecSessionId);
+                activeAutoexecSessionId = null;
+            }
 
-            console.log(`[AutoexecLoader] Executing real autoexec script...`);
-            const result = await ScriptEngine.run(scriptContent, execContext);
+            // Execute the script as a persistent session so `on event` handlers survive
+            console.log(`[AutoexecLoader] Executing real autoexec script (persistent session)...`);
+            const result = await ScriptEngine.runPersistent(scriptContent, AUTOEXEC_OPTIONS);
             console.log(`[AutoexecLoader] Execution result:`, result);
+
+            if (result?.success && result?.sessionId) {
+                activeAutoexecSessionId = result.sessionId;
+            }
 
             if (result.success) {
                 console.log(`[AutoexecLoader] Real autoexec completed successfully`);
@@ -131,15 +140,19 @@ export async function runAutoexec(context = {}) {
                     EventBus.emit('autoexec:start', { path, timestamp: Date.now() });
                 }
 
-                // Execute the script using legacy ScriptEngine API
-                // The legacy ScriptEngine.runFile takes (path, context) not (path, options)
-                const execContext = {
-                    ...context,
-                    AUTOEXEC: true,
-                    BOOT_TIME: Date.now()
-                };
+                // Keep only one persistent autoexec session alive
+                if (activeAutoexecSessionId) {
+                    ScriptEngine.stopPersistent(activeAutoexecSessionId);
+                    activeAutoexecSessionId = null;
+                }
 
-                const result = await ScriptEngine.runFile(path, execContext);
+                // Execute virtual-file autoexec as persistent session
+                const source = FileSystemManager.readFile(path);
+                const result = await ScriptEngine.runPersistent(source, AUTOEXEC_OPTIONS);
+
+                if (result?.success && result?.sessionId) {
+                    activeAutoexecSessionId = result.sessionId;
+                }
 
                 if (result.success) {
                     console.log(`[AutoexecLoader] Autoexec completed successfully`);

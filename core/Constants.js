@@ -209,7 +209,7 @@ export function getAppForExtension(extension) {
     if (FILE_TYPES.IMAGE.includes(ext)) return 'paint';
     if (FILE_TYPES.AUDIO.includes(ext)) return 'mediaplayer';
     if (FILE_TYPES.VIDEO.includes(ext)) return 'videoplayer';
-    if (ext === 'retro') return 'scriptrunner';
+    if (FILE_TYPES.SCRIPT.includes(ext)) return 'scriptrunner';
 
     return null;
 }
