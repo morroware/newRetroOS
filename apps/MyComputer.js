@@ -41,7 +41,8 @@ class MyComputer extends AppBase {
      */
     registerCommands() {
         // Navigate to a path
-        this.registerCommand('navigate', (path) => {
+        this.registerCommand('navigate', (payload) => {
+            const path = payload.path;
             if (!path) {
                 return { success: false, error: 'Path required' };
             }
@@ -60,8 +61,10 @@ class MyComputer extends AppBase {
         });
 
         // Create folder
-        this.registerCommand('createFolder', (path, name) => {
+        this.registerCommand('createFolder', (payload) => {
             try {
+                const path = payload.path;
+                const name = payload.name;
                 const basePath = Array.isArray(path) ? path : FileSystemManager.parsePath(path);
                 const newPath = [...basePath, name];
                 FileSystemManager.createDirectory(newPath);
@@ -77,8 +80,9 @@ class MyComputer extends AppBase {
         });
 
         // Delete file or folder
-        this.registerCommand('delete', (path) => {
+        this.registerCommand('delete', (payload) => {
             try {
+                const path = payload.path;
                 const parsedPath = Array.isArray(path) ? path : FileSystemManager.parsePath(path);
                 const node = FileSystemManager.getNode(parsedPath);
                 if (node?.type === 'directory') {
@@ -98,10 +102,12 @@ class MyComputer extends AppBase {
         });
 
         // Rename file or folder
-        this.registerCommand('rename', (path, newName) => {
+        this.registerCommand('rename', (payload) => {
             try {
+                const path = payload.path;
+                const newName = payload.newName;
                 const parsedPath = Array.isArray(path) ? path : FileSystemManager.parsePath(path);
-                FileSystemManager.renameNode(parsedPath, newName);
+                FileSystemManager.renameItem(parsedPath, newName);
                 const newPath = [...parsedPath.slice(0, -1), newName];
                 EventBus.emit('mycomputer:renamed', {
                     appId: this.id,
@@ -116,8 +122,9 @@ class MyComputer extends AppBase {
         });
 
         // Open file with default app
-        this.registerCommand('openFile', (path) => {
+        this.registerCommand('openFile', (payload) => {
             try {
+                const path = payload.path;
                 const parsedPath = Array.isArray(path) ? path : FileSystemManager.parsePath(path);
                 const node = FileSystemManager.getNode(parsedPath);
                 if (!node) {
@@ -133,6 +140,10 @@ class MyComputer extends AppBase {
                     appId = 'paint';
                 } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
                     appId = 'mediaplayer';
+                } else if (ext === 'retro') {
+                    appId = 'scriptrunner';
+                } else if (['mp4', 'avi', 'mkv', 'webm'].includes(ext)) {
+                    appId = 'videoplayer';
                 }
 
                 AppRegistry.launch(appId, { filePath: parsedPath });
@@ -753,7 +764,7 @@ class MyComputer extends AppBase {
 
     async renameSelectedItem(item) {
         if (!item?.path) return;
-        const { default: SystemDialogs } = await import('../core/SystemDialogs.js');
+        const { default: SystemDialogs } = await import('../features/SystemDialogs.js');
 
         const newName = await SystemDialogs.prompt(`Rename "${item.name}" to:`, item.name, 'Rename');
         if (!newName || newName === item.name) return;
@@ -768,7 +779,7 @@ class MyComputer extends AppBase {
 
     async deleteSelectedItem(item) {
         if (!item?.path) return;
-        const { default: SystemDialogs } = await import('../core/SystemDialogs.js');
+        const { default: SystemDialogs } = await import('../features/SystemDialogs.js');
 
         const confirmed = await SystemDialogs.confirm(
             `Are you sure you want to send "${item.name}" to the Recycle Bin?`,
@@ -1976,16 +1987,38 @@ class MyComputer extends AppBase {
 
         try {
             const fileInfo = FileSystemManager.getInfo(filePath);
+            const ext = (fileInfo.extension || '').toLowerCase();
 
             // Determine which app to use based on file extension
-            if (fileInfo.extension === 'txt' || fileInfo.extension === 'md' || fileInfo.extension === 'log') {
-                // Open in Notepad
+            if (['txt', 'md', 'log', 'ini', 'cfg'].includes(ext)) {
                 AppRegistry.launch('notepad', { filePath });
-            } else if (fileInfo.extension === 'png' || fileInfo.extension === 'jpg' || fileInfo.extension === 'bmp') {
-                // Open in Paint
+            } else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico'].includes(ext)) {
                 AppRegistry.launch('paint', { filePath });
+            } else if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) {
+                AppRegistry.launch('mediaplayer', { filePath });
+            } else if (['mp4', 'avi', 'mkv', 'webm'].includes(ext)) {
+                AppRegistry.launch('videoplayer', { filePath });
+            } else if (ext === 'retro') {
+                AppRegistry.launch('scriptrunner', { filePath });
+            } else if (ext === 'exe') {
+                // Check if it's a registered app
+                const node = FileSystemManager.getNode(filePath);
+                if (node && node.appId) {
+                    AppRegistry.launch(node.appId);
+                }
+            } else if (ext === 'lnk') {
+                // Handle shortcut files
+                const node = FileSystemManager.getNode(filePath);
+                if (node && node.isShortcut) {
+                    if (node.shortcutType === 'app') {
+                        AppRegistry.launch(node.shortcutTarget);
+                    } else if (node.shortcutType === 'link') {
+                        AppRegistry.launch('browser', { url: node.shortcutTarget });
+                    }
+                }
             } else {
-                console.log('No app registered for this file type:', fileInfo.extension);
+                // Default: try opening in Notepad for unknown text-like files
+                AppRegistry.launch('notepad', { filePath });
             }
         } catch (e) {
             console.error('Error opening file:', e);
