@@ -96,7 +96,26 @@ class PluginLoaderClass {
                 try {
                     await plugin.onLoad();
                 } catch (error) {
-                    console.error(`[PluginLoader] Error in plugin ${plugin.id} onLoad:`, error);
+                    console.error(`[PluginLoader] Error in plugin ${plugin.id} onLoad - rolling back:`, error);
+
+                    // Roll back: unregister features
+                    if (plugin.features && Array.isArray(plugin.features)) {
+                        for (const feature of plugin.features) {
+                            try { await FeatureRegistry.unregister(feature.id); } catch (e) { /* ignore */ }
+                            this.pluginFeatures.delete(feature.id);
+                        }
+                    }
+
+                    // Roll back: unregister apps
+                    if (plugin.apps && Array.isArray(plugin.apps)) {
+                        for (const app of plugin.apps) {
+                            this.pluginApps.delete(app.id);
+                        }
+                    }
+
+                    // Remove plugin from registry
+                    this.plugins.delete(plugin.id);
+                    return false;
                 }
             }
 
@@ -171,10 +190,10 @@ class PluginLoaderClass {
         }
 
         try {
-            // Disable all features from this plugin
+            // Unregister all features from this plugin (disables, cleans up, removes from registry)
             for (const [featureId, pid] of this.pluginFeatures) {
                 if (pid === pluginId) {
-                    await FeatureRegistry.disable(featureId);
+                    await FeatureRegistry.unregister(featureId);
                     this.pluginFeatures.delete(featureId);
                 }
             }

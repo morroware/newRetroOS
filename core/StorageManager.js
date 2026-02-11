@@ -82,8 +82,18 @@ class StorageManagerClass {
         } catch (e) {
             // Handle quota exceeded
             if (e.name === 'QuotaExceededError') {
-                console.error('[StorageManager] Storage quota exceeded');
+                console.error('[StorageManager] Storage quota exceeded, running cleanup...');
                 this.cleanup();
+                // Retry once after cleanup
+                try {
+                    const prefixedKey = this.getKey(key);
+                    const serialized = JSON.stringify(value);
+                    localStorage.setItem(prefixedKey, serialized);
+                    return true;
+                } catch (retryError) {
+                    console.error(`[StorageManager] Retry failed for "${key}":`, retryError);
+                    return false;
+                }
             } else {
                 console.error(`[StorageManager] Error setting "${key}":`, e);
             }

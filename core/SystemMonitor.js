@@ -58,6 +58,10 @@ class SystemMonitorClass {
         // Bound handlers for cleanup
         this._handlers = {};
 
+        // FPS tracking state
+        this._fpsRunning = false;
+        this._fpsFrameId = null;
+
         // Gesture detection
         this.gestureState = {
             startX: 0,
@@ -93,6 +97,13 @@ class SystemMonitorClass {
      * Cleanup all listeners and intervals
      */
     cleanup() {
+        // Stop FPS tracking RAF loop
+        this._fpsRunning = false;
+        if (this._fpsFrameId) {
+            cancelAnimationFrame(this._fpsFrameId);
+            this._fpsFrameId = null;
+        }
+
         // Clear intervals
         Object.values(this.intervals).forEach(id => {
             if (id) clearInterval(id);
@@ -593,8 +604,11 @@ class SystemMonitorClass {
     _startFPSTracking() {
         let frameCount = 0;
         let lastTime = performance.now();
+        this._fpsRunning = true;
 
         const countFrame = (currentTime) => {
+            if (!this._fpsRunning) return;
+
             frameCount++;
 
             if (currentTime - lastTime >= this.config.fpsInterval) {
@@ -617,10 +631,10 @@ class SystemMonitorClass {
                 lastTime = currentTime;
             }
 
-            requestAnimationFrame(countFrame);
+            this._fpsFrameId = requestAnimationFrame(countFrame);
         };
 
-        requestAnimationFrame(countFrame);
+        this._fpsFrameId = requestAnimationFrame(countFrame);
     }
 
     _startMemoryTracking() {

@@ -98,15 +98,17 @@ class DVDBouncerFeature extends FeatureBase {
     }
 
     async disable() {
-        this.log('DVD Bouncer feature disabled');
         this.stop();
         this.stopIdleMonitoring();
+        this.log('DVD Bouncer feature disabled');
+        await super.disable();
     }
 
     cleanup() {
         this.stop();
         this.stopIdleMonitoring();
         this.log('DVD Bouncer cleaned up');
+        super.cleanup();
     }
 
     /**

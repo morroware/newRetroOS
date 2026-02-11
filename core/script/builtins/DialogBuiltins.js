@@ -18,14 +18,21 @@ export function registerDialogBuiltins(interpreter) {
     interpreter.registerBuiltin('confirm', (message) => {
         const EventBus = interpreter.context.EventBus;
         if (EventBus) {
-            // In autoexec mode (no dialog system), return true
             return new Promise((resolve) => {
+                let resolved = false;
+                const safeResolve = (value) => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeoutId);
+                        resolve(value);
+                    }
+                };
                 EventBus.emit('dialog:confirm', {
                     message: String(message),
-                    callback: resolve
+                    callback: safeResolve
                 });
-                // Timeout fallback
-                setTimeout(() => resolve(true), 100);
+                // Timeout fallback (30 seconds for user interaction)
+                const timeoutId = setTimeout(() => safeResolve(true), 30000);
             });
         }
         return true;
@@ -36,13 +43,21 @@ export function registerDialogBuiltins(interpreter) {
         const EventBus = interpreter.context.EventBus;
         if (EventBus) {
             return new Promise((resolve) => {
+                let resolved = false;
+                const safeResolve = (value) => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeoutId);
+                        resolve(value);
+                    }
+                };
                 EventBus.emit('dialog:prompt', {
                     message: String(message),
                     defaultValue: String(defaultValue),
-                    callback: resolve
+                    callback: safeResolve
                 });
-                // Timeout fallback
-                setTimeout(() => resolve(defaultValue), 100);
+                // Timeout fallback (30 seconds for user interaction)
+                const timeoutId = setTimeout(() => safeResolve(defaultValue), 30000);
             });
         }
         return defaultValue;

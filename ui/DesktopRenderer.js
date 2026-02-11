@@ -67,7 +67,43 @@ class DesktopRendererClass {
         // Setup desktop events
         this.setupDesktopEvents();
 
+        // Setup delegated icon event handlers (once, not per-icon)
+        this.setupIconDelegation();
+
         console.log('[DesktopRenderer] Initialized');
+    }
+
+    /**
+     * Setup delegated event handlers for icon interactions.
+     * Uses event delegation on the desktop element so handlers
+     * don't need to be re-attached when icons are re-rendered.
+     */
+    setupIconDelegation() {
+        // Double-click to open icon
+        this.desktop.addEventListener('dblclick', (e) => {
+            const iconEl = e.target.closest('.icon[data-icon-id]');
+            if (iconEl && iconEl._iconData) {
+                this.handleIconOpen(iconEl._iconData);
+            }
+        });
+
+        // Right-click context menu for icon
+        this.desktop.addEventListener('contextmenu', (e) => {
+            const iconEl = e.target.closest('.icon[data-icon-id]');
+            if (iconEl && iconEl._iconData) {
+                this.showIconContextMenu(e, iconEl._iconData);
+            }
+        });
+
+        // Enter key to open icon
+        this.desktop.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const iconEl = e.target.closest('.icon[data-icon-id]');
+                if (iconEl && iconEl._iconData) {
+                    this.handleIconOpen(iconEl._iconData);
+                }
+            }
+        });
     }
 
     /**
@@ -225,14 +261,6 @@ class DesktopRendererClass {
             <div class="icon-image">${icon.emoji}</div>
             <div class="icon-label">${icon.label}</div>
         `;
-
-        // Double-click to open
-        iconEl.addEventListener('dblclick', () => this.handleIconOpen(icon));
-        iconEl.addEventListener('contextmenu', (e) => this.showIconContextMenu(e, icon));
-        iconEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') this.handleIconOpen(icon);
-        });
-
 
         // HTML5 drag start - set transfer data
         iconEl.addEventListener('dragstart', (e) => {
