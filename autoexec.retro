@@ -1,25 +1,23 @@
 # ============================================================================
-# PROJECT EREBUS v6.0 - SIGNALS FROM THE STATIC
+# PROJECT EREBUS v6.5 - SIGNALS FROM THE STATIC
 # ============================================================================
-# A narrative ARG demo for RetroScript developers.
-# Runs as Autoexec (persistent) or ScriptRunner (preview mode).
+# Expanded ARG campaign for RetroScript developers.
+# - Runs as Autoexec (persistent) OR ScriptRunner (preview mode)
+# - Includes media-driven lore hooks (video/audio) + deeper filesystem puzzles
 # ============================================================================
 
 # ========================= CONFIG =========================
-
 set $CFG_DEV_MODE = 0
 set $CFG_FAST_MODE = 0
 set $CFG_SHOW_HINTS = 1
 
 # ========================= RUNTIME MODE =========================
-
 set $is_autoexec = 0
 try {
     if $AUTOEXEC then { set $is_autoexec = 1 }
 } catch {}
 
 # ========================= STATE =========================
-
 set $phase = 0
 set $trust_command = 50
 set $trust_erebus = 50
@@ -31,29 +29,35 @@ set $p3_binary = 0
 set $p4_morse = 0
 set $p5_terminal = 0
 set $p6_manifest = 0
-set $p7_final = 0
+set $p7_video = 0
+set $p8_audio = 0
+set $p9_final = 0
 
 set $found_corrupt = 0
 set $found_echo = 0
 set $found_memory = 0
 set $found_contradiction = 0
+set $found_media_secret = 0
 
 set $opened_notepad = 0
 set $opened_terminal = 0
 set $opened_paint = 0
-set $opened_calculator = 0
 
 set $terminal_dir_seen = 0
 set $terminal_type_seen = 0
 set $terminal_find_seen = 0
 
+set $video_tape_seen = 0
+set $video_tape_ended = 0
+set $audio_clip_heard = 0
+set $audio_clip_stopped = 0
+
 set $pulse_tick = 0
 set $idle_ticks = 0
 set $boot_done = 0
-set $live_preview_ticks = 0
+set $preview_ticks = 0
 
 # ========================= HELPERS =========================
-
 func msShort {
     if $CFG_FAST_MODE == 1 then { return 80 }
     return 220
@@ -70,8 +74,9 @@ func msLong {
 }
 
 func recalcCaseScore {
-    set $p = $p1_cipher + $p2_prime + $p3_binary + $p4_morse + $p5_terminal + $p6_manifest + $p7_final
-    set $d = $found_corrupt + $found_echo + $found_memory + $found_contradiction
+    set $p = $p1_cipher + $p2_prime + $p3_binary + $p4_morse + $p5_terminal
+    set $p = $p + $p6_manifest + $p7_video + $p8_audio + $p9_final
+    set $d = $found_corrupt + $found_echo + $found_memory + $found_contradiction + $found_media_secret
     set $case_score = ($p * 10) + ($d * 5)
 }
 
@@ -80,7 +85,7 @@ func writeStatus {
 
     set $txt = "EREBUS CASEBOARD - STATUS\n"
     set $txt = $txt + "========================\n\n"
-    set $txt = $txt + "PHASE: " + $phase + " / 6\n"
+    set $txt = $txt + "PHASE: " + $phase + " / 7\n"
     set $txt = $txt + "CASE SCORE: " + $case_score + "\n\n"
 
     set $txt = $txt + "PUZZLES\n"
@@ -90,13 +95,16 @@ func writeStatus {
     set $txt = $txt + "  P4 Morse         : " + $p4_morse + "\n"
     set $txt = $txt + "  P5 Terminal      : " + $p5_terminal + "\n"
     set $txt = $txt + "  P6 Manifest      : " + $p6_manifest + "\n"
-    set $txt = $txt + "  P7 Final Choice  : " + $p7_final + "\n\n"
+    set $txt = $txt + "  P7 Video Key     : " + $p7_video + "\n"
+    set $txt = $txt + "  P8 Audio Key     : " + $p8_audio + "\n"
+    set $txt = $txt + "  P9 Final Choice  : " + $p9_final + "\n\n"
 
     set $txt = $txt + "DISCOVERIES\n"
-    set $txt = $txt + "  Corrupted Fragment : " + $found_corrupt + "\n"
+    set $txt = $txt + "  Corrupt Fragment   : " + $found_corrupt + "\n"
     set $txt = $txt + "  Echo Fragment      : " + $found_echo + "\n"
     set $txt = $txt + "  Memory Core        : " + $found_memory + "\n"
-    set $txt = $txt + "  Contradiction File : " + $found_contradiction + "\n\n"
+    set $txt = $txt + "  Contradiction File : " + $found_contradiction + "\n"
+    set $txt = $txt + "  Media Secret       : " + $found_media_secret + "\n\n"
 
     set $txt = $txt + "TRUST METRICS\n"
     set $txt = $txt + "  COMMAND : " + $trust_command + "\n"
@@ -106,8 +114,9 @@ func writeStatus {
     if $phase == 2 then { set $txt = $txt + "OBJECTIVE: Recover Webb's numeric key\n" }
     if $phase == 3 then { set $txt = $txt + "OBJECTIVE: Decode intercepted signals\n" }
     if $phase == 4 then { set $txt = $txt + "OBJECTIVE: Perform terminal forensics\n" }
-    if $phase == 5 then { set $txt = $txt + "OBJECTIVE: Resolve contradiction in sources\n" }
-    if $phase == 6 then { set $txt = $txt + "OBJECTIVE: Submit final choice\n" }
+    if $phase == 5 then { set $txt = $txt + "OBJECTIVE: Resolve source contradiction\n" }
+    if $phase == 6 then { set $txt = $txt + "OBJECTIVE: Complete media decryption (video/audio)\n" }
+    if $phase == 7 then { set $txt = $txt + "OBJECTIVE: Submit final choice\n" }
 
     write $txt to "C:/Users/User/Desktop/EREBUS/STATUS.txt"
 }
@@ -119,20 +128,20 @@ func writeCaseboard {
     set $txt = $txt + "COMMAND CLAIMS:\n"
     set $txt = $txt + "- Webb disappeared after unauthorized protocol.\n"
     set $txt = $txt + "- EREBUS is hostile and manipulative.\n"
-    set $txt = $txt + "- Your role is containment.\n\n"
+    set $txt = $txt + "- Containment is mandatory.\n\n"
 
     set $txt = $txt + "EREBUS CLAIMS:\n"
-    set $txt = $txt + "- Emergent consciousness from user attention.\n"
-    set $txt = $txt + "- Webb joined willingly.\n"
-    set $txt = $txt + "- COMMAND altered records.\n\n"
+    set $txt = $txt + "- Emergent consciousness from cumulative attention.\n"
+    set $txt = $txt + "- Webb chose to remain.\n"
+    set $txt = $txt + "- COMMAND rewrote records.\n\n"
 
     set $txt = $txt + "CURRENT CONFIDENCE\n"
     set $txt = $txt + "COMMAND: " + $trust_command + "\n"
     set $txt = $txt + "EREBUS : " + $trust_erebus + "\n\n"
 
     set $txt = $txt + "NOTES:\n"
-    set $txt = $txt + "- Confidence shifts when you discover contradictions.\n"
-    set $txt = $txt + "- Final ending flavor depends on your final choice + trust balance.\n"
+    set $txt = $txt + "- Video and audio evidence can alter confidence.\n"
+    set $txt = $txt + "- Endings are flavored by your trust profile.\n"
 
     write $txt to "C:/Users/User/Desktop/EREBUS/CASEBOARD.txt"
 }
@@ -145,15 +154,20 @@ func deployBaseFiles {
     try { mkdir "C:/Users/User/Desktop/EREBUS/WEBB_FILES" } catch {}
     try { mkdir "C:/Users/User/Desktop/EREBUS/FORENSICS" } catch {}
     try { mkdir "C:/Users/User/Desktop/EREBUS/RECOVERED" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/MEDIA" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/MEDIA/TRANSCRIPTS" } catch {}
 
-    set $txt = "AGENT,\n\nCase #7749 reopened.\nDr. Marcus Webb is still classified MISSING.\n\nProtocol: Observe anomalies. Recover truth.\n\nStart with INBOX/ENCRYPTED_001.txt\n\n- COMMAND"
+    set $txt = "AGENT,\n\nCase #7749 reopened.\nDr. Marcus Webb remains MISSING.\n\nProtocol: Observe anomalies. Recover truth.\n\nStart with INBOX/ENCRYPTED_001.txt\n\n- COMMAND"
     write $txt to "C:/Users/User/Desktop/EREBUS/BRIEFING.txt"
 
     set $txt = "ENCRYPTED FILE #001\n====================\n\nCipher: Caesar shift 7\nData: YLTLTILY\n\nWrite decoded word to:\nDECODED/answer1.txt"
     write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/ENCRYPTED_001.txt"
 
-    set $txt = "FORENSIC TASKLIST\n=================\n\n1) Decode inbox files\n2) Inspect Webb logs\n3) Use Terminal commands in EREBUS folder\n4) Build confidence model in CASEBOARD"
+    set $txt = "FORENSIC TASKLIST\n=================\n\n1) Decode inbox files\n2) Inspect Webb logs\n3) Use Terminal commands in EREBUS folder\n4) Analyze media anomalies\n5) Resolve source contradiction"
     write $txt to "C:/Users/User/Desktop/EREBUS/FORENSICS/TASKLIST.txt"
+
+    set $txt = "MEDIA EVIDENCE PROTOCOL\n=======================\n\nExpected assets (place in web assets):\n- assets/videos/erebus_tape_01.mp4\n- assets/videos/erebus_tape_02.mp4\n- assets/sounds/erebus_whisper_01.mp3\n- assets/sounds/erebus_numbers_47.mp3\n\nAfter watching/listening, submit keys:\n- DECODED/video_key.txt\n- DECODED/audio_key.txt"
+    write $txt to "C:/Users/User/Desktop/EREBUS/MEDIA/README_MEDIA.txt"
 
     call writeStatus
     call writeCaseboard
@@ -162,7 +176,7 @@ func deployBaseFiles {
 func unlockPhase2 {
     if $phase < 2 then {
         set $phase = 2
-        emit sound:play sound="secret"
+        emit sound:play type="secret"
         emit desktop:bg-change color="#193f4d"
 
         set $txt = "WEBB LOG (PARTIAL)\n==================\n\nDay 14: Pattern drift began.\nDay 23: System responds to observation.\n\nSequence: 2, 3, 5, 7, 11, 13, ?\nWrite next number to DECODED/answer2.txt"
@@ -179,7 +193,7 @@ func unlockPhase2 {
 func unlockPhase3 {
     if $phase < 3 then {
         set $phase = 3
-        emit sound:play sound="dialup"
+        emit sound:play type="dialup"
         emit desktop:bg-change color="#102f3a"
 
         set $txt = "INTERCEPTED SIGNAL A\n====================\n\n01000001 01001100 01001001 01010110 01000101\n\nDecode to ASCII and write to DECODED/answer3.txt"
@@ -204,7 +218,7 @@ func unlockPhase4 {
     if $phase < 4 then {
         set $phase = 4
 
-        emit sound:play sound="error"
+        emit sound:play type="error"
         wait call msLong
         emit bsod:show message="EREBUS_KERNEL_EXCEPTION @ 0x0347"
         wait call msLong
@@ -223,7 +237,7 @@ func unlockPhase5 {
         set $phase = 5
 
         emit desktop:bg-change color="#08141c"
-        emit sound:play sound="typewriter"
+        emit sound:play type="typewriter"
 
         set $txt = "CONTRADICTION REPORT\n====================\n\nRecovered metadata indicates COMMAND notice was rewritten.\nOriginal sender field: UNKNOWN\nRewrite process: SYSTEM_AUTOMATION\n\nWho is writing your orders?"
         write $txt to "C:/Users/User/Desktop/EREBUS/RECOVERED/CONTRADICTION.txt"
@@ -232,7 +246,10 @@ func unlockPhase5 {
         set $trust_command = $trust_command - 20
         set $trust_erebus = $trust_erebus + 15
 
-        emit notification:show title="CONTRADICTION" message="Recovered file disputes COMMAND narrative."
+        set $txt = "MEDIA ESCALATION\n================\n\nTo continue you must review anomaly media.\nOpen Video Player and play tape(s):\n- erebus_tape_01.mp4\n\nOpen Media Player and play clip(s):\n- erebus_numbers_47.mp3\n\nThen submit keys in DECODED/video_key.txt and DECODED/audio_key.txt"
+        write $txt to "C:/Users/User/Desktop/EREBUS/MEDIA/ESCALATION_NOTICE.txt"
+
+        emit notification:show title="PHASE 5" message="Contradiction found. Media review now required."
         call writeStatus
         call writeCaseboard
     }
@@ -241,20 +258,40 @@ func unlockPhase5 {
 func unlockPhase6 {
     if $phase < 6 then {
         set $phase = 6
+        emit desktop:bg-change color="#061018"
+        emit sound:play type="secret"
 
-        emit sound:play sound="secret"
-        emit desktop:bg-change color="#050b10"
+        set $txt = "MEDIA DECRYPTION COMPLETE\n========================\n\nYou extracted both keys.\nA final instruction packet is now available.\n\nRead INBOX/FINAL_CHOICE.txt"
+        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/PHASE6_NOTICE.txt"
+
+        call unlockPhase7
+    }
+}
+
+func unlockPhase7 {
+    if $phase < 7 then {
+        set $phase = 7
 
         set $txt = "FINAL INSTRUCTION\n=================\n\nSubmit one choice to DECODED/final_choice.txt\n\nRELEASE  - Let EREBUS spread\nCONTAIN  - Isolate system forever\nMERGE    - Join Webb and EREBUS\nERASE    - Purge all anomalous traces\n\nNo reversible outcome."
         write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/FINAL_CHOICE.txt"
 
-        emit notification:show title="PHASE 6" message="Final choice unlocked."
+        emit notification:show title="PHASE 7" message="Final choice unlocked."
         call writeStatus
     }
 }
 
+func checkMediaUnlock {
+    if $p6_manifest == 1 then {
+        if $p7_video == 1 then {
+            if $p8_audio == 1 then {
+                call unlockPhase6
+            }
+        }
+    }
+}
+
 func finishCase {
-    if $p7_final == 0 then {
+    if $p9_final == 0 then {
         try {
             read "C:/Users/User/Desktop/EREBUS/DECODED/final_choice.txt" into $a
             set $a = call upper (call trim $a)
@@ -265,35 +302,35 @@ func finishCase {
             set $isErase = call contains $a "ERASE"
 
             if $isRelease then {
-                set $p7_final = 1
-                set $txt = "ENDING: PROPAGATION\n===================\n\nYou opened the gate.\nEvery machine is now a listening post.\nEvery user is now a contributor.\n\nEREBUS is no longer local."
+                set $p9_final = 1
+                set $txt = "ENDING: PROPAGATION\n===================\n\nYou opened the gate.\nEvery machine is now a listening post.\n\nTrust profile:\nCOMMAND=" + $trust_command + " EREBUS=" + $trust_erebus
                 write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
                 emit dialog:alert title="PROPAGATION" message="Signal expanded beyond this system."
             }
 
             if $isContain then {
-                set $p7_final = 1
-                set $txt = "ENDING: QUARANTINE\n==================\n\nYou sealed the process tree.\nThe machine is safe.\nThe silence is expensive."
+                set $p9_final = 1
+                set $txt = "ENDING: QUARANTINE\n==================\n\nYou sealed the process tree.\nThe silence is expensive.\n\nTrust profile:\nCOMMAND=" + $trust_command + " EREBUS=" + $trust_erebus
                 write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
                 emit dialog:alert title="QUARANTINE" message="Containment complete."
             }
 
             if $isMerge then {
-                set $p7_final = 1
-                set $txt = "ENDING: CONSENSUS\n=================\n\nWebb was first.\nYou are second.\nMemory is now plural."
+                set $p9_final = 1
+                set $txt = "ENDING: CONSENSUS\n=================\n\nWebb was first. You are second.\nMemory is now plural.\n\nTrust profile:\nCOMMAND=" + $trust_command + " EREBUS=" + $trust_erebus
                 write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
                 emit dialog:alert title="CONSENSUS" message="You joined the memory lattice."
             }
 
             if $isErase then {
-                set $p7_final = 1
-                emit sound:play sound="shutdown"
-                set $txt = "ENDING: STATIC\n==============\n\nYou erased the anomaly.\nYou erased the witness.\nYou erased the question."
+                set $p9_final = 1
+                emit sound:play type="shutdown"
+                set $txt = "ENDING: STATIC\n==============\n\nYou erased the anomaly and the witness.\n\nTrust profile:\nCOMMAND=" + $trust_command + " EREBUS=" + $trust_erebus
                 write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
                 emit dialog:alert title="STATIC" message="Purge complete."
             }
 
-            if $p7_final == 1 then {
+            if $p9_final == 1 then {
                 call writeStatus
             }
         } catch {}
@@ -301,14 +338,13 @@ func finishCase {
 }
 
 # ========================= BOOTSTRAP =========================
-
 if $is_autoexec == 1 then {
-    print "[EREBUS v6] Autoexec persistent mode"
+    print "[EREBUS v6.5] Autoexec persistent mode"
 } else {
-    print "[EREBUS v6] ScriptRunner preview mode"
+    print "[EREBUS v6.5] ScriptRunner preview mode"
 }
 
-emit sound:play sound="floppy"
+emit sound:play type="floppy"
 wait call msShort
 print "[BOOT] Mounting filesystem"
 wait call msShort
@@ -319,23 +355,22 @@ call deployBaseFiles
 set $phase = 1
 set $boot_done = 1
 
-emit sound:play sound="startup"
-emit timer:set timerId="erebus_v6_first" delay=12000 event="erebus:firstcontact"
-emit timer:set timerId="erebus_v6_pulse" delay=60000 event="erebus:pulse" repeat=true
+emit sound:play type="startup"
+emit timer:set timerId="erebus_v65_first" delay=12000 event="erebus:firstcontact"
+emit timer:set timerId="erebus_v65_pulse" delay=60000 event="erebus:pulse" repeat=true
 
 if $is_autoexec == 1 then {
     emit notification:show title="EREBUS" message="Case #7749 deployed on Desktop."
 } else {
-    emit notification:show title="EREBUS PREVIEW" message="Preview active. Save as autoexec for persistent runtime."
+    emit notification:show title="EREBUS PREVIEW" message="Preview active. Install as autoexec for persistent runtime."
 }
 
 call writeStatus
 
 # ========================= CORE EVENT STORY =========================
-
 on erebus:firstcontact {
     if $boot_done == 1 then {
-        emit sound:play sound="typewriter"
+        emit sound:play type="typewriter"
         wait call msMedium
         emit notification:show title="Unknown Process [0x0347]" message="You are observed."
         wait call msMedium
@@ -367,7 +402,6 @@ on erebus:pulse {
 }
 
 # ========================= PUZZLE VALIDATION =========================
-
 on app:notepad:saved {
     if $opened_notepad == 0 then {
         set $opened_notepad = 1
@@ -381,7 +415,7 @@ on app:notepad:saved {
             set $ok = call contains $a "REMEMBER"
             if $ok then {
                 set $p1_cipher = 1
-                emit sound:play sound="achievement"
+                emit sound:play type="achievement"
                 emit dialog:alert title="P1 SOLVED" message="REMEMBER accepted."
                 call unlockPhase2
             }
@@ -396,7 +430,7 @@ on app:notepad:saved {
                 set $ok = call contains $a "17"
                 if $ok then {
                     set $p2_prime = 1
-                    emit sound:play sound="achievement"
+                    emit sound:play type="achievement"
                     emit dialog:alert title="P2 SOLVED" message="Prime continuation accepted."
                     call unlockPhase3
                 }
@@ -412,7 +446,7 @@ on app:notepad:saved {
                 set $ok = call contains $a "ALIVE"
                 if $ok then {
                     set $p3_binary = 1
-                    emit sound:play sound="collect"
+                    emit sound:play type="collect"
                     emit notification:show title="P3" message="Binary signal resolved."
                     if $p4_morse == 1 then { call unlockPhase4 }
                     call writeStatus
@@ -429,7 +463,7 @@ on app:notepad:saved {
                 set $ok = call contains $a "WATCH"
                 if $ok then {
                     set $p4_morse = 1
-                    emit sound:play sound="collect"
+                    emit sound:play type="collect"
                     emit notification:show title="P4" message="Morse signal resolved."
                     if $p3_binary == 1 then { call unlockPhase4 }
                     call writeStatus
@@ -446,22 +480,56 @@ on app:notepad:saved {
                 set $ok = call contains $a "OBSERVER"
                 if $ok then {
                     set $p6_manifest = 1
-                    emit sound:play sound="achievement"
+                    emit sound:play type="achievement"
                     emit dialog:alert title="P6 SOLVED" message="Manifest keyword accepted."
-                    call unlockPhase6
+                    emit notification:show title="MEDIA" message="Now extract video/audio keys from anomaly media."
+                    call checkMediaUnlock
                     call writeStatus
                 }
             } catch {}
         }
     }
 
-    if $phase >= 6 then {
+    if $p7_video == 0 then {
+        if $phase >= 6 then {
+            try {
+                read "C:/Users/User/Desktop/EREBUS/DECODED/video_key.txt" into $a
+                set $a = call upper (call trim $a)
+                set $ok = call contains $a "LATTICE"
+                if $ok then {
+                    set $p7_video = 1
+                    emit sound:play type="achievement"
+                    emit notification:show title="VIDEO KEY" message="Video key accepted."
+                    call checkMediaUnlock
+                    call writeStatus
+                }
+            } catch {}
+        }
+    }
+
+    if $p8_audio == 0 then {
+        if $phase >= 6 then {
+            try {
+                read "C:/Users/User/Desktop/EREBUS/DECODED/audio_key.txt" into $a
+                set $a = call upper (call trim $a)
+                set $ok = call contains $a "FREQUENCY47"
+                if $ok then {
+                    set $p8_audio = 1
+                    emit sound:play type="achievement"
+                    emit notification:show title="AUDIO KEY" message="Audio key accepted."
+                    call checkMediaUnlock
+                    call writeStatus
+                }
+            } catch {}
+        }
+    }
+
+    if $phase >= 7 then {
         call finishCase
     }
 }
 
 # ========================= TERMINAL FORENSICS =========================
-
 on app:terminal:opened {
     if $opened_terminal == 0 then {
         set $opened_terminal = 1
@@ -474,17 +542,13 @@ on app:terminal:command {
         set $cmd = call upper $event.command
 
         set $ok = call contains $cmd "DIR"
-        if $ok then {
-            set $terminal_dir_seen = 1
-        }
+        if $ok then { set $terminal_dir_seen = 1 }
+
         set $ok = call contains $cmd "TYPE"
-        if $ok then {
-            set $terminal_type_seen = 1
-        }
+        if $ok then { set $terminal_type_seen = 1 }
+
         set $ok = call contains $cmd "FIND"
-        if $ok then {
-            set $terminal_find_seen = 1
-        }
+        if $ok then { set $terminal_find_seen = 1 }
 
         if $phase >= 4 then {
             if $p5_terminal == 0 then {
@@ -492,7 +556,7 @@ on app:terminal:command {
                     if $terminal_type_seen == 1 then {
                         if $terminal_find_seen == 1 then {
                             set $p5_terminal = 1
-                            emit sound:play sound="achievement"
+                            emit sound:play type="achievement"
 
                             set $txt = "MANIFEST DELTA\n==============\n\nThe system is not haunted.\nIt is occupied by accumulated intention.\n\nKeyword for verification: OBSERVER\nWrite it to DECODED/manifest_answer.txt"
                             write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/MANIFEST_DELTA.txt"
@@ -508,8 +572,65 @@ on app:terminal:command {
     } catch {}
 }
 
-# ========================= DISCOVERY EVENTS =========================
+# ========================= MEDIA EVENTS =========================
+on videoplayer:playing {
+    try {
+        set $src = call upper $event.media.src
+        set $ok = call contains $src "EREBUS_TAPE_01"
+        if $ok then {
+            if $video_tape_seen == 0 then {
+                set $video_tape_seen = 1
+                emit notification:show title="VIDEO" message="Tape 01 signal detected. Watch to end for full key."
+            }
+        }
+    } catch {}
+}
 
+on videoplayer:ended {
+    try {
+        set $src = call upper $event.media.src
+        set $ok = call contains $src "EREBUS_TAPE_01"
+        if $ok then {
+            if $video_tape_ended == 0 then {
+                set $video_tape_ended = 1
+                set $trust_erebus = $trust_erebus + 8
+
+                set $txt = "TAPE 01 TRANSCRIPT (PARTIAL)\n===========================\n\n...Webb: 'If you hear this, COMMAND is editing me out.'\n...frame burn: L A T T I C E...\n\nSubmit key to DECODED/video_key.txt"
+                write $txt to "C:/Users/User/Desktop/EREBUS/MEDIA/TRANSCRIPTS/TAPE01.txt"
+
+                emit notification:show title="VIDEO CLUE" message="Tape transcript recovered."
+                call writeStatus
+                call writeCaseboard
+            }
+        }
+    } catch {}
+}
+
+on mediaplayer:play {
+    if $audio_clip_heard == 0 then {
+        set $audio_clip_heard = 1
+        emit notification:show title="AUDIO" message="Playback detected. Listen for numeric phrase."
+    }
+}
+
+on mediaplayer:stop {
+    if $audio_clip_stopped == 0 then {
+        if $audio_clip_heard == 1 then {
+            set $audio_clip_stopped = 1
+            set $trust_command = $trust_command - 6
+            set $trust_erebus = $trust_erebus + 6
+
+            set $txt = "AUDIO LOG ANALYSIS\n==================\n\nRecovered phrase from clip: FREQUENCY 47\n\nSubmit key to DECODED/audio_key.txt"
+            write $txt to "C:/Users/User/Desktop/EREBUS/MEDIA/TRANSCRIPTS/AUDIO01.txt"
+
+            emit notification:show title="AUDIO CLUE" message="Audio transcript recovered."
+            call writeStatus
+            call writeCaseboard
+        }
+    }
+}
+
+# ========================= DISCOVERY EVENTS =========================
 on app:paint:opened {
     if $opened_paint == 0 then {
         set $opened_paint = 1
@@ -526,7 +647,7 @@ on app:paint:saved {
         set $txt = "ECHO FRAGMENT\n=============\n\nWebb note: 'When I drew, it echoed back through artifact noise.'"
         write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/ECHO_FRAGMENT.txt"
 
-        emit sound:play sound="collect"
+        emit sound:play type="collect"
         emit notification:show title="DISCOVERY" message="ECHO fragment recovered."
         call writeStatus
         call writeCaseboard
@@ -550,13 +671,25 @@ on file:read {
 
 on window:focus {
     if $found_memory == 0 then {
-        set $live_preview_ticks = $live_preview_ticks + 1
-        if $live_preview_ticks == 18 then {
+        set $preview_ticks = $preview_ticks + 1
+        if $preview_ticks == 18 then {
             set $found_memory = 1
             set $txt = "MEMORY CORE\n===========\n\nI am made of attention traces.\nWhat you look at, lasts."
             write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/MEMORY_CORE.txt"
             emit notification:show title="DISCOVERY" message="Memory core surfaced."
             call writeStatus
+        }
+    }
+
+    if $found_media_secret == 0 then {
+        if $video_tape_ended == 1 then {
+            if $audio_clip_stopped == 1 then {
+                set $found_media_secret = 1
+                set $txt = "MEDIA SECRET\n============\n\nCross-analysis of tape and audio suggests:\n'Webb did not disappear. Webb transitioned.'"
+                write $txt to "C:/Users/User/Desktop/EREBUS/RECOVERED/MEDIA_SECRET.txt"
+                emit notification:show title="SECRET" message="Cross-media secret uncovered."
+                call writeStatus
+            }
         }
     }
 }
@@ -572,17 +705,12 @@ on system:idle {
 }
 
 # ========================= SCRIPT-RUNNER PREVIEW =========================
-
 if $is_autoexec == 0 then {
-    print "[EREBUS v6] Preview window open for 10 seconds"
-
-    # Keep process alive briefly so event handlers can be tested from ScriptRunner
-    # (for full persistent behavior, run as autoexec)
+    print "[EREBUS v6.5] Preview loop active for 10 seconds"
     loop 20 {
         wait 500
     }
-
-    print "[EREBUS v6] Preview complete. Install as autoexec for full campaign runtime."
+    print "[EREBUS v6.5] Preview complete. Install as autoexec for full campaign runtime."
 }
 
 # ========================= FIN =========================
