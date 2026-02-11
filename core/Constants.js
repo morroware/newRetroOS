@@ -191,7 +191,8 @@ export const FILE_TYPES = Object.freeze({
     IMAGE: Object.freeze(['png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico']),
     AUDIO: Object.freeze(['mp3', 'wav', 'ogg', 'flac']),
     VIDEO: Object.freeze(['mp4', 'avi', 'mkv', 'webm']),
-    EXECUTABLE: Object.freeze(['exe', 'bat', 'cmd']),
+    EXECUTABLE: Object.freeze(['exe']),
+    SCRIPT: Object.freeze(['retro', 'bat', 'cmd']),
     DOCUMENT: Object.freeze(['doc', 'docx', 'pdf']),
     ARCHIVE: Object.freeze(['zip', 'rar', '7z', 'tar', 'gz'])
 });

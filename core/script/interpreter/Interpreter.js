@@ -377,17 +377,27 @@ export class Interpreter {
             const handlerEnv = closureEnv.extend();
             handlerEnv.set('event', eventData);
 
-            const previousEnv = this.currentEnv;
+            // Save full interpreter state
+            const savedEnv = this.currentEnv;
+            const savedControlFlow = this.controlFlow;
+            const savedReturnValue = this.returnValue;
+
             this.currentEnv = handlerEnv;
+            this.controlFlow = ControlFlow.NONE;
+            this.returnValue = null;
 
             try {
                 for (const s of stmt.body) {
                     await this.visitStatement(s);
+                    if (this.controlFlow !== ControlFlow.NONE) break;
                 }
             } catch (error) {
                 this.onError(error.message);
             } finally {
-                this.currentEnv = previousEnv;
+                // Restore full interpreter state
+                this.currentEnv = savedEnv;
+                this.controlFlow = savedControlFlow;
+                this.returnValue = savedReturnValue;
             }
         };
 

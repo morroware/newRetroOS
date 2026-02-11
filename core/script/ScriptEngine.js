@@ -4,6 +4,10 @@
  * This is the primary API for running RetroScript code.
  * It coordinates the lexer, parser, and interpreter.
  *
+ * Supports concurrent execution: each call to run() creates its own
+ * Interpreter instance with isolated scope. Scripts can be interleaved
+ * via async/await (e.g., `wait 1000` yields control).
+ *
  * Usage:
  *   import ScriptEngine from './core/script/ScriptEngine.js';
  *
@@ -33,12 +37,23 @@ class ScriptEngineClass {
         this.interpreter = null;
         this.context = {};
         this.isInitialized = false;
-        this.isRunning = false;
+
+        // Track all active interpreter instances for concurrent execution
+        this._activeInterpreters = new Set();
+        this._nextInvocationId = 0;
 
         // Event callbacks
         this.outputCallback = null;
         this.errorCallback = null;
         this.completeCallback = null;
+    }
+
+    /**
+     * Check if any script is currently running
+     * @returns {boolean}
+     */
+    get isRunning() {
+        return this._activeInterpreters.size > 0;
     }
 
     /**
@@ -54,7 +69,7 @@ class ScriptEngineClass {
         // Store context references
         this.context = context;
 
-        // Create interpreter with context
+        // Create primary interpreter for getVariables(), defineFunction(), and reset()
         this.interpreter = new Interpreter({
             limits: this.limits,
             context: this.context,
@@ -82,6 +97,7 @@ class ScriptEngineClass {
 
     /**
      * Run a script from source code
+     * Each invocation creates its own Interpreter for isolated execution.
      * @param {string} source - Script source code
      * @param {Object} [options] - Execution options
      * @param {number} [options.timeout] - Execution timeout in ms
@@ -96,48 +112,41 @@ class ScriptEngineClass {
             this.initialize();
         }
 
-        if (this.isRunning) {
-            return {
-                success: false,
-                error: 'Script already running'
-            };
+        // Create per-invocation safety limits so timeout is isolated
+        const invocationLimits = new SafetyLimits();
+        if (options.timeout) {
+            invocationLimits.setTimeout(options.timeout);
         }
 
-        this.isRunning = true;
+        // Create a new Interpreter for this invocation (isolated scope)
+        const interpreter = new Interpreter({
+            limits: invocationLimits,
+            context: this.context,
+            onOutput: (message) => {
+                if (options.onOutput) options.onOutput(message);
+                this.emitOutput(message);
+            },
+            onError: (error) => {
+                if (options.onError) options.onError(error);
+                this.emitError(error);
+            }
+        });
 
-        // Store any legacy callbacks temporarily
-        const legacyOutputCallback = options.onOutput;
-        const legacyErrorCallback = options.onError;
-        const legacyVariablesCallback = options.onVariables;
+        // Register all built-in functions on this instance
+        registerAllBuiltins(interpreter);
 
-        // Create temporary callback wrappers that call both legacy and registered callbacks
-        const originalOnOutput = this.outputCallback;
-        const originalOnError = this.errorCallback;
+        // Assign an ID for targeted stop()
+        const invocationId = ++this._nextInvocationId;
+        interpreter._invocationId = invocationId;
 
-        if (legacyOutputCallback) {
-            this.outputCallback = (message) => {
-                legacyOutputCallback(message);
-                if (originalOnOutput) originalOnOutput(message);
-            };
-        }
-
-        if (legacyErrorCallback) {
-            this.errorCallback = (error, line) => {
-                legacyErrorCallback(error, line);
-                if (originalOnError) originalOnError(error, line);
-            };
-        }
+        // Track active interpreter
+        this._activeInterpreters.add(interpreter);
 
         try {
-            // Set timeout if specified
-            if (options.timeout) {
-                this.limits.setTimeout(options.timeout);
-            }
-
             // Set initial variables if provided
             if (options.variables) {
                 for (const [name, value] of Object.entries(options.variables)) {
-                    this.interpreter.globalEnv.set(name, value);
+                    interpreter.globalEnv.set(name, value);
                 }
             }
 
@@ -150,14 +159,14 @@ class ScriptEngineClass {
             const ast = parser.parse();
 
             // Execute
-            const result = await this.interpreter.execute(ast);
+            const result = await interpreter.execute(ast);
 
             // Get final variables
-            const variables = this.interpreter.getVariables();
+            const variables = interpreter.getVariables();
 
             // Call legacy onVariables callback if provided
-            if (legacyVariablesCallback) {
-                legacyVariablesCallback(variables);
+            if (options.onVariables) {
+                options.onVariables(variables);
             }
 
             // Emit completion
@@ -175,7 +184,7 @@ class ScriptEngineClass {
             this.emitComplete({ success: false, error: errorInfo });
 
             // Include variables even on error for debugging
-            const variables = this.interpreter ? this.interpreter.getVariables() : {};
+            const variables = interpreter.getVariables();
 
             return {
                 success: false,
@@ -183,12 +192,9 @@ class ScriptEngineClass {
                 variables
             };
         } finally {
-            this.isRunning = false;
-            this.limits.setTimeout(DEFAULT_LIMITS.DEFAULT_EXECUTION_TIMEOUT);
-
-            // Restore original callbacks
-            this.outputCallback = originalOnOutput;
-            this.errorCallback = originalOnError;
+            // Clean up this invocation's interpreter
+            interpreter.cleanup();
+            this._activeInterpreters.delete(interpreter);
         }
     }
 
@@ -227,16 +233,37 @@ class ScriptEngineClass {
     }
 
     /**
-     * Stop the currently running script
+     * Stop running scripts
+     * @param {number} [id] - Optional invocation ID to stop a specific script.
+     *                         If omitted, stops all active scripts.
      */
-    stop() {
-        if (this.interpreter) {
-            this.interpreter.stop();
+    stop(id) {
+        if (id !== undefined) {
+            // Stop a specific invocation
+            for (const interp of this._activeInterpreters) {
+                if (interp._invocationId === id) {
+                    interp.stop();
+                    return;
+                }
+            }
+        } else {
+            // Stop all active interpreters
+            this.stopAll();
         }
     }
 
     /**
-     * Define a custom function
+     * Stop all running scripts
+     */
+    stopAll() {
+        for (const interp of this._activeInterpreters) {
+            interp.stop();
+        }
+    }
+
+    /**
+     * Define a custom function (registered on the primary interpreter
+     * and available in future invocations via builtin registration)
      * @param {string} name - Function name
      * @param {Function} fn - Function implementation
      */
@@ -247,7 +274,7 @@ class ScriptEngineClass {
     }
 
     /**
-     * Get current variables
+     * Get current variables from the primary interpreter
      * @returns {Object} Variables object
      */
     getVariables() {
@@ -380,6 +407,13 @@ class ScriptEngineClass {
      * Cleanup resources
      */
     cleanup() {
+        // Stop and clean up all active interpreters
+        for (const interp of this._activeInterpreters) {
+            interp.stop();
+            interp.cleanup();
+        }
+        this._activeInterpreters.clear();
+
         if (this.interpreter) {
             this.interpreter.cleanup();
         }
@@ -390,7 +424,6 @@ class ScriptEngineClass {
      */
     reset() {
         this.cleanup();
-        this.isRunning = false;
         this.interpreter = new Interpreter({
             limits: this.limits,
             context: this.context,

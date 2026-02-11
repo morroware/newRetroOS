@@ -256,6 +256,11 @@ class WindowManagerClass {
             w.classList.remove('active');
         });
 
+        // Compact z-indices periodically to prevent unbounded growth
+        if (this.zCounter > 10000) {
+            this.compactZIndices();
+        }
+
         // Activate this window
         windowEl.classList.add('active');
         windowEl.style.zIndex = ++this.zCounter;
@@ -265,6 +270,21 @@ class WindowManagerClass {
 
         // Emit focus event
         EventBus.emit(Events.WINDOW_FOCUS, { id });
+    }
+
+    /**
+     * Compact z-indices of all open windows to prevent unbounded growth
+     * Renumbers all visible windows starting from the base z-index
+     */
+    compactZIndices() {
+        const windows = document.querySelectorAll('.window:not(.minimized)');
+        const sorted = [...windows].sort((a, b) =>
+            parseInt(a.style.zIndex || 0) - parseInt(b.style.zIndex || 0)
+        );
+        this.zCounter = 1000;
+        sorted.forEach(w => {
+            w.style.zIndex = ++this.zCounter;
+        });
     }
 
     /**

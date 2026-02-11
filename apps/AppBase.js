@@ -691,6 +691,13 @@ class AppBase {
                     });
                 }
             } catch (error) {
+                console.error(`[${this.id}] Command '${action}' failed:`, error.message);
+                EventBus.emit(Events.APP_ERROR, {
+                    appId: this.id,
+                    windowId: capturedWindowId,
+                    error: error.message,
+                    command: action
+                });
                 if (payload.requestId) {
                     EventBus.emit('action:result', {
                         requestId: payload.requestId,
