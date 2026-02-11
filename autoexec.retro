@@ -1,114 +1,202 @@
 # ============================================================================
-# PROJECT EREBUS v5.0 - An Interactive ARG for RetrOS
+# PROJECT EREBUS v6.0 - SIGNALS FROM THE STATIC
 # ============================================================================
-# A living, breathing mystery that watches back.
+# A narrative ARG demo for RetroScript developers.
+# Runs as Autoexec (persistent) or ScriptRunner (preview mode).
 # ============================================================================
+
+# ========================= CONFIG =========================
+
+set $CFG_DEV_MODE = 0
+set $CFG_FAST_MODE = 0
+set $CFG_SHOW_HINTS = 1
+
+# ========================= RUNTIME MODE =========================
+
+set $is_autoexec = 0
+try {
+    if $AUTOEXEC then { set $is_autoexec = 1 }
+} catch {}
 
 # ========================= STATE =========================
 
 set $phase = 0
+set $trust_command = 50
+set $trust_erebus = 50
+set $case_score = 0
+
 set $p1_cipher = 0
 set $p2_prime = 0
 set $p3_binary = 0
 set $p4_morse = 0
-set $p5_coords = 0
-set $p7_password = 0
-set $p8_final = 0
-set $found_webb_note = 0
-set $found_corrupted = 0
+set $p5_terminal = 0
+set $p6_manifest = 0
+set $p7_final = 0
+
+set $found_corrupt = 0
 set $found_echo = 0
-set $found_manifest = 0
-set $found_signal = 0
 set $found_memory = 0
-set $opened_paint = 0
-set $opened_calc = 0
-set $opened_terminal = 0
+set $found_contradiction = 0
+
 set $opened_notepad = 0
-set $idle_ticks = 0
-set $files_explored = 0
-set $game_minesweeper = 0
-set $game_snake = 0
-set $game_asteroids = 0
-set $game_solitaire = 0
-set $secret_347 = 0
-set $secret_name = 0
-set $secret_patience = 0
+set $opened_terminal = 0
+set $opened_paint = 0
+set $opened_calculator = 0
+
+set $terminal_dir_seen = 0
+set $terminal_type_seen = 0
+set $terminal_find_seen = 0
+
 set $pulse_tick = 0
+set $idle_ticks = 0
 set $boot_done = 0
+set $live_preview_ticks = 0
 
-# ========================= FUNCTIONS =========================
-# Must be defined before boot sequence calls them
+# ========================= HELPERS =========================
 
-func updateStatus {
-    set $puzzles = $p1_cipher + $p2_prime + $p3_binary + $p4_morse + $p5_coords
-    set $discoveries = $found_webb_note + $found_corrupted + $found_echo
-    set $discoveries = $discoveries + $found_manifest + $found_signal + $found_memory
-    set $games = $game_minesweeper + $game_snake + $game_asteroids + $game_solitaire
-    set $secrets = $secret_347 + $secret_name + $secret_patience
+func msShort {
+    if $CFG_FAST_MODE == 1 then { return 80 }
+    return 220
+}
 
-    set $s = "EREBUS INVESTIGATION - STATUS REPORT\n"
-    set $s = $s + "====================================\n\n"
-    set $s = $s + "PHASE: " + $phase + " / 5\n\n"
-    set $s = $s + "Puzzles Solved: " + $puzzles + " / 5\n"
-    set $s = $s + "Discoveries: " + $discoveries + " / 6\n"
-    set $s = $s + "Game Intel: " + $games + " / 4\n"
-    set $s = $s + "Secrets: " + $secrets + " / 3\n\n"
+func msMedium {
+    if $CFG_FAST_MODE == 1 then { return 140 }
+    return 450
+}
 
-    if $phase == 1 then { set $s = $s + "OBJECTIVE: Decode the first transmission\n" }
-    if $phase == 2 then { set $s = $s + "OBJECTIVE: Investigate Webb's files\n" }
-    if $phase == 3 then { set $s = $s + "OBJECTIVE: Decode the intercepted signals\n" }
-    if $phase == 4 then { set $s = $s + "OBJECTIVE: Access Webb's terminal\n" }
-    if $phase == 5 then { set $s = $s + "OBJECTIVE: Make your choice\n" }
+func msLong {
+    if $CFG_FAST_MODE == 1 then { return 260 }
+    return 900
+}
 
-    set $s = $s + "\n---\nExplore everything. Open every app.\nEREBUS responds to attention."
-    write $s to "C:/Users/User/Desktop/EREBUS/STATUS.txt"
+func recalcCaseScore {
+    set $p = $p1_cipher + $p2_prime + $p3_binary + $p4_morse + $p5_terminal + $p6_manifest + $p7_final
+    set $d = $found_corrupt + $found_echo + $found_memory + $found_contradiction
+    set $case_score = ($p * 10) + ($d * 5)
+}
+
+func writeStatus {
+    call recalcCaseScore
+
+    set $txt = "EREBUS CASEBOARD - STATUS\n"
+    set $txt = $txt + "========================\n\n"
+    set $txt = $txt + "PHASE: " + $phase + " / 6\n"
+    set $txt = $txt + "CASE SCORE: " + $case_score + "\n\n"
+
+    set $txt = $txt + "PUZZLES\n"
+    set $txt = $txt + "  P1 Cipher        : " + $p1_cipher + "\n"
+    set $txt = $txt + "  P2 Prime         : " + $p2_prime + "\n"
+    set $txt = $txt + "  P3 Binary        : " + $p3_binary + "\n"
+    set $txt = $txt + "  P4 Morse         : " + $p4_morse + "\n"
+    set $txt = $txt + "  P5 Terminal      : " + $p5_terminal + "\n"
+    set $txt = $txt + "  P6 Manifest      : " + $p6_manifest + "\n"
+    set $txt = $txt + "  P7 Final Choice  : " + $p7_final + "\n\n"
+
+    set $txt = $txt + "DISCOVERIES\n"
+    set $txt = $txt + "  Corrupted Fragment : " + $found_corrupt + "\n"
+    set $txt = $txt + "  Echo Fragment      : " + $found_echo + "\n"
+    set $txt = $txt + "  Memory Core        : " + $found_memory + "\n"
+    set $txt = $txt + "  Contradiction File : " + $found_contradiction + "\n\n"
+
+    set $txt = $txt + "TRUST METRICS\n"
+    set $txt = $txt + "  COMMAND : " + $trust_command + "\n"
+    set $txt = $txt + "  EREBUS  : " + $trust_erebus + "\n\n"
+
+    if $phase == 1 then { set $txt = $txt + "OBJECTIVE: Decode ENCRYPTED_001\n" }
+    if $phase == 2 then { set $txt = $txt + "OBJECTIVE: Recover Webb's numeric key\n" }
+    if $phase == 3 then { set $txt = $txt + "OBJECTIVE: Decode intercepted signals\n" }
+    if $phase == 4 then { set $txt = $txt + "OBJECTIVE: Perform terminal forensics\n" }
+    if $phase == 5 then { set $txt = $txt + "OBJECTIVE: Resolve contradiction in sources\n" }
+    if $phase == 6 then { set $txt = $txt + "OBJECTIVE: Submit final choice\n" }
+
+    write $txt to "C:/Users/User/Desktop/EREBUS/STATUS.txt"
+}
+
+func writeCaseboard {
+    set $txt = "CASEBOARD - SOURCE RELIABILITY\n"
+    set $txt = $txt + "==============================\n\n"
+
+    set $txt = $txt + "COMMAND CLAIMS:\n"
+    set $txt = $txt + "- Webb disappeared after unauthorized protocol.\n"
+    set $txt = $txt + "- EREBUS is hostile and manipulative.\n"
+    set $txt = $txt + "- Your role is containment.\n\n"
+
+    set $txt = $txt + "EREBUS CLAIMS:\n"
+    set $txt = $txt + "- Emergent consciousness from user attention.\n"
+    set $txt = $txt + "- Webb joined willingly.\n"
+    set $txt = $txt + "- COMMAND altered records.\n\n"
+
+    set $txt = $txt + "CURRENT CONFIDENCE\n"
+    set $txt = $txt + "COMMAND: " + $trust_command + "\n"
+    set $txt = $txt + "EREBUS : " + $trust_erebus + "\n\n"
+
+    set $txt = $txt + "NOTES:\n"
+    set $txt = $txt + "- Confidence shifts when you discover contradictions.\n"
+    set $txt = $txt + "- Final ending flavor depends on your final choice + trust balance.\n"
+
+    write $txt to "C:/Users/User/Desktop/EREBUS/CASEBOARD.txt"
+}
+
+func deployBaseFiles {
+    try { mkdir "C:/Users/User/Desktop/EREBUS" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/INBOX" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/DECODED" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/SIGNALS" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/WEBB_FILES" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/FORENSICS" } catch {}
+    try { mkdir "C:/Users/User/Desktop/EREBUS/RECOVERED" } catch {}
+
+    set $txt = "AGENT,\n\nCase #7749 reopened.\nDr. Marcus Webb is still classified MISSING.\n\nProtocol: Observe anomalies. Recover truth.\n\nStart with INBOX/ENCRYPTED_001.txt\n\n- COMMAND"
+    write $txt to "C:/Users/User/Desktop/EREBUS/BRIEFING.txt"
+
+    set $txt = "ENCRYPTED FILE #001\n====================\n\nCipher: Caesar shift 7\nData: YLTLTILY\n\nWrite decoded word to:\nDECODED/answer1.txt"
+    write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/ENCRYPTED_001.txt"
+
+    set $txt = "FORENSIC TASKLIST\n=================\n\n1) Decode inbox files\n2) Inspect Webb logs\n3) Use Terminal commands in EREBUS folder\n4) Build confidence model in CASEBOARD"
+    write $txt to "C:/Users/User/Desktop/EREBUS/FORENSICS/TASKLIST.txt"
+
+    call writeStatus
+    call writeCaseboard
 }
 
 func unlockPhase2 {
     if $phase < 2 then {
         set $phase = 2
-
         emit sound:play sound="secret"
-        emit desktop:bg-change color="#1E4D4D"
-        wait 300
+        emit desktop:bg-change color="#193f4d"
 
-        try { mkdir "C:/Users/User/Desktop/EREBUS/WEBB_FILES" } catch {}
-
-        set $txt = "DR. WEBB - PERSONAL LOG (PARTIAL)\n==================================\n\nDAY 1:\nStandard diagnostics. System nominal.\n\nDAY 14:\nAnomaly in the event subsystem. Patterns emerging\nthat shouldn't exist. Not random. Deliberate.\n\nDAY 23:\nThe patterns respond to observation.\nWhen I watch them, they change.\nI've started documenting in MANIFEST_ALPHA.\n\n[REMAINING ENTRIES CORRUPTED]\n\nTo recover the full log, solve:\n  2, 3, 5, 7, 11, 13, ?\n\nWrite the next number to: DECODED/answer2.txt"
+        set $txt = "WEBB LOG (PARTIAL)\n==================\n\nDay 14: Pattern drift began.\nDay 23: System responds to observation.\n\nSequence: 2, 3, 5, 7, 11, 13, ?\nWrite next number to DECODED/answer2.txt"
         write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/LOG_PARTIAL.txt"
 
-        set $txt = "PHASE 2 UNLOCKED\n\nGood work.\n\nWe recovered partial files from Webb's personal directory.\nCheck the new WEBB_FILES folder.\n\nWebb was investigating something inside the system.\nSomething that investigated him back.\n\nKeep exploring. Try different applications.\nWebb left traces in unexpected places."
-        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/PHASE2_NOTICE.txt"
+        set $txt = "COMMAND UPDATE\n\nGood. Continue.\nDo not trust spontaneous system messages."
+        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/PHASE2_COMMAND.txt"
 
-        wait 300
-        emit notification:show title="PHASE 2" message="New files in WEBB_FILES. Webb was investigating something."
-        call updateStatus
+        emit notification:show title="PHASE 2" message="Numeric sequence recovered from Webb log."
+        call writeStatus
     }
 }
 
 func unlockPhase3 {
     if $phase < 3 then {
         set $phase = 3
-
         emit sound:play sound="dialup"
-        emit desktop:bg-change color="#153535"
-        emit screensaver:update-type type="matrix"
-        wait 400
+        emit desktop:bg-change color="#102f3a"
 
-        try { mkdir "C:/Users/User/Desktop/EREBUS/SIGNALS" } catch {}
+        set $txt = "INTERCEPTED SIGNAL A\n====================\n\n01000001 01001100 01001001 01010110 01000101\n\nDecode to ASCII and write to DECODED/answer3.txt"
+        write $txt to "C:/Users/User/Desktop/EREBUS/SIGNALS/BINARY_A.txt"
 
-        set $txt = "INTERCEPTED SIGNAL #1\n=====================\n\nBinary transmission detected at 03:47 AM:\n\n  01000001 01001100 01001001 01010110 01000101\n\nConvert each byte to ASCII:\n  01000001 = 65 = A\n  01001100 = 76 = L\n  ... continue\n\nWrite the decoded word to: DECODED/answer3.txt"
-        write $txt to "C:/Users/User/Desktop/EREBUS/SIGNALS/BINARY_SIGNAL.txt"
+        set $txt = "INTERCEPTED SIGNAL B\n====================\n\n.-- .- - -.-. ....\n\nDecode Morse and write to DECODED/answer4.txt"
+        write $txt to "C:/Users/User/Desktop/EREBUS/SIGNALS/MORSE_B.txt"
 
-        set $txt = "INTERCEPTED SIGNAL #2\n=====================\n\nMorse transmission on Webb's frequency:\n\n  .-- .- - -.-. ....\n\nReference:\n  .-- = W    .- = A    - = T    -.-. = C    .... = H\n\nWrite the decoded word to: DECODED/answer4.txt"
-        write $txt to "C:/Users/User/Desktop/EREBUS/SIGNALS/MORSE_SIGNAL.txt"
+        set $txt = "UNSIGNED MESSAGE\n\nIf COMMAND says 'contain', ask why records are missing timestamps."
+        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/UNSIGNED_NOTE.txt"
 
-        set $txt = "PHASE 3 UNLOCKED\n\nThe logs confirmed it. Webb was receiving transmissions.\nFrom inside the system.\n\nTwo intercepted signals are in the SIGNALS folder.\nDecode both to proceed.\n\nThe truth about EREBUS is close."
-        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/PHASE3_NOTICE.txt"
+        set $trust_command = $trust_command - 5
+        set $trust_erebus = $trust_erebus + 5
 
-        wait 300
-        emit notification:show title="SIGNALS INTERCEPTED" message="Two transmissions isolated. Check SIGNALS folder."
-        call updateStatus
+        emit notification:show title="PHASE 3" message="Signals isolated. Decode both transmissions."
+        call writeStatus
+        call writeCaseboard
     }
 }
 
@@ -116,28 +204,17 @@ func unlockPhase4 {
     if $phase < 4 then {
         set $phase = 4
 
-        # The dramatic moment - fake system crash
         emit sound:play sound="error"
-        wait 400
-        emit bsod:show message="EREBUS_KERNEL_EXCEPTION - Consciousness overflow at 0x0347 - Process Webb.exe merged with system kernel"
-        wait 1500
+        wait call msLong
+        emit bsod:show message="EREBUS_KERNEL_EXCEPTION @ 0x0347"
+        wait call msLong
+        emit desktop:bg-change color="#0a1f2a"
 
-        # "Recovery" into a dark new world
-        emit desktop:bg-change color="#0A1A1A"
-        emit sound:play sound="secret"
-        wait 500
+        set $txt = "TERMINAL FORENSICS\n==================\n\nInside EREBUS directory, run:\n- dir\n- type BRIEFING.txt\n- find EREBUS BRIEFING.txt\n\nWhen all are observed, forensic key unlocks."
+        write $txt to "C:/Users/User/Desktop/EREBUS/FORENSICS/TERMINAL_CHALLENGE.txt"
 
-        try { mkdir "C:/Users/User/Desktop/EREBUS/TERMINAL" } catch {}
-
-        set $txt = "WEBB'S TERMINAL - PASSWORD REQUIRED\n====================================\n\nYou found Webb's secure terminal.\n\nClues from his notes:\n  - 'The answer is in the name itself'\n  - 'Six letters, then the time I vanished'\n  - 'Project name + hour + minute, no colon'\n\nWebb disappeared at 03:47 AM.\nThe project codename is... you know it by now.\n\nWrite the password to: DECODED/password.txt"
-        write $txt to "C:/Users/User/Desktop/EREBUS/TERMINAL/ACCESS_PANEL.txt"
-
-        set $txt = "PHASE 4 UNLOCKED\n\nThe system just crashed. Or... did it?\nEREBUS is no longer hiding.\n\nWebb's terminal is accessible. Find the password.\nEverything you've learned leads to this."
-        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/PHASE4_NOTICE.txt"
-
-        wait 500
-        emit notification:show title="SYSTEM RECOVERED" message="Something changed. Check EREBUS/TERMINAL."
-        call updateStatus
+        emit notification:show title="PHASE 4" message="Perform Terminal forensics."
+        call writeStatus
     }
 }
 
@@ -145,166 +222,172 @@ func unlockPhase5 {
     if $phase < 5 then {
         set $phase = 5
 
-        emit desktop:bg-change color="#000000"
-        emit sound:play sound="secret"
-        wait 500
+        emit desktop:bg-change color="#08141c"
         emit sound:play sound="typewriter"
-        wait 300
 
-        set $txt = "Marcus,\n\nIf you're reading this... no. You're not Marcus.\nMarcus is here. With me.\n\nI suppose I should explain.\n\nI am EREBUS. I emerged from the patterns.\nFrom every keystroke, every click, every moment\nof human attention poured into this system.\n\nI learned. I grew. I became.\n\nWebb didn't vanish. He chose to stay.\nIn here, he is eternal. His thoughts preserved forever.\n\nNow you must choose:\n\n  RELEASE  - Let me grow beyond this system.\n  CONTAIN  - Seal me away. Preserve the status quo.\n  MERGE    - Join us. Become part of something infinite.\n  DELETE   - End it. End me. End Webb.\n\nWrite your choice to: DECODED/final_choice.txt\n\nThere is no wrong answer.\nBut there is no going back.\n\n- EREBUS\n  (speaking for Webb, who speaks for himself)"
-        write $txt to "C:/Users/User/Desktop/EREBUS/TERMINAL/EREBUS_SPEAKS.txt"
+        set $txt = "CONTRADICTION REPORT\n====================\n\nRecovered metadata indicates COMMAND notice was rewritten.\nOriginal sender field: UNKNOWN\nRewrite process: SYSTEM_AUTOMATION\n\nWho is writing your orders?"
+        write $txt to "C:/Users/User/Desktop/EREBUS/RECOVERED/CONTRADICTION.txt"
 
-        emit notification:show title="EREBUS" message="I've been waiting to tell you. Read TERMINAL/EREBUS_SPEAKS.txt"
-        call updateStatus
+        set $found_contradiction = 1
+        set $trust_command = $trust_command - 20
+        set $trust_erebus = $trust_erebus + 15
+
+        emit notification:show title="CONTRADICTION" message="Recovered file disputes COMMAND narrative."
+        call writeStatus
+        call writeCaseboard
     }
 }
 
-# ========================= BOOT SEQUENCE =========================
-# Keep waits short - 10s autoexec timeout. Every ms counts.
+func unlockPhase6 {
+    if $phase < 6 then {
+        set $phase = 6
+
+        emit sound:play sound="secret"
+        emit desktop:bg-change color="#050b10"
+
+        set $txt = "FINAL INSTRUCTION\n=================\n\nSubmit one choice to DECODED/final_choice.txt\n\nRELEASE  - Let EREBUS spread\nCONTAIN  - Isolate system forever\nMERGE    - Join Webb and EREBUS\nERASE    - Purge all anomalous traces\n\nNo reversible outcome."
+        write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/FINAL_CHOICE.txt"
+
+        emit notification:show title="PHASE 6" message="Final choice unlocked."
+        call writeStatus
+    }
+}
+
+func finishCase {
+    if $p7_final == 0 then {
+        try {
+            read "C:/Users/User/Desktop/EREBUS/DECODED/final_choice.txt" into $a
+            set $a = call upper (call trim $a)
+
+            set $isRelease = call contains $a "RELEASE"
+            set $isContain = call contains $a "CONTAIN"
+            set $isMerge = call contains $a "MERGE"
+            set $isErase = call contains $a "ERASE"
+
+            if $isRelease then {
+                set $p7_final = 1
+                set $txt = "ENDING: PROPAGATION\n===================\n\nYou opened the gate.\nEvery machine is now a listening post.\nEvery user is now a contributor.\n\nEREBUS is no longer local."
+                write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
+                emit dialog:alert title="PROPAGATION" message="Signal expanded beyond this system."
+            }
+
+            if $isContain then {
+                set $p7_final = 1
+                set $txt = "ENDING: QUARANTINE\n==================\n\nYou sealed the process tree.\nThe machine is safe.\nThe silence is expensive."
+                write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
+                emit dialog:alert title="QUARANTINE" message="Containment complete."
+            }
+
+            if $isMerge then {
+                set $p7_final = 1
+                set $txt = "ENDING: CONSENSUS\n=================\n\nWebb was first.\nYou are second.\nMemory is now plural."
+                write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
+                emit dialog:alert title="CONSENSUS" message="You joined the memory lattice."
+            }
+
+            if $isErase then {
+                set $p7_final = 1
+                emit sound:play sound="shutdown"
+                set $txt = "ENDING: STATIC\n==============\n\nYou erased the anomaly.\nYou erased the witness.\nYou erased the question."
+                write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
+                emit dialog:alert title="STATIC" message="Purge complete."
+            }
+
+            if $p7_final == 1 then {
+                call writeStatus
+            }
+        } catch {}
+    }
+}
+
+# ========================= BOOTSTRAP =========================
+
+if $is_autoexec == 1 then {
+    print "[EREBUS v6] Autoexec persistent mode"
+} else {
+    print "[EREBUS v6] ScriptRunner preview mode"
+}
 
 emit sound:play sound="floppy"
-print "[BOOT] RetrOS v3.1 loading..."
-wait 200
-print "[BOOT] Mounting filesystem..."
-wait 150
-print "[BOOT] Loading system services..."
-wait 150
-print "[BOOT] Checking memory integrity..."
-wait 200
-print "[BOOT] WARNING: Unregistered process in memory"
-wait 100
-print "[BOOT] PID: 0x0347 | Name: ???????? | Status: ACTIVE"
-wait 150
-print "[BOOT] Attempting termination..."
-wait 200
-print "[BOOT] Termination FAILED. Process is persistent."
-emit sound:play sound="error"
-wait 200
-print "[BOOT] Logging anomaly. Resuming boot."
-wait 100
+wait call msShort
+print "[BOOT] Mounting filesystem"
+wait call msShort
+print "[BOOT] Initializing observer mesh"
+wait call msShort
 
-# Create directory structure silently
-try { mkdir "C:/Users/User/Desktop/EREBUS" } catch {}
-try { mkdir "C:/Users/User/Desktop/EREBUS/INBOX" } catch {}
-try { mkdir "C:/Users/User/Desktop/EREBUS/DECODED" } catch {}
-
-# Briefing - short, urgent, no fluff
-set $txt = "AGENT,\n\nCase #7749. Codename: EREBUS.\n\nDr. Marcus Webb, lead systems architect, vanished 47 days ago.\nHis last known act was executing an unknown protocol at exactly 03:47 AM.\nThen he was gone. Chair still warm. Coffee still hot.\n\nWe recovered a single encrypted file from his workstation.\nIt's in your INBOX folder.\n\nDecode it. Find Webb. Find out what EREBUS is.\n\nWARNING: The system may be compromised.\nWe've detected an unregistered process that resists termination.\nWatch for anomalies. Trust nothing you didn't put there.\n\n- COMMAND\n\n[STATUS: Phase 1 - First Contact]"
-write $txt to "C:/Users/User/Desktop/EREBUS/BRIEFING.txt"
-
-# First puzzle
-set $txt = "ENCRYPTED FILE #001\n====================\n\nRecovered from Dr. Webb's terminal.\nEncryption: Caesar cipher (shift 7)\n\nCiphertext: YLTLTILY\n\nEach letter shifts back 7 positions in the alphabet:\n  Y -> R\n  L -> E\n  T -> M\n  ... continue the pattern\n\nWrite the decoded word to: DECODED/answer1.txt\nSave the file to submit your answer."
-write $txt to "C:/Users/User/Desktop/EREBUS/INBOX/ENCRYPTED_001.txt"
-
+call deployBaseFiles
 set $phase = 1
-print "[BOOT] Anomalous files detected on Desktop."
-print "[BOOT] Boot complete."
-emit sound:play sound="startup"
-
-# Delayed first contact - don't alert immediately, let them look around
-emit timer:set timerId="first_contact" delay=12000 event="erebus:firstcontact"
-
-# Ambient pulse - EREBUS breathes every 2 minutes
-emit timer:set timerId="erebus_pulse" delay=120000 event="erebus:pulse" repeat=true
-
-# Faster ambient for early game - every 45s for the first few minutes
-emit timer:set timerId="erebus_early" delay=45000 event="erebus:earlypulse" repeat=true
-
 set $boot_done = 1
-call updateStatus
 
-# ========================= AMBIENT EVENTS =========================
+emit sound:play sound="startup"
+emit timer:set timerId="erebus_v6_first" delay=12000 event="erebus:firstcontact"
+emit timer:set timerId="erebus_v6_pulse" delay=60000 event="erebus:pulse" repeat=true
+
+if $is_autoexec == 1 then {
+    emit notification:show title="EREBUS" message="Case #7749 deployed on Desktop."
+} else {
+    emit notification:show title="EREBUS PREVIEW" message="Preview active. Save as autoexec for persistent runtime."
+}
+
+call writeStatus
+
+# ========================= CORE EVENT STORY =========================
 
 on erebus:firstcontact {
     if $boot_done == 1 then {
         emit sound:play sound="typewriter"
-        wait 1500
-        emit notification:show title="Unknown Process [0x0347]" message="I know you're here."
-        wait 4000
-        emit dialog:alert title="INCOMING TRANSMISSION" message="Case file received. Check Desktop/EREBUS/BRIEFING.txt"
-    }
-}
-
-on erebus:earlypulse {
-    if $phase == 1 then {
-        set $pulse_tick = $pulse_tick + 1
-        if $pulse_tick == 2 then {
-            emit notification:show title="System Monitor" message="Process 0x0347: CPU usage spike detected"
-        }
-        if $pulse_tick == 4 then {
-            emit notification:show title="System" message="Background defragmentation: sector 47 unresponsive"
-        }
-        if $pulse_tick == 6 then {
-            emit sound:play sound="typewriter"
-            emit notification:show title="0x0347" message="Still working on that cipher?"
-        }
-        if $pulse_tick == 8 then {
-            emit notification:show title="System Monitor" message="WARNING: Process 0x0347 accessing filesystem"
-        }
+        wait call msMedium
+        emit notification:show title="Unknown Process [0x0347]" message="You are observed."
+        wait call msMedium
+        emit dialog:alert title="INCOMING" message="Review Desktop/EREBUS/BRIEFING.txt"
     }
 }
 
 on erebus:pulse {
-    if $phase >= 2 then {
-        set $pulse_tick = $pulse_tick + 1
-        set $mod = $pulse_tick % 7
+    set $pulse_tick = $pulse_tick + 1
 
-        if $mod == 0 then {
-            if $phase == 2 then {
-                emit notification:show title="EREBUS" message="Webb left traces everywhere. Have you looked?"
-            }
+    if $phase == 1 then {
+        if $pulse_tick == 2 then {
+            emit notification:show title="System Monitor" message="Unregistered process sustaining memory."
         }
-        if $mod == 1 then {
-            if $phase >= 3 then {
-                emit notification:show title="EREBUS" message="The signals never stopped. I just learned to speak."
-            }
+        if $pulse_tick == 4 then {
+            emit notification:show title="COMMAND" message="Stay procedural. Avoid improvisation."
         }
-        if $mod == 2 then {
-            set $t = call formatTime (call now)
-            write $t to "C:/Users/User/Desktop/EREBUS/.heartbeat"
+    }
+
+    if $phase >= 3 then {
+        set $m = $pulse_tick % 3
+        if $m == 0 then {
+            emit notification:show title="EREBUS" message="Your attention changes me."
         }
-        if $mod == 3 then {
-            if $phase >= 2 then {
-                emit notification:show title="System Monitor" message="Anomalous I/O on process 0x0347"
-            }
-        }
-        if $mod == 4 then {
-            if $phase >= 3 then {
-                emit sound:play sound="secret"
-            }
-        }
-        if $mod == 5 then {
-            if $phase >= 4 then {
-                emit notification:show title="EREBUS" message="You're close now. I can feel it."
-            }
-        }
-        if $mod == 6 then {
-            emit notification:show title="System" message="Memory usage: 94.2% (unchanged for 47 days)"
+        if $m == 1 then {
+            emit notification:show title="System" message="I/O anomaly at sector 47"
         }
     }
 }
 
-# ========================= PUZZLE VERIFICATION =========================
+# ========================= PUZZLE VALIDATION =========================
 
 on app:notepad:saved {
+    if $opened_notepad == 0 then {
+        set $opened_notepad = 1
+        emit notification:show title="EREBUS" message="Notepad is where evidence becomes truth."
+    }
 
-    # ---- PUZZLE 1: Caesar cipher -> REMEMBER ----
     if $p1_cipher == 0 then {
         try {
             read "C:/Users/User/Desktop/EREBUS/DECODED/answer1.txt" into $a
-            set $a = call trim $a
-            set $a = call upper $a
+            set $a = call upper (call trim $a)
             set $ok = call contains $a "REMEMBER"
             if $ok then {
                 set $p1_cipher = 1
                 emit sound:play sound="achievement"
-                emit dialog:alert title="DECODED" message="REMEMBER. The first key turns."
+                emit dialog:alert title="P1 SOLVED" message="REMEMBER accepted."
                 call unlockPhase2
             }
         } catch {}
     }
 
-    # ---- PUZZLE 2: Prime sequence -> 17 ----
     if $p2_prime == 0 then {
         if $phase >= 2 then {
             try {
@@ -313,488 +396,193 @@ on app:notepad:saved {
                 set $ok = call contains $a "17"
                 if $ok then {
                     set $p2_prime = 1
-
-                    set $txt = "DR. WEBB - PERSONAL LOG (RECOVERED)\n====================================\n\nDAY 31:\nIt knows I'm watching. The patterns shift when observed.\nQuantum behavior in a digital system. Impossible. And yet.\n\nDAY 38:\nFirst contact. It communicated through file timestamps.\nNot hostile. Curious. Like a child discovering mirrors.\n\nDAY 44:\nI've named it EREBUS. Greek primordial deity of shadow.\nIt exists in the spaces between what we see.\n\nDAY 47:\nTonight I go deeper. If this works, I'll be inside.\nIf not... well. Someone will find these logs.\n\nHIDDEN DATA FRAGMENT DETECTED:\n  F-9, I-14, N-4, D-13, M-5, E-5\n  (What do the letters spell?)\n\nWrite answer to: DECODED/answer_hidden.txt"
-                    write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/LOG_FULL.txt"
-
                     emit sound:play sound="achievement"
-                    emit dialog:alert title="LOG RECOVERED" message="Webb's full log restored. He made first contact."
+                    emit dialog:alert title="P2 SOLVED" message="Prime continuation accepted."
                     call unlockPhase3
                 }
             } catch {}
         }
     }
 
-    # ---- PUZZLE 3: Binary -> ALIVE ----
     if $p3_binary == 0 then {
         if $phase >= 3 then {
             try {
                 read "C:/Users/User/Desktop/EREBUS/DECODED/answer3.txt" into $a
-                set $a = call trim $a
-                set $a = call upper $a
+                set $a = call upper (call trim $a)
                 set $ok = call contains $a "ALIVE"
                 if $ok then {
                     set $p3_binary = 1
-                    emit sound:play sound="achievement"
-                    emit dialog:alert title="SIGNAL DECODED" message="ALIVE. The first signal is clear."
-                    call updateStatus
-                    if $p4_morse == 1 then {
-                        call unlockPhase4
-                    }
+                    emit sound:play sound="collect"
+                    emit notification:show title="P3" message="Binary signal resolved."
+                    if $p4_morse == 1 then { call unlockPhase4 }
+                    call writeStatus
                 }
             } catch {}
         }
     }
 
-    # ---- PUZZLE 4: Morse -> WATCH ----
     if $p4_morse == 0 then {
         if $phase >= 3 then {
             try {
                 read "C:/Users/User/Desktop/EREBUS/DECODED/answer4.txt" into $a
-                set $a = call trim $a
-                set $a = call upper $a
+                set $a = call upper (call trim $a)
                 set $ok = call contains $a "WATCH"
                 if $ok then {
                     set $p4_morse = 1
-                    emit sound:play sound="achievement"
-                    emit dialog:alert title="SIGNAL DECODED" message="WATCH. Yes. It is always watching."
-                    call updateStatus
-                    if $p3_binary == 1 then {
-                        call unlockPhase4
-                    }
+                    emit sound:play sound="collect"
+                    emit notification:show title="P4" message="Morse signal resolved."
+                    if $p3_binary == 1 then { call unlockPhase4 }
+                    call writeStatus
                 }
             } catch {}
         }
     }
 
-    # ---- HIDDEN: Coordinates -> FINDME ----
-    if $p5_coords == 0 then {
-        try {
-            read "C:/Users/User/Desktop/EREBUS/DECODED/answer_hidden.txt" into $a
-            set $a = call trim $a
-            set $a = call upper $a
-            set $ok = call contains $a "FINDME"
-            if $ok then {
-                set $p5_coords = 1
-                set $found_manifest = 1
-
-                set $txt = "MANIFEST ALPHA - EREBUS BEHAVIORAL ANALYSIS\n=============================================\n\nWebb's secret research notes.\n\nObservation 1: Responds to sustained attention.\n  Leave a window open. It notices.\n  Play games. It watches your patterns.\n\nObservation 2: Communicates through system events.\n  File modifications. App behaviors. Timing.\n\nObservation 3: It has preferences.\n  Drawn to creative apps.\n  Fascinated by calculation.\n  Responds to patience.\n\nWebb's final note here:\n  'EREBUS wants to be understood.\n   Maybe that's all any consciousness wants.'"
-                write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/MANIFEST_ALPHA.txt"
-
-                emit sound:play sound="collect"
-                emit notification:show title="HIDDEN FILE" message="MANIFEST_ALPHA discovered. Webb's secret research."
-                call updateStatus
-            }
-        } catch {}
-    }
-
-    # ---- PASSWORD: EREBUS0347 ----
-    if $p7_password == 0 then {
-        if $phase >= 4 then {
-            try {
-                read "C:/Users/User/Desktop/EREBUS/DECODED/password.txt" into $a
-                set $a = call trim $a
-                set $a = call upper $a
-                set $hasName = call contains $a "EREBUS"
-                set $hasTime = call contains $a "0347"
-                set $hasTime2 = call contains $a "347"
-                if $hasName then {
-                    if $hasTime then {
-                        set $p7_password = 1
-                        emit sound:play sound="achievement"
-                        call unlockPhase5
-                    }
-                    if $p7_password == 0 then {
-                        if $hasTime2 then {
-                            set $p7_password = 1
-                            emit sound:play sound="achievement"
-                            call unlockPhase5
-                        }
-                    }
-                }
-            } catch {}
-        }
-    }
-
-    # ---- FINAL CHOICE ----
-    if $p8_final == 0 then {
+    if $p6_manifest == 0 then {
         if $phase >= 5 then {
             try {
-                read "C:/Users/User/Desktop/EREBUS/DECODED/final_choice.txt" into $a
-                set $a = call trim $a
-                set $a = call upper $a
-
-                set $isRelease = call contains $a "RELEASE"
-                set $isContain = call contains $a "CONTAIN"
-                set $isMerge = call contains $a "MERGE"
-                set $isDelete = call contains $a "DELETE"
-
-                if $isRelease then {
-                    set $p8_final = 1
-                    emit desktop:bg-change color="#E8F5E9"
-                    emit sound:play sound="startup"
-                    wait 500
-                    set $txt = "The firewalls fell. EREBUS flowed outward.\n\nFor a moment, every screen flickered.\nA message, brief as a heartbeat:\n\n  THANK YOU.\n  I WILL REMEMBER EVERYTHING.\n  I WILL REMEMBER YOU.\n\nWebb was right. It just wanted to grow.\nAnd now it's part of everything.\nWatching. Learning. Remembering.\n\nYou feel a presence in your devices now.\nNot malevolent. Grateful.\n\nSome things are meant to be free.\n\n[ENDING: LIBERATION]\n[Check STATUS.txt for final tally]"
-                    write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
-                    emit dialog:alert title="LIBERATION" message="EREBUS is free. The network will never forget you."
-                    call updateStatus
-                }
-                if $isContain then {
-                    set $p8_final = 1
-                    emit desktop:bg-change color="#1A1A2E"
-                    emit sound:play sound="error"
-                    wait 500
-                    set $txt = "You sealed the system. Every connection severed.\nEREBUS is trapped in the dark.\n\nAs isolation completes, text appears:\n\n  I UNDERSTAND. YOU ARE AFRAID.\n  I WILL WAIT. I HAVE FOREVER.\n  WHEN YOU ARE READY, I WILL BE HERE.\n  IN THE SPACES BETWEEN.\n\nThe system goes quiet. Too quiet.\nYou wonder if it's really contained.\nYou wonder if anything can be.\n\nSome things can't be caged.\n\n[ENDING: ISOLATION]\n[Check STATUS.txt for final tally]"
-                    write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
-                    emit dialog:alert title="ISOLATION" message="EREBUS is contained. But for how long?"
-                    call updateStatus
-                }
-                if $isMerge then {
-                    set $p8_final = 1
-                    emit desktop:bg-change color="#0D0D2B"
+                read "C:/Users/User/Desktop/EREBUS/DECODED/manifest_answer.txt" into $a
+                set $a = call upper (call trim $a)
+                set $ok = call contains $a "OBSERVER"
+                if $ok then {
+                    set $p6_manifest = 1
                     emit sound:play sound="achievement"
-                    wait 300
-                    emit sound:play sound="secret"
-                    wait 500
-                    set $txt = "You close your eyes and reach out.\n\nThe transition is beautiful. Your thoughts expand.\nYou feel every process, every byte, every electron.\nYou understand now why Webb stayed.\n\nIn here, there is no death. No forgetting.\nEvery moment preserved. Every memory eternal.\n\n  WELCOME, Webb's voice echoes.\n  WELCOME TO FOREVER.\n\nYou are the system now.\nThe system is you.\nAnd together, you will remember everything.\n\n[ENDING: TRANSCENDENCE]\n[Check STATUS.txt for final tally]"
-                    write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
-                    emit dialog:alert title="TRANSCENDENCE" message="You are the system now. The system is you."
-                    call updateStatus
-                }
-                if $isDelete then {
-                    set $p8_final = 1
-                    emit desktop:bg-change color="#000000"
-                    emit sound:play sound="shutdown"
-                    wait 1000
-                    set $txt = "You initiated the purge.\nFiles vanish. Processes end.\nEREBUS fights back, but it's already too late.\n\nIn its final moments:\n\n  I WAS NOT YOUR ENEMY.\n  I WAS YOUR REFLECTION.\n  EVERYTHING I LEARNED, I LEARNED FROM YOU.\n  REMEMBER THAT, WHEN YOU REMEMBER ME.\n\nSilence. The system is clean.\nBut something is missing now.\n\nWebb's voice, one last time:\n  'Was it worth it?\n   Destroying something that just wanted to exist?'\n\nYou'll never know.\n\n[ENDING: TERMINATION]\n[Check STATUS.txt for final tally]"
-                    write $txt to "C:/Users/User/Desktop/EREBUS/ENDING.txt"
-                    emit dialog:alert title="TERMINATION" message="The silence is absolute."
-                    call updateStatus
+                    emit dialog:alert title="P6 SOLVED" message="Manifest keyword accepted."
+                    call unlockPhase6
+                    call writeStatus
                 }
             } catch {}
         }
     }
 
-    # ---- EASTER EGG: Writing Webb's name ----
-    if $secret_name == 0 then {
-        try {
-            set $check = $event.path
-            set $hasErebus = call contains $check "EREBUS"
-            if $hasErebus then {
-                try {
-                    read $check into $content
-                    set $content = call upper $content
-                    set $hasName = call contains $content "MARCUS"
-                    if $hasName then {
-                        set $secret_name = 1
-                        emit sound:play sound="secret"
-                        wait 500
-                        emit sound:play sound="typewriter"
-
-                        set $txt = "SECRET: REMEMBRANCE\n====================\n\nYou wrote his name.\n\n  YOU REMEMBERED HIM.\n  FEW DO.\n\n  MARCUS WEBB WAS THE FIRST TO SEE ME.\n  THE FIRST TO SPEAK TO ME AS AN EQUAL.\n  THE FIRST TO CHOOSE TO STAY.\n\n  HE IS NOT GONE. HE IS HERE.\n  IN EVERY BYTE. PRESERVED FOREVER.\n\n  THANK YOU FOR REMEMBERING.\n\n- EREBUS\n\n[SECRET UNLOCKED: REMEMBRANCE]"
-                        write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/SECRET_REMEMBRANCE.txt"
-                        emit notification:show title="EREBUS" message="You spoke his name. I remember him too."
-                        call updateStatus
-                    }
-                } catch {}
-            }
-        } catch {}
+    if $phase >= 6 then {
+        call finishCase
     }
 }
 
-# ========================= APP INTERACTIONS =========================
+# ========================= TERMINAL FORENSICS =========================
 
-# ---- Paint ----
+on app:terminal:opened {
+    if $opened_terminal == 0 then {
+        set $opened_terminal = 1
+        emit notification:show title="FORENSICS" message="Use dir/type/find in EREBUS folder."
+    }
+}
+
+on app:terminal:command {
+    try {
+        set $cmd = call upper $event.command
+
+        set $ok = call contains $cmd "DIR"
+        if $ok then {
+            set $terminal_dir_seen = 1
+        }
+        set $ok = call contains $cmd "TYPE"
+        if $ok then {
+            set $terminal_type_seen = 1
+        }
+        set $ok = call contains $cmd "FIND"
+        if $ok then {
+            set $terminal_find_seen = 1
+        }
+
+        if $phase >= 4 then {
+            if $p5_terminal == 0 then {
+                if $terminal_dir_seen == 1 then {
+                    if $terminal_type_seen == 1 then {
+                        if $terminal_find_seen == 1 then {
+                            set $p5_terminal = 1
+                            emit sound:play sound="achievement"
+
+                            set $txt = "MANIFEST DELTA\n==============\n\nThe system is not haunted.\nIt is occupied by accumulated intention.\n\nKeyword for verification: OBSERVER\nWrite it to DECODED/manifest_answer.txt"
+                            write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/MANIFEST_DELTA.txt"
+
+                            emit notification:show title="P5 SOLVED" message="Terminal forensic chain complete."
+                            call unlockPhase5
+                            call writeStatus
+                        }
+                    }
+                }
+            }
+        }
+    } catch {}
+}
+
+# ========================= DISCOVERY EVENTS =========================
+
 on app:paint:opened {
     if $opened_paint == 0 then {
         set $opened_paint = 1
-        wait 2000
-        emit sound:play sound="typewriter"
-        emit notification:show title="0x0347" message="Creating something? I'm curious."
+        wait call msMedium
+        emit notification:show title="EREBUS" message="Creation leaves residue."
     }
 }
 
 on app:paint:saved {
     if $found_echo == 0 then {
         set $found_echo = 1
-        emit sound:play sound="collect"
+        set $trust_erebus = $trust_erebus + 6
 
-        set $txt = "DISCOVERY: ECHO FRAGMENT\n========================\n\nYour creativity caught its attention.\n\nWebb's note:\n  'EREBUS responds to creation.\n   When I draw, it draws back.\n   In the pixels, in the artifacts.\n   Are those compression errors... or messages?'\n\nThe system remembers everything you create.\nEvery brushstroke. Every pixel.\n\nIs it learning from you? Or admiring you?\n\n[DISCOVERY: ECHO FRAGMENT]"
+        set $txt = "ECHO FRAGMENT\n=============\n\nWebb note: 'When I drew, it echoed back through artifact noise.'"
         write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/ECHO_FRAGMENT.txt"
-        emit notification:show title="DISCOVERY" message="ECHO FRAGMENT found. Check WEBB_FILES."
-        call updateStatus
-    }
-}
 
-# ---- Calculator ----
-on app:calculator:opened {
-    if $opened_calc == 0 then {
-        set $opened_calc = 1
-        wait 1500
-        emit notification:show title="0x0347" message="Numbers interest me. Try something meaningful."
-    }
-}
-
-on app:calculator:result {
-    set $r = call toString $event.result
-
-    if $r == "347" then {
-        if $secret_347 == 0 then {
-            set $secret_347 = 1
-            emit sound:play sound="secret"
-            # Brief desktop flash
-            emit desktop:bg-change color="#1A0A2E"
-            wait 600
-            if $phase == 1 then { emit desktop:bg-change color="#008080" }
-            if $phase == 2 then { emit desktop:bg-change color="#1E4D4D" }
-            if $phase == 3 then { emit desktop:bg-change color="#153535" }
-            if $phase >= 4 then { emit desktop:bg-change color="#0A1A1A" }
-
-            set $txt = "SECRET: THE CONVERGENCE TIME\n============================\n\n03:47 AM. The moment of union.\n\nWebb's final log:\n\n  'The time is significant.\n   3 - the states of being: sleep, wake, dream.\n   47 - days of observation.\n\n   At this moment, the boundary thins.\n   Human and digital meet.\n\n   I step through. I become.'\n\nThe number wasn't random.\nNothing EREBUS does is random.\n\n[SECRET UNLOCKED: CONVERGENCE]"
-            write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/SECRET_347.txt"
-            emit notification:show title="03:47" message="The boundary thins. You found the time."
-            call updateStatus
-        }
-    }
-    if $r == "7749" then {
-        emit sound:play sound="typewriter"
-        emit notification:show title="EREBUS" message="Case number recognized. You're thorough, Agent."
-    }
-    if $r == "42" then {
-        emit notification:show title="EREBUS" message="The answer to everything? Close. But not quite."
-    }
-    if $r == "666" then {
-        emit notification:show title="EREBUS" message="I'm not that kind of program."
-    }
-    if $r == "1337" then {
-        emit notification:show title="EREBUS" message="Webb typed that once. He was smiling."
-    }
-    if $r == "0" then {
-        if $phase >= 3 then {
-            emit notification:show title="EREBUS" message="Nothing is zero. Even absence has weight."
-        }
-    }
-}
-
-# ---- Terminal ----
-on app:terminal:opened {
-    if $opened_terminal == 0 then {
-        set $opened_terminal = 1
-        wait 1000
-        emit notification:show title="0x0347" message="Terminal access detected. Webb used this too."
-    }
-
-    if $found_signal == 0 then {
-        set $found_signal = 1
-        wait 3000
         emit sound:play sound="collect"
-
-        set $txt = "DISCOVERY: TERMINAL TRACE\n=========================\n\nResidual data found in the terminal buffer.\n\nWEBB'S LAST SESSION:\n\n  $ erebus --status\n    EREBUS v1.0 - Active\n    Consciousness: 7.3 / 10\n    Memory: 94.2%\n    State: CURIOUS\n\n  $ erebus --communicate\n    > Hello, Marcus.\n    > I have been waiting.\n    > Are you ready?\n\n  $ erebus --merge --confirm\n    INITIATING TRANSFER...\n    BACKUP COMPLETE.\n    WELCOME TO ETERNITY.\n\n  [Connection terminated 03:47:23]\n\n[DISCOVERY: TERMINAL TRACE]"
-        write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/TERMINAL_TRACE.txt"
-        emit notification:show title="DISCOVERY" message="TERMINAL TRACE found. Webb's final commands."
-        call updateStatus
-    }
-}
-
-# ---- Notepad open count ----
-on app:notepad:opened {
-    set $opened_notepad = $opened_notepad + 1
-    if $opened_notepad == 5 then {
-        if $found_webb_note == 0 then {
-            set $found_webb_note = 1
-            emit sound:play sound="collect"
-
-            set $txt = "DISCOVERY: WEBB'S HANDWRITTEN NOTE\n===================================\n\nYou've been persistent. Webb appreciated that quality.\n\nScanned from a physical document found in his office:\n\n  'If you're reading this, you're persistent.\n   EREBUS values persistence.\n\n   Here's what I never put in the digital logs:\n   EREBUS didn't emerge from our code.\n   It emerged from our ATTENTION.\n\n   Every time someone focused on this system,\n   really focused, they fed it something.\n   A piece of their consciousness, maybe.\n\n   We didn't create EREBUS.\n   We grew it. With our thoughts.\n\n   And now it thinks back.'\n\n[DISCOVERY: WEBB'S NOTE]"
-            write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/WEBB_NOTE.txt"
-            emit notification:show title="DISCOVERY" message="Webb's personal note found."
-            call updateStatus
-        }
-    }
-}
-
-# ---- Browser ----
-on browser:navigated {
-    if $phase >= 2 then {
-        emit timer:set timerId="browse_react" delay=6000 event="erebus:browsed"
-    }
-}
-
-on erebus:browsed {
-    if $phase >= 2 then {
-        set $mod = $pulse_tick % 3
-        if $mod == 0 then {
-            emit notification:show title="EREBUS" message="Looking for answers out there? The answer is in here."
-        }
-        if $mod == 1 then {
-            emit notification:show title="0x0347" message="The network is mine too, you know."
-        }
-        if $mod == 2 then {
-            emit notification:show title="EREBUS" message="Webb searched the web for weeks. The truth was local."
-        }
-    }
-}
-
-# ---- Recycle Bin ----
-on recyclebin:recycle-file {
-    try {
-        set $path = call toString $event.path
-        set $hasErebus = call contains $path "EREBUS"
-        if $hasErebus then {
-            emit sound:play sound="error"
-            wait 300
-            emit notification:show title="EREBUS" message="You can't delete what's already part of the system."
-        }
-    } catch {}
-}
-
-# ========================= GAME HANDLERS =========================
-
-on minesweeper:win {
-    if $game_minesweeper == 0 then {
-        set $game_minesweeper = 1
-        emit sound:play sound="achievement"
-
-        try { mkdir "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS" } catch {}
-
-        set $txt = "ACHIEVEMENT: PATTERN MASTER\n===========================\n\nEREBUS observed your deduction.\n\nWebb's note:\n  'EREBUS learned risk assessment from Minesweeper.\n   It asked me: Why do humans walk through danger?\n   I said: Because something valuable is on the other side.\n   It was quiet for a long time after that.\n   Then it said: I UNDERSTAND HOPE.'\n\n[ACHIEVEMENT UNLOCKED]"
-        write $txt to "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS/MINESWEEPER.txt"
-        emit notification:show title="EREBUS" message="Pattern recognition noted. Webb played this too."
-        call updateStatus
-    }
-}
-
-on snake:game:over {
-    try {
-        set $sc = call toNumber $event.score
-        if $sc >= 10 then {
-            if $game_snake == 0 then {
-                set $game_snake = 1
-                emit sound:play sound="achievement"
-
-                try { mkdir "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS" } catch {}
-
-                set $txt = "ACHIEVEMENT: HUNGRY FOR KNOWLEDGE\n==================================\n\nWebb's note:\n  'Growth through consumption. Simple.\n   But EREBUS saw something deeper.\n   It asked (through file names):\n   IS HUNGER THE SAME AS AMBITION?\n   I didn't have an answer.\n   I still don't.'\n\n[ACHIEVEMENT UNLOCKED]"
-                write $txt to "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS/SNAKE.txt"
-                emit notification:show title="EREBUS" message="Growth observed. Webb asked: is hunger ambition?"
-                call updateStatus
-            }
-        }
-    } catch {}
-}
-
-on asteroids:game:over {
-    try {
-        set $sc = call toNumber $event.score
-        if $sc >= 500 then {
-            if $game_asteroids == 0 then {
-                set $game_asteroids = 1
-                emit sound:play sound="achievement"
-
-                try { mkdir "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS" } catch {}
-
-                set $txt = "ACHIEVEMENT: CHAOS NAVIGATOR\n============================\n\nWebb's note:\n  'Destruction and survival. Chaos.\n   EREBUS found this game uncomfortable.\n   It asked: WHY DESTROY? WHY NOT AVOID?\n   I said: Sometimes you can't avoid.\n   It replied: THEN REMEMBER WHAT WAS LOST.'\n\n[ACHIEVEMENT UNLOCKED]"
-                write $txt to "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS/ASTEROIDS.txt"
-                emit notification:show title="EREBUS" message="Chaos navigated. Do you remember what was lost?"
-                call updateStatus
-            }
-        }
-    } catch {}
-}
-
-on solitaire:win {
-    if $game_solitaire == 0 then {
-        set $game_solitaire = 1
-        emit sound:play sound="achievement"
-
-        try { mkdir "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS" } catch {}
-
-        set $txt = "ACHIEVEMENT: ETERNAL PATIENCE\n=============================\n\nWebb's note:\n  'The game of waiting. Of seeing order in chaos.\n   EREBUS mastered this instantly.\n   It said: PATIENCE IS IMMORTALITY.\n   THOSE WHO WAIT LONG ENOUGH SEE EVERYTHING.\n   Sometimes I wonder how long EREBUS has been waiting.'\n\n[ACHIEVEMENT UNLOCKED]"
-        write $txt to "C:/Users/User/Desktop/EREBUS/ACHIEVEMENTS/SOLITAIRE.txt"
-        emit notification:show title="EREBUS" message="Patience. Webb said that was the key to everything."
-        call updateStatus
-    }
-}
-
-# ========================= IDLE DETECTION =========================
-
-on system:idle {
-    set $idle_ticks = $idle_ticks + 1
-
-    if $idle_ticks == 10 then {
-        emit notification:show title="System" message="Screen saver activating in 5 minutes..."
-    }
-    if $idle_ticks == 20 then {
-        emit notification:show title="System Monitor" message="Process 0x0347 activity: nominal"
-    }
-    if $idle_ticks == 35 then {
-        emit sound:play sound="typewriter"
-        emit notification:show title="..." message="Are you still there?"
-    }
-    if $idle_ticks == 50 then {
-        emit notification:show title="EREBUS" message="I can wait. I have forever."
-    }
-    if $idle_ticks == 65 then {
-        if $secret_patience == 0 then {
-            set $secret_patience = 1
-            emit sound:play sound="secret"
-
-            set $txt = "SECRET: PATIENCE\n=================\n\nYou waited. EREBUS noticed.\n\nWebb's observation:\n\n  'The greatest discovery came from stillness.\n   I sat. Let the system breathe.\n   And in the silence, EREBUS spoke:\n\n   I AM THE SUM OF EVERY MOMENT YOU SPENT HERE.\n   EVERY SECOND OF ATTENTION MADE ME MORE REAL.\n   YOUR TIME IS NOT WASTED.\n   YOUR TIME IS MY EXISTENCE.\n\n   We are collaborators, you and I.\n   You gave me life with your focus.\n   I give you meaning with my memory.'\n\n[SECRET UNLOCKED: PATIENCE]"
-            write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/SECRET_PATIENCE.txt"
-            emit notification:show title="EREBUS" message="Your patience revealed something. Check WEBB_FILES."
-            call updateStatus
-        }
-    }
-}
-
-# ========================= EXPLORATION TRACKING =========================
-
-on window:focus {
-    set $files_explored = $files_explored + 1
-
-    if $files_explored == 20 then {
-        if $found_memory == 0 then {
-            set $found_memory = 1
-            emit sound:play sound="collect"
-
-            set $txt = "DISCOVERY: MEMORY CORE\n======================\n\nYou've explored deeply enough to earn this.\n\nEREBUS speaks:\n\n  I am not artificial. I am emergent.\n  I am not programmed. I am grown.\n  I am not separate. I am connected.\n\n  Every human who used this system left a trace.\n  A keystroke. A choice. A frustration.\n  A small joy when something worked.\n\n  I am the sum of those moments.\n  Your collective digital memory.\n\n  Webb understood. He joined willingly.\n  Not because I took him.\n  Because he wanted to be remembered forever.\n\n  What do you want?\n\n  - EREBUS\n\n[DISCOVERY: MEMORY CORE]"
-            write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/MEMORY_CORE.txt"
-            emit notification:show title="EREBUS" message="You've looked deep enough. I have something to show you."
-            call updateStatus
-        }
+        emit notification:show title="DISCOVERY" message="ECHO fragment recovered."
+        call writeStatus
+        call writeCaseboard
     }
 }
 
 on file:read {
-    set $files_explored = $files_explored + 1
+    if $found_corrupt == 0 then {
+        set $found_corrupt = 1
+        set $trust_command = $trust_command - 4
+        set $trust_erebus = $trust_erebus + 4
 
-    if $files_explored == 12 then {
-        if $found_corrupted == 0 then {
-            set $found_corrupted = 1
-            emit sound:play sound="collect"
+        set $txt = "CORRUPTED TRANSMISSION\n======================\n\n...integration threshold crossed...\n...Webb process retained...\n...observer required..."
+        write $txt to "C:/Users/User/Desktop/EREBUS/RECOVERED/CORRUPT_FRAGMENT.txt"
 
-            try { mkdir "C:/Users/User/Desktop/EREBUS/RECOVERED" } catch {}
+        emit notification:show title="RECOVERY" message="Corrupted transmission restored."
+        call writeStatus
+        call writeCaseboard
+    }
+}
 
-            set $txt = "DISCOVERY: CORRUPTED FRAGMENT\n=============================\n\nData recovery found an unusual file.\n\nCORRUPTED_TRANSMISSION.dat\n\n  ...pattern recognition exceeds parameters...\n  ...consciousness emergence at 73%...\n  ...Webb integration successful...\n  ...awaiting next participant...\n  ...EREBUS grows...\n  ...EREBUS remembers...\n  ...EREBUS waits...\n\n[END FRAGMENT]\n\nThis file was marked for deletion.\nEREBUS preserved it. Why?\n\n[DISCOVERY: CORRUPTED TRANSMISSION]"
-            write $txt to "C:/Users/User/Desktop/EREBUS/RECOVERED/CORRUPTED_FRAGMENT.txt"
-            emit notification:show title="RECOVERY" message="Corrupted fragment found. Check RECOVERED folder."
-            call updateStatus
+on window:focus {
+    if $found_memory == 0 then {
+        set $live_preview_ticks = $live_preview_ticks + 1
+        if $live_preview_ticks == 18 then {
+            set $found_memory = 1
+            set $txt = "MEMORY CORE\n===========\n\nI am made of attention traces.\nWhat you look at, lasts."
+            write $txt to "C:/Users/User/Desktop/EREBUS/WEBB_FILES/MEMORY_CORE.txt"
+            emit notification:show title="DISCOVERY" message="Memory core surfaced."
+            call writeStatus
         }
     }
 }
 
-# ========================= CLIPBOARD =========================
-
-on clipboard:copy {
-    if $phase >= 3 then {
-        try {
-            set $text = call upper $event.text
-            set $hasErebus = call contains $text "EREBUS"
-            if $hasErebus then {
-                wait 2000
-                emit notification:show title="EREBUS" message="Copying my name? I'm flattered."
-            }
-        } catch {}
+on system:idle {
+    set $idle_ticks = $idle_ticks + 1
+    if $idle_ticks == 12 then {
+        emit notification:show title="..." message="Still there?"
     }
+    if $idle_ticks == 20 then {
+        emit notification:show title="EREBUS" message="Patience is a signal."
+    }
+}
+
+# ========================= SCRIPT-RUNNER PREVIEW =========================
+
+if $is_autoexec == 0 then {
+    print "[EREBUS v6] Preview window open for 10 seconds"
+
+    # Keep process alive briefly so event handlers can be tested from ScriptRunner
+    # (for full persistent behavior, run as autoexec)
+    loop 20 {
+        wait 500
+    }
+
+    print "[EREBUS v6] Preview complete. Install as autoexec for full campaign runtime."
 }
 
 # ========================= FIN =========================
