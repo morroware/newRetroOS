@@ -12,20 +12,46 @@ import EventBus, { Events } from './EventBus.js';
 import StorageManager from './StorageManager.js';
 
 // Default desktop icons (used when localStorage is empty)
+// Positions are placeholders; they get auto-arranged on first load
+// based on the user's screen resolution (see arrangeDefaultIcons below).
 const DEFAULT_ICONS = [
-    // --- COLUMN 1: System Core (x: 20) ---
     { id: 'mycomputer', label: 'My Computer', emoji: '💻', type: 'app', x: 20, y: 20 },
     { id: 'recyclebin', label: 'Recycle Bin', emoji: '🗑️', type: 'app', x: 20, y: 110 },
     { id: 'terminal', label: 'Terminal', emoji: '📟', type: 'app', x: 20, y: 200 },
     { id: 'ciphers', label: 'Cipher Decoder', emoji: '🔍', url: 'https://sethmorrow.com/ciphers', x: 20, y: 290, type: 'link' },
-
-    // --- COLUMN 3: Content / "My Documents" (x: 220) ---
     { id: 'music', label: 'Music', emoji: '🎵', url: 'https://sethmorrow.com/music', x: 20, y: 380, type: 'link' },
     { id: 'videos', label: 'Videos', emoji: '📺', url: 'https://sethmorrow.com/videos', x: 20, y: 470, type: 'link' },
     { id: 'books', label: 'Books', emoji: '📚', url: 'https://sethmorrow.com/books', x: 20, y: 560, type: 'link' },
     { id: 'audiobooks', label: 'Audiobooks', emoji: '🎧', url: 'https://sethmorrow.com/audiobooks', x: 20, y: 650, type: 'link' },
-
 ];
+
+/**
+ * Arrange icons in a grid that adapts to the current viewport.
+ * Icons flow top-to-bottom, then wrap to the next column.
+ * @param {Array} icons - Array of icon objects to arrange
+ * @returns {Array} Icons with updated x/y positions
+ */
+function arrangeDefaultIcons(icons) {
+    const startX = 20;
+    const startY = 20;
+    const iconSpacingY = 90;
+    const columnWidth = 100;
+    // Leave room for the taskbar (~48px) and some padding
+    const maxY = (window.innerHeight || 768) - 100;
+
+    let x = startX;
+    let y = startY;
+
+    return icons.map(icon => {
+        const arranged = { ...icon, x, y };
+        y += iconSpacingY;
+        if (y + iconSpacingY > maxY) {
+            y = startY;
+            x += columnWidth;
+        }
+        return arranged;
+    });
+}
 
 
 class StateManagerClass {
@@ -91,8 +117,8 @@ class StateManagerClass {
         const savedPetType = StorageManager.get('currentPet');
         const hasVisited = StorageManager.get('hasVisited');
 
-        // Apply saved state OR use defaults
-        this.state.icons = savedIcons || [...DEFAULT_ICONS];
+        // Apply saved state OR auto-arrange defaults for the user's resolution
+        this.state.icons = savedIcons || arrangeDefaultIcons([...DEFAULT_ICONS]);
         if (savedFilePositions) this.state.filePositions = savedFilePositions;
         if (savedMenu) this.state.menuItems = savedMenu;
         if (savedRecycled) this.state.recycledItems = savedRecycled;

@@ -8,6 +8,7 @@ import AppRegistry from './AppRegistry.js';
 import StateManager from '../core/StateManager.js';
 import StorageManager from '../core/StorageManager.js';
 import EventBus from '../core/EventBus.js';
+import WindowManager from '../core/WindowManager.js';
 
 class ControlPanel extends AppBase {
     constructor() {
@@ -44,7 +45,7 @@ class ControlPanel extends AppBase {
                 }
                 .control-section-title {
                     font-weight: bold;
-                    font-size: 14px;
+                    font-size: 16px;
                     margin-bottom: 10px;
                     color: #000080;
                     border-bottom: 1px solid #c0c0c0;
@@ -70,10 +71,10 @@ class ControlPanel extends AppBase {
                 }
                 .control-item-label {
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 14px;
                 }
                 .control-item-desc {
-                    font-size: 11px;
+                    font-size: 13px;
                     color: #666;
                 }
                 .control-link {
@@ -106,7 +107,7 @@ class ControlPanel extends AppBase {
                     background: #c0c0c0;
                     border: 2px outset #fff;
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: 14px;
                     font-weight: bold;
                 }
                 .control-button:active {
@@ -140,7 +141,7 @@ class ControlPanel extends AppBase {
                     font-size: 32px;
                 }
                 .control-grid-label {
-                    font-size: 11px;
+                    font-size: 13px;
                     text-align: center;
                     font-weight: bold;
                 }
@@ -252,7 +253,7 @@ class ControlPanel extends AppBase {
 
                     <div class="control-item">
                         <div class="control-item-info">
-                            <div class="control-item-label" style="font-size: 10px; color: #666; font-style: italic;">
+                            <div class="control-item-label" style="font-size: 12px; color: #666; font-style: italic; font-weight: normal;">
                                 Tip: Double-click your pet for a fortune! Drag to move.
                             </div>
                         </div>
@@ -269,7 +270,7 @@ class ControlPanel extends AppBase {
                             <div class="control-item-desc">Minutes until screensaver activates</div>
                         </div>
                         <div>
-                            <select id="screensaver-delay" style="padding: 4px; border: 2px inset #fff;">
+                            <select id="screensaver-delay" style="padding: 4px; border: 2px inset #fff; font-size: 13px;">
                                 <option value="60000" ${settings.screensaverDelay === 60000 ? 'selected' : ''}>1 minute</option>
                                 <option value="180000" ${settings.screensaverDelay === 180000 ? 'selected' : ''}>3 minutes</option>
                                 <option value="300000" ${settings.screensaverDelay === 300000 ? 'selected' : ''}>5 minutes</option>
@@ -289,7 +290,7 @@ class ControlPanel extends AppBase {
                             <div class="control-item-label">Storage Used</div>
                             <div class="control-item-desc">LocalStorage data usage</div>
                         </div>
-                        <div id="storage-info" style="font-size: 11px; font-weight: bold;">
+                        <div id="storage-info" style="font-size: 13px; font-weight: bold;">
                             Calculating...
                         </div>
                     </div>
@@ -300,7 +301,7 @@ class ControlPanel extends AppBase {
                             <div class="control-item-label">Achievements Unlocked</div>
                             <div class="control-item-desc">Your progress in IlluminatOS!</div>
                         </div>
-                        <div style="font-size: 11px; font-weight: bold;">
+                        <div style="font-size: 13px; font-weight: bold;">
                             ${StateManager.getState('achievements').length} achievements
                         </div>
                     </div>
@@ -372,6 +373,12 @@ class ControlPanel extends AppBase {
     }
 
     onMount() {
+        // Open maximized for better readability
+        const windowId = this.getCurrentWindowId();
+        if (windowId) {
+            WindowManager.maximize(windowId);
+        }
+
         // Background color picker
         const bgColorPicker = this.getElement('#bg-color');
         if (bgColorPicker) {
