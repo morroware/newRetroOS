@@ -54,7 +54,8 @@ class SemanticEventBusClass {
             logging: false,        // Log events to console
             timestamps: true,      // Add timestamps to events
             trackHistory: true,    // Keep event history
-            warnUnknown: true     // Warn about unknown events
+            warnUnknown: true,    // Warn about unknown events
+            dropInvalidEvents: false // When true, invalid payloads are not dispatched
         };
 
         // Debug mode (legacy support)
@@ -218,6 +219,9 @@ class SemanticEventBusClass {
             if (!validation.valid) {
                 this.stats.validationErrors++;
                 console.error(`[SemanticEventBus] Validation failed for "${eventName}":`, validation.errors);
+                if (this.config.dropInvalidEvents) {
+                    return { name: eventName, payload, cancelled: true, dropped: true };
+                }
                 // Continue anyway for backward compatibility
             }
         }

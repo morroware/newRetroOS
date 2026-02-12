@@ -203,6 +203,13 @@ class PluginLoaderClass {
      * @returns {boolean} Success status
      */
     async loadPluginFromPath(pluginPath) {
+        // Enforce strict allowlist to prevent arbitrary code execution
+        const ALLOWED_PATTERN = /^\.\/plugins\/features\/[a-zA-Z0-9_-]+\/index\.js$/;
+        if (!ALLOWED_PATTERN.test(pluginPath)) {
+            console.error(`[PluginLoader] Blocked untrusted plugin path: ${pluginPath}`);
+            return false;
+        }
+
         try {
             const pluginModule = await import(pluginPath);
             return await this.loadPlugin(pluginModule);

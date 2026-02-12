@@ -108,6 +108,23 @@ class FileSystemManager {
   }
 
   /**
+   * Validate that parsed path parts are non-empty before mutation
+   * @param {string[]} parts - Parsed path parts
+   * @param {string} operation - Operation name for error messages
+   */
+  _validateMutationPath(parts, operation) {
+    if (!parts || parts.length === 0) {
+      EventBus.emit(Events.FS_ERROR, {
+        operation,
+        path: '',
+        error: 'Invalid path: path is empty',
+        code: 'EINVAL'
+      });
+      throw new Error(`Invalid path: path is empty (${operation})`);
+    }
+  }
+
+  /**
    * Initialize default file system structure
    */
   getDefaultFileSystem() {
@@ -607,6 +624,7 @@ class FileSystemManager {
    */
   writeFile(path, content, extension = 'txt') {
     const parts = this.parsePath(path);
+    this._validateMutationPath(parts, 'write');
     const pathStr = parts.join('/');
     this._checkWritePermission(pathStr);
     const fileName = parts[parts.length - 1];
@@ -676,6 +694,7 @@ class FileSystemManager {
    */
   deleteFile(path) {
     const parts = this.parsePath(path);
+    this._validateMutationPath(parts, 'delete');
     const pathStr = parts.join('/');
     this._checkWritePermission(pathStr);
     const fileName = parts[parts.length - 1];
@@ -731,6 +750,7 @@ class FileSystemManager {
    */
   createDirectory(path) {
     const parts = this.parsePath(path);
+    this._validateMutationPath(parts, 'mkdir');
     const pathStr = parts.join('/');
     this._checkWritePermission(pathStr);
     const dirName = parts[parts.length - 1];
@@ -781,6 +801,7 @@ class FileSystemManager {
    */
   deleteDirectory(path, recursive = false) {
     const parts = this.parsePath(path);
+    this._validateMutationPath(parts, 'rmdir');
     const pathStr = parts.join('/');
     this._checkWritePermission(pathStr);
     const dirName = parts[parts.length - 1];
@@ -946,6 +967,8 @@ class FileSystemManager {
   moveItem(sourcePath, destPath) {
     const srcParts = this.parsePath(sourcePath);
     const destParts = this.parsePath(destPath);
+    this._validateMutationPath(srcParts, 'move');
+    this._validateMutationPath(destParts, 'move');
     const srcPathStr = srcParts.join('/');
     const destPathStr = destParts.join('/');
     this._checkWritePermission(srcPathStr);
@@ -992,6 +1015,20 @@ class FileSystemManager {
 
     this._assertDirectory(destNode, destPathStr, 'move');
 
+    // Reject moving a directory into its own subtree
+    const normalizedSrc = srcParts.map(s => s.toLowerCase());
+    const normalizedDest = destParts.map(s => s.toLowerCase());
+    if (normalizedDest.length >= normalizedSrc.length &&
+        normalizedSrc.every((seg, i) => normalizedDest[i] === seg)) {
+      EventBus.emit(Events.FS_ERROR, {
+        operation: 'move',
+        path: srcPathStr,
+        error: 'Cannot move into own subtree',
+        code: 'EINVAL'
+      });
+      throw new Error(`Cannot move '${srcPathStr}' into its own subtree '${destPathStr}'`);
+    }
+
     const destChildren = destNode.children || destNode;
 
     // Check if file already exists at destination
@@ -1034,6 +1071,8 @@ class FileSystemManager {
   copyItem(sourcePath, destPath) {
     const srcParts = this.parsePath(sourcePath);
     const destParts = this.parsePath(destPath);
+    this._validateMutationPath(srcParts, 'copy');
+    this._validateMutationPath(destParts, 'copy');
     const srcPathStr = srcParts.join('/');
     const destPathStr = destParts.join('/');
     this._checkWritePermission(destPathStr);
@@ -1107,6 +1146,7 @@ class FileSystemManager {
    */
   renameItem(path, newName) {
     const parts = this.parsePath(path);
+    this._validateMutationPath(parts, 'rename');
     const pathStr = parts.join('/');
     this._checkWritePermission(pathStr);
     const oldName = parts[parts.length - 1];

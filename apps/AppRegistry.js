@@ -218,14 +218,16 @@ class AppRegistryClass {
         // to identify if any fail to load
         this._log('[AppRegistry] Registering Settings apps...');
 
+        const failedApps = [];
+
         try { this.register(new ControlPanel()); }
-        catch (e) { console.error('[AppRegistry] FAILED: ControlPanel:', e); }
+        catch (e) { console.error('[AppRegistry] FAILED: ControlPanel:', e); failedApps.push('ControlPanel'); }
 
         try { this.register(new DisplayProperties()); }
-        catch (e) { console.error('[AppRegistry] FAILED: DisplayProperties:', e); }
+        catch (e) { console.error('[AppRegistry] FAILED: DisplayProperties:', e); failedApps.push('DisplayProperties'); }
 
         try { this.register(new SoundSettings()); }
-        catch (e) { console.error('[AppRegistry] FAILED: SoundSettings:', e); }
+        catch (e) { console.error('[AppRegistry] FAILED: SoundSettings:', e); failedApps.push('SoundSettings'); }
 
         try {
             this._log('[AppRegistry] Creating FeaturesSettings...');
@@ -235,6 +237,7 @@ class AppRegistryClass {
         } catch (e) {
             console.error('[AppRegistry] FAILED: FeaturesSettings:', e);
             console.error('[AppRegistry] FeaturesSettings error stack:', e.stack);
+            failedApps.push('FeaturesSettings');
         }
 
         // --- Hidden System Apps ---
@@ -246,6 +249,16 @@ class AppRegistryClass {
         ]);
 
         this._log(`[AppRegistry] Initialized with ${this.apps.size} apps`);
+
+        // Emit health warning if any apps failed to register
+        if (failedApps.length > 0) {
+            console.warn(`[AppRegistry] ${failedApps.length} app(s) failed to register: ${failedApps.join(', ')}`);
+            EventBus.emit('system:health:warning', {
+                source: 'AppRegistry',
+                message: `${failedApps.length} app(s) failed to register`,
+                failedApps
+            });
+        }
     }
 
     /**
