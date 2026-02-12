@@ -1,6 +1,14 @@
 /**
  * Chat Room - 90s AOL/IRC Style Chat Room Simulator
  * Experience the golden age of internet chat!
+ *
+ * SCRIPTING SUPPORT:
+ *   Commands: login, sendMessage, joinRoom, setNick, clear, addBot, removeBot,
+ *             injectMessage, injectSystemMessage
+ *   Queries:  getStatus, getCurrentRoom, getUsers, getMessages, getRooms
+ *   Events:   app:chatroom:loggedIn, app:chatroom:messageSent,
+ *             app:chatroom:messageReceived, app:chatroom:roomChanged,
+ *             app:chatroom:userJoined, app:chatroom:userLeft
  */
 
 import AppBase from './AppBase.js';
@@ -24,6 +32,7 @@ class ChatRoom extends AppBase {
         this.users = [];
         this.chatInterval = null;
         this.typingUsers = [];
+        this.isLoggedIn = false;
 
         // Simulated users with 90s-style usernames
         this.botUsers = [
@@ -382,6 +391,9 @@ class ChatRoom extends AppBase {
             });
         });
 
+        // Register scripting commands and queries
+        this._registerScriptingCommands();
+
         // Focus username input
         setTimeout(() => {
             this.getElement('#usernameInput')?.focus();
@@ -392,11 +404,13 @@ class ChatRoom extends AppBase {
         if (this.chatInterval) {
             clearInterval(this.chatInterval);
         }
+        this.isLoggedIn = false;
+        this.messages = [];
     }
 
-    login() {
+    login(nameOverride) {
         const input = this.getElement('#usernameInput');
-        const name = input?.value.trim();
+        const name = nameOverride || input?.value.trim();
 
         if (!name) {
             this.alert('Please enter a screen name!');
@@ -404,6 +418,7 @@ class ChatRoom extends AppBase {
         }
 
         this.username = name;
+        this.isLoggedIn = true;
 
         // Hide login, show chat
         const loginScreen = this.getElement('#loginScreen');
@@ -425,6 +440,9 @@ class ChatRoom extends AppBase {
         // Add welcome messages
         this.addSystemMessage(`*** Welcome to the ${this.rooms[0].label}! ***`);
         this.addSystemMessage(`*** ${this.username} has entered the room ***`);
+
+        // Emit login event
+        this.emitAppEvent('loggedIn', { username: this.username, room: this.currentRoom });
 
         // Start bot chat simulation
         this.startBotChat();
@@ -462,6 +480,7 @@ class ChatRoom extends AppBase {
         const message = this.botMessages[Math.floor(Math.random() * this.botMessages.length)];
 
         this.addMessage(user.name, message, user.color);
+        this.emitAppEvent('messageReceived', { from: user.name, message, room: this.currentRoom });
     }
 
     showTypingIndicator() {
@@ -488,6 +507,7 @@ class ChatRoom extends AppBase {
                 this.users = this.users.filter(u => u.name !== leaving.name);
                 this.addSystemMessage(`*** ${leaving.name} has left the room ***`);
                 this.updateUserList();
+                this.emitAppEvent('userLeft', { username: leaving.name, room: this.currentRoom });
             }
         } else {
             // New user joins
@@ -499,13 +519,14 @@ class ChatRoom extends AppBase {
                 this.users.push({ ...joining });
                 this.addSystemMessage(`*** ${joining.name} has entered the room ***`);
                 this.updateUserList();
+                this.emitAppEvent('userJoined', { username: joining.name, room: this.currentRoom });
             }
         }
     }
 
-    sendMessage() {
+    sendMessage(messageOverride) {
         const input = this.getElement('#messageInput');
-        const message = input?.value.trim();
+        const message = messageOverride || input?.value.trim();
 
         if (!message) return;
 
@@ -516,6 +537,7 @@ class ChatRoom extends AppBase {
             this.handleCommand(message);
         } else {
             this.addMessage(this.username, message, '#000', true);
+            this.emitAppEvent('messageSent', { username: this.username, message, room: this.currentRoom });
         }
 
         if (input) input.value = '';
@@ -584,10 +606,13 @@ class ChatRoom extends AppBase {
     }
 
     addMessage(username, text, color = '#000', isUser = false) {
-        const messages = this.getElement('#messages');
-        if (!messages) return;
+        const messagesEl = this.getElement('#messages');
+        if (!messagesEl) return;
 
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const entry = { type: 'message', username, text, color, time, isUser, timestamp: Date.now() };
+        this.messages.push(entry);
+
         const div = document.createElement('div');
         div.className = 'chatroom-message';
         div.innerHTML = `
@@ -596,20 +621,23 @@ class ChatRoom extends AppBase {
             <span>${this.escapeHtml(text)}</span>
         `;
 
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
     addSystemMessage(text) {
-        const messages = this.getElement('#messages');
-        if (!messages) return;
+        const messagesEl = this.getElement('#messages');
+        if (!messagesEl) return;
+
+        const entry = { type: 'system', text, timestamp: Date.now() };
+        this.messages.push(entry);
 
         const div = document.createElement('div');
         div.className = 'chatroom-message chatroom-message-system';
         div.textContent = text;
 
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
     addActionMessage(username, action) {
@@ -632,6 +660,7 @@ class ChatRoom extends AppBase {
         const room = this.rooms.find(r => r.name === roomName);
         if (!room) return;
 
+        const previousRoom = this.currentRoom;
         this.currentRoom = roomName;
 
         // Update active room style
@@ -644,8 +673,9 @@ class ChatRoom extends AppBase {
         if (label) label.textContent = room.label;
 
         // Clear messages and add join message
-        const messages = this.getElement('#messages');
-        if (messages) messages.innerHTML = '';
+        const messagesEl = this.getElement('#messages');
+        if (messagesEl) messagesEl.innerHTML = '';
+        this.messages = [];
 
         // Get new random users for this room
         this.users = [
@@ -656,6 +686,8 @@ class ChatRoom extends AppBase {
         this.updateUserList();
         this.addSystemMessage(`*** You have joined ${room.label} ***`);
         this.addSystemMessage(`*** ${this.username} has entered the room ***`);
+
+        this.emitAppEvent('roomChanged', { room: roomName, previousRoom, label: room.label });
     }
 
     updateUserList() {
@@ -674,6 +706,186 @@ class ChatRoom extends AppBase {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ===== SCRIPTING SUPPORT =====
+
+    _registerScriptingCommands() {
+        // COMMAND: Log in with a username
+        this.registerCommand('login', (payload) => {
+            if (this.isLoggedIn) {
+                return { success: false, error: 'Already logged in' };
+            }
+            const username = payload.username || payload.name;
+            if (!username) {
+                return { success: false, error: 'Username required' };
+            }
+            this.login(username);
+            return { success: true, username: this.username, room: this.currentRoom };
+        });
+
+        // COMMAND: Send a chat message
+        this.registerCommand('sendMessage', (payload) => {
+            if (!this.isLoggedIn) {
+                return { success: false, error: 'Not logged in' };
+            }
+            const message = payload.message || payload.text;
+            if (!message) {
+                return { success: false, error: 'Message required' };
+            }
+            this.sendMessage(message);
+            return { success: true, message };
+        });
+
+        // COMMAND: Join a room
+        this.registerCommand('joinRoom', (payload) => {
+            if (!this.isLoggedIn) {
+                return { success: false, error: 'Not logged in' };
+            }
+            const room = payload.room || payload.name;
+            if (!room) {
+                return { success: false, error: 'Room name required' };
+            }
+            const roomObj = this.rooms.find(r => r.name === room || r.label === room);
+            if (!roomObj) {
+                return { success: false, error: `Room not found: ${room}` };
+            }
+            this.joinRoom(roomObj.name);
+            return { success: true, room: roomObj.name, label: roomObj.label };
+        });
+
+        // COMMAND: Change nickname
+        this.registerCommand('setNick', (payload) => {
+            if (!this.isLoggedIn) {
+                return { success: false, error: 'Not logged in' };
+            }
+            const name = payload.name || payload.nick;
+            if (!name) {
+                return { success: false, error: 'Name required' };
+            }
+            const oldName = this.username;
+            this.username = name;
+            const user = this.users.find(u => u.isUser);
+            if (user) user.name = this.username;
+            this.addSystemMessage(`*** ${oldName} is now known as ${this.username} ***`);
+            this.updateUserList();
+            return { success: true, oldName, newName: this.username };
+        });
+
+        // COMMAND: Clear message history
+        this.registerCommand('clear', () => {
+            const messagesEl = this.getElement('#messages');
+            if (messagesEl) messagesEl.innerHTML = '';
+            this.messages = [];
+            return { success: true };
+        });
+
+        // COMMAND: Add a bot user to the room
+        this.registerCommand('addBot', (payload) => {
+            const name = payload.name;
+            if (!name) {
+                return { success: false, error: 'Bot name required' };
+            }
+            if (this.users.find(u => u.name === name)) {
+                return { success: false, error: 'User already in room' };
+            }
+            const bot = {
+                name,
+                status: payload.status || 'online',
+                color: payload.color || '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')
+            };
+            this.users.push(bot);
+            this.addSystemMessage(`*** ${name} has entered the room ***`);
+            this.updateUserList();
+            this.emitAppEvent('userJoined', { username: name, room: this.currentRoom });
+            return { success: true, bot };
+        });
+
+        // COMMAND: Remove a bot user from the room
+        this.registerCommand('removeBot', (payload) => {
+            const name = payload.name;
+            if (!name) {
+                return { success: false, error: 'Bot name required' };
+            }
+            const idx = this.users.findIndex(u => u.name === name && !u.isUser);
+            if (idx === -1) {
+                return { success: false, error: 'Bot not found' };
+            }
+            this.users.splice(idx, 1);
+            this.addSystemMessage(`*** ${name} has left the room ***`);
+            this.updateUserList();
+            this.emitAppEvent('userLeft', { username: name, room: this.currentRoom });
+            return { success: true };
+        });
+
+        // COMMAND: Inject a message from any user
+        this.registerCommand('injectMessage', (payload) => {
+            const from = payload.from || 'Anonymous';
+            const message = payload.message || payload.text;
+            if (!message) {
+                return { success: false, error: 'Message required' };
+            }
+            const color = payload.color || '#000';
+            this.addMessage(from, message, color);
+            this.emitAppEvent('messageReceived', { from, message, room: this.currentRoom });
+            return { success: true };
+        });
+
+        // COMMAND: Inject a system message
+        this.registerCommand('injectSystemMessage', (payload) => {
+            const message = payload.message || payload.text;
+            if (!message) {
+                return { success: false, error: 'Message required' };
+            }
+            this.addSystemMessage(message);
+            return { success: true };
+        });
+
+        // QUERY: Get current status
+        this.registerQuery('getStatus', () => {
+            return {
+                loggedIn: this.isLoggedIn,
+                username: this.username || null,
+                room: this.currentRoom,
+                userCount: this.users.length
+            };
+        });
+
+        // QUERY: Get current room info
+        this.registerQuery('getCurrentRoom', () => {
+            const room = this.rooms.find(r => r.name === this.currentRoom);
+            return {
+                name: this.currentRoom,
+                label: room ? room.label : this.currentRoom,
+                userCount: this.users.length
+            };
+        });
+
+        // QUERY: Get users in current room
+        this.registerQuery('getUsers', () => {
+            return this.users.map(u => ({
+                name: u.name,
+                status: u.status,
+                isUser: !!u.isUser,
+                color: u.color
+            }));
+        });
+
+        // QUERY: Get recent messages
+        this.registerQuery('getMessages', (payload) => {
+            const count = (payload && payload.count) || 50;
+            return this.messages.slice(-count);
+        });
+
+        // QUERY: Get available rooms
+        this.registerQuery('getRooms', () => {
+            return this.rooms.map(r => ({
+                name: r.name,
+                label: r.label,
+                users: r.users,
+                active: r.name === this.currentRoom
+            }));
+        });
     }
 }
 
