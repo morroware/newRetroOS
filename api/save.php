@@ -9,9 +9,24 @@
  * Or for full save:  { "config": { ... } }
  */
 
+// Harden session cookie parameters before starting the session
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    ini_set('session.cookie_secure', '1');
+}
+
 session_start();
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
+
+// Enforce max session age (8 hours) for admin sessions
+$maxSessionAge = 28800; // 8 hours in seconds
+if (isset($_SESSION['admin_login_time']) && (time() - $_SESSION['admin_login_time'] > $maxSessionAge)) {
+    unset($_SESSION['admin_authenticated']);
+    unset($_SESSION['admin_login_time']);
+    unset($_SESSION['csrf_token']);
+}
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -111,7 +126,17 @@ switch ($action) {
             exit;
         }
         // Only keep valid sections
-        $overrides = array_intersect_key($config, array_flip($validSections));
+        $filtered = array_intersect_key($config, array_flip($validSections));
+        // Validate each section
+        foreach ($filtered as $sec => $data) {
+            $validationError = validateSection($sec, $data);
+            if ($validationError) {
+                http_response_code(400);
+                echo json_encode(['error' => "Validation failed for section '$sec': $validationError"]);
+                exit;
+            }
+        }
+        $overrides = $filtered;
         break;
 
     default:

@@ -36,6 +36,27 @@ class FileSystemManager {
   }
 
   /**
+   * Assert that a node is a directory-like container (directory, drive, or root).
+   * Throws ENOTDIR if the node is a file or otherwise not a directory.
+   * @param {object} node - The filesystem node to check
+   * @param {string} pathStr - Path string for error messages
+   * @param {string} operation - Operation name for error events
+   */
+  _assertDirectory(node, pathStr, operation) {
+    if (!node) return; // Callers handle null/missing separately with ENOENT
+    if (node.type === 'directory' || node.type === 'drive') return;
+    // Root node (the top-level filesystem object) has no type
+    if (!node.type && typeof node === 'object' && !Array.isArray(node)) return;
+    EventBus.emit(Events.FS_ERROR, {
+      operation,
+      path: pathStr,
+      error: 'Not a directory',
+      code: 'ENOTDIR'
+    });
+    throw new Error(`Not a directory: ${pathStr}`);
+  }
+
+  /**
    * Check if a write operation is allowed on the given path
    * Throws if the path is protected and godMode is not active
    * @param {string} pathStr - Path string to check
@@ -473,17 +494,9 @@ class FileSystemManager {
       throw new Error(`Path not found: ${path}`);
     }
 
-    const children = node.children || node;
+    this._assertDirectory(node, parts.join('/'), 'list');
 
-    if (typeof children !== 'object') {
-      EventBus.emit(Events.FS_ERROR, {
-        operation: 'list',
-        path: parts.join('/'),
-        error: 'Not a directory',
-        code: 'ENOTDIR'
-      });
-      throw new Error(`Not a directory: ${path}`);
-    }
+    const children = node.children || node;
 
     const items = [];
 
@@ -578,6 +591,8 @@ class FileSystemManager {
       throw new Error(`Parent directory not found: ${parentPath.join('/')}`);
     }
 
+    this._assertDirectory(parent, parentPath.join('/'), 'write');
+
     const children = parent.children || parent;
 
     // Determine extension from filename if not provided
@@ -645,6 +660,8 @@ class FileSystemManager {
       throw new Error(`Parent directory not found: ${parentPath.join('/')}`);
     }
 
+    this._assertDirectory(parent, parentPath.join('/'), 'delete');
+
     const children = parent.children || parent;
 
     if (!children[fileName]) {
@@ -682,6 +699,7 @@ class FileSystemManager {
   createDirectory(path) {
     const parts = this.parsePath(path);
     const pathStr = parts.join('/');
+    this._checkWritePermission(pathStr);
     const dirName = parts[parts.length - 1];
     const parentPath = parts.slice(0, -1);
 
@@ -696,6 +714,8 @@ class FileSystemManager {
       });
       throw new Error(`Parent directory not found: ${parentPath.join('/')}`);
     }
+
+    this._assertDirectory(parent, parentPath.join('/'), 'mkdir');
 
     const children = parent.children || parent;
 
@@ -937,16 +957,9 @@ class FileSystemManager {
       throw new Error(`Destination not found: ${destPath}`);
     }
 
+    this._assertDirectory(destNode, destPathStr, 'move');
+
     const destChildren = destNode.children || destNode;
-    if (typeof destChildren !== 'object') {
-      EventBus.emit(Events.FS_ERROR, {
-        operation: 'move',
-        path: destPathStr,
-        error: 'Destination is not a directory',
-        code: 'ENOTDIR'
-      });
-      throw new Error(`Destination is not a directory: ${destPath}`);
-    }
 
     // Check if file already exists at destination
     if (destChildren[srcName]) {
@@ -988,6 +1001,7 @@ class FileSystemManager {
     const destParts = this.parsePath(destPath);
     const srcPathStr = srcParts.join('/');
     const destPathStr = destParts.join('/');
+    this._checkWritePermission(destPathStr);
 
     const srcName = srcParts[srcParts.length - 1];
 
@@ -1015,16 +1029,9 @@ class FileSystemManager {
       throw new Error(`Destination not found: ${destPath}`);
     }
 
+    this._assertDirectory(destNode, destPathStr, 'copy');
+
     const destChildren = destNode.children || destNode;
-    if (typeof destChildren !== 'object') {
-      EventBus.emit(Events.FS_ERROR, {
-        operation: 'copy',
-        path: destPathStr,
-        error: 'Destination is not a directory',
-        code: 'ENOTDIR'
-      });
-      throw new Error(`Destination is not a directory: ${destPath}`);
-    }
 
     // Generate unique name if needed
     let newName = srcName;
@@ -1078,6 +1085,8 @@ class FileSystemManager {
       });
       throw new Error(`Parent directory not found: ${parentPath.join('/')}`);
     }
+
+    this._assertDirectory(parent, parentPath.join('/'), 'rename');
 
     const children = parent.children || parent;
     if (!children[oldName]) {

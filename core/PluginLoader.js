@@ -108,7 +108,9 @@ class PluginLoaderClass {
 
                     // Roll back: unregister apps
                     if (plugin.apps && Array.isArray(plugin.apps)) {
+                        const { default: AppRegistry } = await import('../apps/AppRegistry.js');
                         for (const app of plugin.apps) {
+                            try { AppRegistry.unregister(app.id); } catch (e) { /* ignore */ }
                             this.pluginApps.delete(app.id);
                         }
                     }
@@ -195,6 +197,17 @@ class PluginLoaderClass {
                 if (pid === pluginId) {
                     await FeatureRegistry.unregister(featureId);
                     this.pluginFeatures.delete(featureId);
+                }
+            }
+
+            // Unregister all apps from this plugin
+            if (this.pluginApps.size > 0) {
+                const { default: AppRegistry } = await import('../apps/AppRegistry.js');
+                for (const [appId, pid] of this.pluginApps) {
+                    if (pid === pluginId) {
+                        AppRegistry.unregister(appId);
+                        this.pluginApps.delete(appId);
+                    }
                 }
             }
 

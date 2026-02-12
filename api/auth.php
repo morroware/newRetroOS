@@ -8,9 +8,24 @@
  * Uses PHP sessions for authentication.
  */
 
+// Harden session cookie parameters before starting the session
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    ini_set('session.cookie_secure', '1');
+}
+
 session_start();
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
+
+// Enforce max session age (8 hours) for admin sessions
+$maxSessionAge = 28800; // 8 hours in seconds
+if (isset($_SESSION['admin_login_time']) && (time() - $_SESSION['admin_login_time'] > $maxSessionAge)) {
+    unset($_SESSION['admin_authenticated']);
+    unset($_SESSION['admin_login_time']);
+    unset($_SESSION['csrf_token']);
+}
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -43,11 +58,18 @@ switch ($action) {
 function getCredentials(): array {
     $credFile = __DIR__ . '/../config/admin-credentials.php';
     if (!file_exists($credFile)) {
-        // Static bcrypt hash of 'admin' - fallback if credentials file is missing
-        return [
-            'password_hash' => '$2y$12$5SwhxLazB5TD89J6GS9Gvu9aLVRIJxnD0BYeQKVGJfnPE9.4WXDIO',
-            'force_change' => true
-        ];
+        // Only allow insecure fallback in explicit dev mode (ILLUMINATOS_DEV=1 env var)
+        if (getenv('ILLUMINATOS_DEV') === '1') {
+            // Static bcrypt hash of 'admin' - dev-only fallback
+            return [
+                'password_hash' => '$2y$12$5SwhxLazB5TD89J6GS9Gvu9aLVRIJxnD0BYeQKVGJfnPE9.4WXDIO',
+                'force_change' => true
+            ];
+        }
+        // Fail closed: refuse to authenticate without a credentials file
+        http_response_code(500);
+        echo json_encode(['error' => 'Admin credentials not configured. Create config/admin-credentials.php or set ILLUMINATOS_DEV=1 for development.']);
+        exit;
     }
     return require $credFile;
 }

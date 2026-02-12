@@ -248,15 +248,9 @@ async function initializeOS(onProgress = () => {}) {
             { path: '../plugins/features/dvd-bouncer/index.js', enabled: true }
         ]);
 
-        // Clear any old manifest entries to start fresh
-        const manifest = PluginLoader.getPluginManifest();
-
-        // Remove any existing DVD Bouncer entries (cleanup old paths)
-        manifest.plugins = manifest.plugins.filter(p =>
-            !p.path.includes('dvd-bouncer')
-        );
-
-        // Add plugins from config
+        // Derive manifest deterministically from config to prevent
+        // duplicate entries accumulating across reboots
+        const manifest = { plugins: [] };
         for (const plugin of configPlugins) {
             if (plugin.enabled !== false) {
                 manifest.plugins.push({

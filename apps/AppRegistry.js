@@ -72,6 +72,19 @@ class AppRegistryClass {
     constructor() {
         this.apps = new Map();
         this.metadata = new Map();
+
+        // Debug logging flag — set to true for verbose output
+        this.debug = false;
+    }
+
+    /**
+     * Log a message if debug mode is enabled
+     * @param  {...any} args - Arguments to pass to console.log
+     */
+    _log(...args) {
+        if (this.debug) {
+            console.log(...args);
+        }
     }
 
     /**
@@ -106,7 +119,33 @@ class AppRegistryClass {
             ...meta
         });
 
-        console.log(`[AppRegistry] Registered: ${app.name} (${app.id}) [${this.metadata.get(app.id).category}]`);
+        this._log(`[AppRegistry] Registered: ${app.name} (${app.id}) [${this.metadata.get(app.id).category}]`);
+    }
+
+    /**
+     * Unregister an application (for plugin unload/hot-reload)
+     * Closes the app if running, then removes from registry.
+     * @param {string} appId - App ID to unregister
+     */
+    unregister(appId) {
+        const app = this.apps.get(appId);
+        if (!app) {
+            console.warn(`[AppRegistry] Cannot unregister "${appId}" - not found`);
+            return;
+        }
+
+        // Close the app if it has an active window
+        try {
+            if (typeof app.close === 'function') {
+                app.close();
+            }
+        } catch (error) {
+            console.warn(`[AppRegistry] Error closing "${appId}" during unregister:`, error);
+        }
+
+        this.apps.delete(appId);
+        this.metadata.delete(appId);
+        console.log(`[AppRegistry] Unregistered: ${app.name} (${appId})`);
     }
 
     /**
@@ -176,7 +215,7 @@ class AppRegistryClass {
         // --- Settings ---
         // Register each settings app individually with error handling
         // to identify if any fail to load
-        console.log('[AppRegistry] Registering Settings apps...');
+        this._log('[AppRegistry] Registering Settings apps...');
 
         try { this.register(new ControlPanel()); }
         catch (e) { console.error('[AppRegistry] FAILED: ControlPanel:', e); }
@@ -188,9 +227,9 @@ class AppRegistryClass {
         catch (e) { console.error('[AppRegistry] FAILED: SoundSettings:', e); }
 
         try {
-            console.log('[AppRegistry] Creating FeaturesSettings...');
+            this._log('[AppRegistry] Creating FeaturesSettings...');
             const fs = new FeaturesSettings();
-            console.log('[AppRegistry] FeaturesSettings created successfully:', fs.id);
+            this._log('[AppRegistry] FeaturesSettings created successfully:', fs.id);
             this.register(fs);
         } catch (e) {
             console.error('[AppRegistry] FAILED: FeaturesSettings:', e);
@@ -205,7 +244,7 @@ class AppRegistryClass {
             new SimpleApp('shutdown', 'Shut Down', '⏻', 'It is now safe to turn off your computer.'),
         ]);
 
-        console.log(`[AppRegistry] Initialized with ${this.apps.size} apps`);
+        this._log(`[AppRegistry] Initialized with ${this.apps.size} apps`);
     }
 
     /**
@@ -318,7 +357,7 @@ class AppRegistryClass {
                 timestamp: Date.now()
             });
 
-            console.log(`[AppRegistry] Successfully launched ${app.name} (${appId})`);
+            this._log(`[AppRegistry] Successfully launched ${app.name} (${appId})`);
             return true;
 
         } catch (error) {
@@ -399,7 +438,7 @@ class AppRegistryClass {
     getByCategory(category) {
         const all = this.getAll();
         const filtered = all.filter(m => m.category === category);
-        console.log(`[AppRegistry] getByCategory('${category}'):`, filtered);
+        this._log(`[AppRegistry] getByCategory('${category}'):`, filtered);
         return filtered;
     }
 }
