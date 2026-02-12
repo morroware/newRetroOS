@@ -16,7 +16,7 @@ class DVDBouncerFeature extends FeatureBase {
                 speed: 2,
                 logoSize: 80,
                 idleTimeout: 60000, // 1 minute of no activity
-                autoStart: true
+                autoStart: false
             },
             settings: [
                 {

@@ -53,6 +53,7 @@ import Zork from './Zork.js';
 import HyperCard from './HyperCard.js';
 import FeaturesSettings from './FeaturesSettings.js';
 import ScriptRunner from './ScriptRunner.js';
+import RunDialog from './RunDialog.js';
 // --- System App Placeholders (Simple implementations for completeness) ---
 import AppBase from './AppBase.js';
 
@@ -199,7 +200,7 @@ class AppRegistryClass {
         this.registerAll([
             new FindFiles(),
             new HelpSystem(),
-            new SimpleApp('run', 'Run', '▶️', 'Run command dialog.'),
+            new RunDialog(),
             new SimpleApp('shutdown', 'Shut Down', '⏻', 'It is now safe to turn off your computer.'),
         ]);
 
