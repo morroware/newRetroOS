@@ -7,6 +7,7 @@ import FeatureBase from '../core/FeatureBase.js';
 import EventBus, { Events } from '../core/EventBus.js';
 import StateManager from '../core/StateManager.js';
 import StorageManager from '../core/StorageManager.js';
+import { getConfig } from '../core/ConfigLoader.js';
 
 // Feature metadata
 const FEATURE_METADATA = {
@@ -57,7 +58,7 @@ const SCREENSAVER_CONFIGS = {
         count: 50
     },
     marquee: {
-        text: 'IlluminatOS! - The Nostalgia Machine',
+        get text() { return getConfig('branding.screensaverText', 'IlluminatOS! - The Nostalgia Machine'); },
         animation: 'marquee-scroll'
     },
     none: null

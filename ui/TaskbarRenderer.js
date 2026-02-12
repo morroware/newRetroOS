@@ -7,6 +7,7 @@ import EventBus, { Events } from '../core/EventBus.js';
 import StateManager from '../core/StateManager.js';
 import WindowManager from '../core/WindowManager.js';
 import AppRegistry from '../apps/AppRegistry.js';
+import { getConfig } from '../core/ConfigLoader.js';
 
 class TaskbarRendererClass {
     constructor() {
@@ -82,11 +83,21 @@ class TaskbarRendererClass {
         const quickLaunch = document.querySelector('.quick-launch');
         if (!quickLaunch) return;
 
-        quickLaunch.innerHTML = `
-            <button class="quick-launch-btn" data-app="terminal" title="Terminal">💻</button>
-            <button class="quick-launch-btn" data-app="notepad" title="Notepad">📝</button>
-            <button class="quick-launch-btn" data-action="web" title="Internet">🌀</button>
-        `;
+        // Load quick launch items from config or use inline defaults
+        const items = getConfig('quickLaunch', [
+            { type: 'app', appId: 'terminal', icon: '\uD83D\uDCBB', title: 'Terminal' },
+            { type: 'app', appId: 'notepad', icon: '\uD83D\uDCDD', title: 'Notepad' },
+            { type: 'link', url: 'https://sethmorrow.com', icon: '\uD83C\uDF00', title: 'Internet' }
+        ]);
+
+        quickLaunch.innerHTML = items.map(item => {
+            if (item.type === 'app') {
+                return `<button class="quick-launch-btn" data-app="${item.appId}" title="${item.title}">${item.icon}</button>`;
+            } else if (item.type === 'link') {
+                return `<button class="quick-launch-btn" data-action="web" data-url="${item.url}" title="${item.title}">${item.icon}</button>`;
+            }
+            return '';
+        }).join('\n            ');
 
         quickLaunch.querySelectorAll('.quick-launch-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -96,7 +107,8 @@ class TaskbarRendererClass {
                 if (app) {
                     AppRegistry.launch(app);
                 } else if (action === 'web') {
-                    AppRegistry.launch('browser', { url: 'https://sethmorrow.com' });
+                    const url = btn.dataset.url || 'https://sethmorrow.com';
+                    AppRegistry.launch('browser', { url });
                 }
             });
         });
@@ -154,7 +166,7 @@ class TaskbarRendererClass {
         const volumeIcon = document.getElementById('volumeIcon');
         if (volumeIcon) {
             const soundEnabled = StateManager.getState('settings.sound');
-            volumeIcon.textContent = soundEnabled ? '📊' : '🔇';
+            volumeIcon.textContent = soundEnabled ? '\uD83D\uDCCA' : '\uD83D\uDD07';
         }
     }
 
@@ -163,7 +175,7 @@ class TaskbarRendererClass {
      */
     handleClockClick() {
         this.clockClickCount++;
-        
+
         if (this.clockClickCount >= 10) {
             this.clockClickCount = 0;
             document.body.classList.add('disco-mode');
@@ -180,7 +192,7 @@ class TaskbarRendererClass {
      */
     showCalendar() {
         let calendar = document.querySelector('.calendar-popup');
-        
+
         if (!calendar) {
             calendar = document.createElement('div');
             calendar.className = 'calendar-popup';

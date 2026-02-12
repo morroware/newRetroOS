@@ -6,6 +6,9 @@
  * in the correct order to boot the operating system.
  */
 
+// === CONFIG LOADER (must be first) ===
+import { loadConfig, getConfig } from './core/ConfigLoader.js';
+
 // === CORE SYSTEMS ===
 import StorageManager from './core/StorageManager.js';
 import StateManager from './core/StateManager.js';
@@ -41,7 +44,8 @@ import PluginLoader from './core/PluginLoader.js';
 console.log('[IlluminatOS!] All modules imported successfully');
 
 // === BOOT TIPS ===
-const BOOT_TIPS = [
+// Inline defaults used if no server config is available
+const DEFAULT_BOOT_TIPS = [
     'Loading your personalized experience...',
     'Initializing desktop icons...',
     'Starting Windows Manager...',
@@ -49,6 +53,9 @@ const BOOT_TIPS = [
     'Preparing applications...',
     'Almost ready...'
 ];
+
+// Resolved after loadConfig() in initializeOS
+let BOOT_TIPS = DEFAULT_BOOT_TIPS;
 
 /**
  * Boot sequence - animates the loading screen
@@ -141,6 +148,20 @@ async function initComponent(name, initFn) {
 async function initializeOS(onProgress = () => {}) {
     console.log('[IlluminatOS!] Starting initialization...');
 
+    // === Phase -1: Load server config (or fall back to defaults) ===
+    console.log('[IlluminatOS!] Phase -1: Config Loader');
+    await loadConfig();
+    BOOT_TIPS = getConfig('bootTips', DEFAULT_BOOT_TIPS);
+
+    // Patch boot screen branding from config (JS patching approach — keeps index.html static)
+    const bootLogo = document.querySelector('.boot-logo');
+    const bootVersion = document.querySelector('.boot-version');
+    if (bootLogo) bootLogo.textContent = getConfig('branding.osName', 'IlluminatOS!');
+    if (bootVersion) bootVersion.textContent = getConfig('branding.versionString', 'Version 95.0 - Modular Edition');
+    const bsodTitle = document.querySelector('.bsod-content h1');
+    if (bsodTitle) bsodTitle.textContent = getConfig('branding.bsodTitle', 'IlluminatOS!');
+    document.title = getConfig('branding.osName', 'IlluminatOS!') + ' - Desktop';
+
     // === Phase 0: App Registry (CRITICAL - was running outside error handling!) ===
     console.log('[IlluminatOS!] Phase 0: App Registry');
     onProgress(5, 'Registering applications...');
@@ -217,6 +238,11 @@ async function initializeOS(onProgress = () => {}) {
     console.log('[IlluminatOS!] Phase 2.5: Plugin System');
     onProgress(45, 'Loading plugins...');
     await initComponent('PluginLoader', async () => {
+        // Load plugin list from config or use inline default
+        const configPlugins = getConfig('plugins', [
+            { path: '../plugins/features/dvd-bouncer/index.js', enabled: true }
+        ]);
+
         // Clear any old manifest entries to start fresh
         const manifest = PluginLoader.getPluginManifest();
 
@@ -225,11 +251,15 @@ async function initializeOS(onProgress = () => {}) {
             !p.path.includes('dvd-bouncer')
         );
 
-        // Add DVD Bouncer plugin with correct path
-        manifest.plugins.push({
-            path: '../plugins/features/dvd-bouncer/index.js',
-            enabled: true
-        });
+        // Add plugins from config
+        for (const plugin of configPlugins) {
+            if (plugin.enabled !== false) {
+                manifest.plugins.push({
+                    path: plugin.path,
+                    enabled: true
+                });
+            }
+        }
 
         PluginLoader.savePluginManifest(manifest);
 
@@ -315,37 +345,19 @@ function applySettings() {
     // Apply wallpaper pattern (default: space)
     const savedWallpaper = StorageManager.get('desktopWallpaper') ?? 'space';
     if (savedWallpaper && desktop) {
-        const WALLPAPER_PATTERNS = {
-            'clouds': `
-                radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.8) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 40%, rgba(255,255,255,0.6) 0%, transparent 40%),
-                radial-gradient(ellipse at 50% 70%, rgba(255,255,255,0.7) 0%, transparent 45%),
-                radial-gradient(ellipse at 10% 80%, rgba(255,255,255,0.5) 0%, transparent 35%),
-                linear-gradient(180deg, #87CEEB 0%, #4A90D9 100%)
-            `,
-            'tiles': `
-                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px),
-                repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)
-            `,
-            'waves': `
-                repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.15) 20px, rgba(255,255,255,0.15) 40px),
-                repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(0,0,0,0.1) 20px, rgba(0,0,0,0.1) 40px),
-                linear-gradient(135deg, #1a5276 0%, #2980b9 50%, #1a5276 100%)
-            `,
-            'forest': `linear-gradient(180deg, #228B22 0%, #006400 30%, #004d00 60%, #003300 100%)`,
-            'space': `
-                radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.8) 0%, transparent 1%),
-                radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.6) 0%, transparent 1%),
-                radial-gradient(ellipse at 40% 60%, rgba(255,255,255,0.9) 0%, transparent 1%),
-                radial-gradient(ellipse at 60% 80%, rgba(255,255,255,0.5) 0%, transparent 1%),
-                radial-gradient(ellipse at 10% 70%, rgba(255,255,255,0.7) 0%, transparent 1%),
-                radial-gradient(ellipse at 90% 60%, rgba(255,255,255,0.4) 0%, transparent 1%),
-                radial-gradient(ellipse at 30% 90%, rgba(255,255,255,0.6) 0%, transparent 1%),
-                radial-gradient(ellipse at 70% 10%, rgba(255,255,255,0.8) 0%, transparent 1%),
-                linear-gradient(180deg, #0a0a2e 0%, #1a1a4e 50%, #0a0a2e 100%)
-            `
+        // Inline fallback patterns (used if no server config)
+        const INLINE_WALLPAPERS = {
+            'clouds': 'radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.8) 0%, transparent 50%), radial-gradient(ellipse at 80% 40%, rgba(255,255,255,0.6) 0%, transparent 40%), radial-gradient(ellipse at 50% 70%, rgba(255,255,255,0.7) 0%, transparent 45%), radial-gradient(ellipse at 10% 80%, rgba(255,255,255,0.5) 0%, transparent 35%), linear-gradient(180deg, #87CEEB 0%, #4A90D9 100%)',
+            'tiles': 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px), repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)',
+            'waves': 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.15) 20px, rgba(255,255,255,0.15) 40px), repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(0,0,0,0.1) 20px, rgba(0,0,0,0.1) 40px), linear-gradient(135deg, #1a5276 0%, #2980b9 50%, #1a5276 100%)',
+            'forest': 'linear-gradient(180deg, #228B22 0%, #006400 30%, #004d00 60%, #003300 100%)',
+            'space': 'radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.8) 0%, transparent 1%), radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.6) 0%, transparent 1%), radial-gradient(ellipse at 40% 60%, rgba(255,255,255,0.9) 0%, transparent 1%), radial-gradient(ellipse at 60% 80%, rgba(255,255,255,0.5) 0%, transparent 1%), radial-gradient(ellipse at 10% 70%, rgba(255,255,255,0.7) 0%, transparent 1%), radial-gradient(ellipse at 90% 60%, rgba(255,255,255,0.4) 0%, transparent 1%), radial-gradient(ellipse at 30% 90%, rgba(255,255,255,0.6) 0%, transparent 1%), radial-gradient(ellipse at 70% 10%, rgba(255,255,255,0.8) 0%, transparent 1%), linear-gradient(180deg, #0a0a2e 0%, #1a1a4e 50%, #0a0a2e 100%)'
         };
-        const pattern = WALLPAPER_PATTERNS[savedWallpaper];
+
+        // Try server config first, fall back to inline
+        const configWallpapers = getConfig('wallpapers', null);
+        const pattern = configWallpapers?.[savedWallpaper]?.css
+            || INLINE_WALLPAPERS[savedWallpaper];
         if (pattern) {
             desktop.style.backgroundImage = pattern;
         }
@@ -354,14 +366,15 @@ function applySettings() {
     // Apply color scheme (default: slate)
     const colorScheme = StorageManager.get('colorScheme') ?? 'slate';
     if (colorScheme && colorScheme !== 'win95') {
-        const COLOR_SCHEMES = {
+        const INLINE_COLOR_SCHEMES = {
             highcontrast: { window: '#000000', titlebar: '#800080' },
             desert: { window: '#d4c4a8', titlebar: '#8b7355' },
             ocean: { window: '#b0c4de', titlebar: '#003366' },
             rose: { window: '#e8d0d0', titlebar: '#8b4560' },
             slate: { window: '#a0a0b0', titlebar: '#404050' }
         };
-        const scheme = COLOR_SCHEMES[colorScheme];
+        const configSchemes = getConfig('colorSchemes', null);
+        const scheme = configSchemes?.[colorScheme] || INLINE_COLOR_SCHEMES[colorScheme];
         if (scheme) {
             document.documentElement.style.setProperty('--win95-gray', scheme.window);
             document.documentElement.style.setProperty('--win95-blue', scheme.titlebar);

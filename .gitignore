@@ -1,0 +1,24 @@
+# IlluminatOS! gitignore
+
+# Config overrides (admin-generated, site-specific)
+config/overrides.json
+
+# Admin credentials (contains password hash)
+config/admin-credentials.php
+
+# Temporary config files from atomic writes
+config/*.tmp.*
+
+# PHP sessions
+.php_sessions/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

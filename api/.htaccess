@@ -1,0 +1,9 @@
+# Allow PHP execution for API endpoints
+# Restrict to POST and GET methods only
+
+<LimitExcept GET POST>
+    Require all denied
+</LimitExcept>
+
+# Prevent directory listing
+Options -Indexes
