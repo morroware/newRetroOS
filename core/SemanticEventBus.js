@@ -350,11 +350,15 @@ class SemanticEventBusClass {
                 reject,
                 timeout: null,
                 eventName,
-                responseEvent
+                responseEvent,
+                unsubscribe: null
             };
 
-            // Set timeout
+            // Set timeout — also unsubscribes the response listener to prevent leaks
             pendingRequest.timeout = setTimeout(() => {
+                if (pendingRequest.unsubscribe) {
+                    pendingRequest.unsubscribe();
+                }
                 this.pendingRequests.delete(requestId);
                 this.stats.requestsTimedOut++;
                 reject(new Error(`Request timeout for "${eventName}" after ${timeout}ms`));
@@ -373,6 +377,9 @@ class SemanticEventBusClass {
                     resolve(response);
                 }
             });
+
+            // Store unsubscribe so timeout handler can clean up the listener
+            pendingRequest.unsubscribe = unsubscribe;
 
             // Emit the request with requestId in payload
             this.emit(eventName, { ...payload, requestId });

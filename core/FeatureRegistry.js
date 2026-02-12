@@ -37,6 +37,19 @@ class FeatureRegistryClass {
 
         // Track initialization state
         this.initialized = false;
+
+        // Debug logging flag — set to true for verbose output
+        this.debug = false;
+    }
+
+    /**
+     * Log a message if debug mode is enabled
+     * @param  {...any} args - Arguments to pass to console.log
+     */
+    _log(...args) {
+        if (this.debug) {
+            console.log(...args);
+        }
     }
 
     /**
@@ -69,8 +82,8 @@ class FeatureRegistryClass {
         };
         this.metadata.set(feature.id, meta);
 
-        console.log(`[FeatureRegistry] Registered: ${feature.name} (${feature.id}) [${meta.category}]`);
-        console.log(`[FeatureRegistry] Total registered: ${this.features.size} features, ${this.metadata.size} metadata entries`);
+        this._log(`[FeatureRegistry] Registered: ${feature.name} (${feature.id}) [${meta.category}]`);
+        this._log(`[FeatureRegistry] Total registered: ${this.features.size} features, ${this.metadata.size} metadata entries`);
 
         // Emit registration event
         EventBus.emit('feature:registered', { featureId: feature.id, name: feature.name, category: meta.category });
@@ -111,7 +124,7 @@ class FeatureRegistryClass {
         // Remove from init order
         this.initOrder = this.initOrder.filter(id => id !== featureId);
 
-        console.log(`[FeatureRegistry] Unregistered: ${feature.name} (${featureId})`);
+        this._log(`[FeatureRegistry] Unregistered: ${feature.name} (${featureId})`);
         EventBus.emit('feature:unregistered', { featureId, name: feature.name });
     }
 
@@ -120,7 +133,7 @@ class FeatureRegistryClass {
      * @param {FeatureBase[]} features - Array of feature instances
      */
     registerAll(features) {
-        console.log(`[FeatureRegistry] registerAll called with ${features?.length || 0} features`);
+        this._log(`[FeatureRegistry] registerAll called with ${features?.length || 0} features`);
 
         if (!Array.isArray(features)) {
             console.error('[FeatureRegistry] registerAll: features is not an array:', features);
@@ -128,18 +141,18 @@ class FeatureRegistryClass {
         }
 
         features.forEach((feature, index) => {
-            console.log(`[FeatureRegistry] Registering feature ${index + 1}/${features.length}: ${feature?.id || 'INVALID'}`);
+            this._log(`[FeatureRegistry] Registering feature ${index + 1}/${features.length}: ${feature?.id || 'INVALID'}`);
             this.register(feature);
         });
 
-        console.log(`[FeatureRegistry] registerAll complete. Total: ${this.features.size} features`);
+        this._log(`[FeatureRegistry] registerAll complete. Total: ${this.features.size} features`);
     }
 
     /**
      * Initialize all registered features in dependency order
      */
     async initializeAll() {
-        console.log('[FeatureRegistry] Initializing all features...');
+        this._log('[FeatureRegistry] Initializing all features...');
 
         // Sort by dependencies
         this.initOrder = this.resolveDependencies();
@@ -176,17 +189,17 @@ class FeatureRegistryClass {
                     // Trigger after-init hook
                     this.triggerGlobalHook('feature:after-init', { featureId });
 
-                    console.log(`[FeatureRegistry] Initialized: ${feature.name}`);
+                    this._log(`[FeatureRegistry] Initialized: ${feature.name}`);
                 } catch (error) {
                     console.error(`[FeatureRegistry] Failed to initialize ${feature.name}:`, error);
                 }
             } else {
-                console.log(`[FeatureRegistry] Skipped (disabled): ${feature.name}`);
+                this._log(`[FeatureRegistry] Skipped (disabled): ${feature.name}`);
             }
         }
 
         this.initialized = true;
-        console.log(`[FeatureRegistry] Initialization complete - ${this.features.size} features registered`);
+        this._log(`[FeatureRegistry] Initialization complete - ${this.features.size} features registered`);
 
         // Emit initialization complete event
         EventBus.emit('features:initialized');
@@ -310,7 +323,7 @@ class FeatureRegistryClass {
      * @returns {Object[]}
      */
     getAll() {
-        console.log('[FeatureRegistry] getAll() - metadata size:', this.metadata.size, 'features size:', this.features.size);
+        this._log('[FeatureRegistry] getAll() - metadata size:', this.metadata.size, 'features size:', this.features.size);
         // Return metadata merged with current feature state
         return Array.from(this.metadata.values()).map(meta => {
             const feature = this.features.get(meta.id);
