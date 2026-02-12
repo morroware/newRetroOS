@@ -207,9 +207,25 @@ class SemanticEventBusClass {
             ...options
         };
 
-        // Check if event is known
+        // Check if event is known - only warn for core platform namespaces.
+        // Third-party/plugin/user-app events (plugin:*, app:<id>:*, custom:*) are
+        // intentionally dynamic and do not need schema entries.
         if (this.config.warnUnknown && !EventSchema[eventName]) {
-            console.warn(`[SemanticEventBus] Unknown event "${eventName}". Consider adding it to EventSchema.`);
+            const namespace = eventName.split(':')[0];
+            const coreNamespaces = [
+                'system', 'window', 'command', 'fs', 'feature', 'app', 'ui',
+                'dialog', 'sound', 'audio', 'setting', 'desktop', 'icon',
+                'state', 'notification', 'keyboard', 'mouse', 'drag',
+                'screensaver', 'achievement', 'bsod', 'recyclebin',
+                'clipboard', 'script', 'terminal', 'timer', 'macro',
+                'channel', 'perf', 'debug', 'feedback', 'animation',
+                'theme', 'a11y', 'history', 'selection', 'search',
+                'network', 'user', 'session', 'touch', 'gesture',
+                'videoplayer', 'filesystem', 'features', 'plugins'
+            ];
+            if (coreNamespaces.includes(namespace)) {
+                console.warn(`[SemanticEventBus] Unknown core event "${eventName}". Consider adding it to EventSchema.`);
+            }
         }
 
         // Validate payload against schema

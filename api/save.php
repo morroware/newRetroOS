@@ -42,8 +42,17 @@ if (!($_SESSION['admin_authenticated'] ?? false)) {
     exit;
 }
 
+// Enforce max request body size (512 KB) to prevent abuse
+$rawBody = file_get_contents('php://input');
+$maxBodySize = 512 * 1024; // 512 KB
+if (strlen($rawBody) > $maxBodySize) {
+    http_response_code(413);
+    echo json_encode(['error' => 'Request body too large (max 512 KB)']);
+    exit;
+}
+
 // Verify CSRF token
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode($rawBody, true);
 if (!$input) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid JSON body']);

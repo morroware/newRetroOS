@@ -272,10 +272,50 @@ class StorageManagerClass {
     }
 
     /**
-     * Initialize storage (for consistency with other modules)
+     * Check whether persistent storage (localStorage) is available.
+     * When false, the system is using an in-memory fallback and all
+     * data will be lost on page refresh.
+     * @returns {boolean}
+     */
+    isPersistent() {
+        return this.available;
+    }
+
+    /**
+     * Initialize storage (for consistency with other modules).
+     * Schedules a user-visible warning when running in memory-only mode.
      */
     initialize() {
         console.log('[StorageManager] Initialized, available:', this.available);
+
+        if (!this.available) {
+            // Defer notification until the event bus and UI are ready
+            this._fallbackWarningPending = true;
+        }
+    }
+
+    /**
+     * Emit the deferred storage fallback warning.
+     * Called after the system is fully booted so UI notification handlers
+     * are registered. Safe to call multiple times; only fires once.
+     */
+    emitFallbackWarning() {
+        if (!this._fallbackWarningPending) return;
+        this._fallbackWarningPending = false;
+
+        // Dynamic import to avoid circular dependency during construction
+        import('./EventBus.js').then(({ default: EventBus }) => {
+            EventBus.emit('notification:show', {
+                title: 'Storage Unavailable',
+                message: 'localStorage is not available. Your settings and files will not persist after this session.',
+                type: 'warning',
+                duration: 10000
+            });
+            EventBus.emit('system:warning', {
+                source: 'StorageManager',
+                message: 'Running in memory-only fallback mode — data will not persist.'
+            });
+        });
     }
 }
 
