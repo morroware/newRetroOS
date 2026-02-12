@@ -1,0 +1,9 @@
+# Deny direct access to JSON config files
+<FilesMatch "\.(json)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to PHP credential files
+<FilesMatch "admin-credentials\.php$">
+    Require all denied
+</FilesMatch>

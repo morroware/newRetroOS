@@ -1,0 +1,682 @@
+/**
+ * IlluminatOS! Admin Panel JavaScript
+ * Handles authentication, config loading, section editing, and saving.
+ */
+
+const API = {
+    config: '/api/config.php',
+    save: '/api/save.php',
+    auth: '/api/auth.php'
+};
+
+let config = {};
+let csrfToken = '';
+let currentSection = 'branding';
+let hasUnsavedChanges = false;
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check auth state
+    const authResp = await apiPost(API.auth, { action: 'check' });
+    if (authResp.authenticated) {
+        csrfToken = authResp.csrfToken;
+        showDashboard();
+        await loadConfig();
+    }
+
+    setupLoginForm();
+    setupNavigation();
+    setupHeaderButtons();
+});
+
+// ===== AUTH =====
+function setupLoginForm() {
+    const form = document.getElementById('loginForm');
+    form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('loginError');
+
+        try {
+            const resp = await apiPost(API.auth, { action: 'login', password });
+            if (resp.success) {
+                csrfToken = resp.csrfToken;
+                showDashboard();
+                await loadConfig();
+                if (resp.forcePasswordChange) {
+                    currentSection = 'password';
+                    renderSection();
+                    setStatus('Please change the default password');
+                }
+            }
+        } catch (err) {
+            errorEl.textContent = err.message || 'Login failed';
+            errorEl.classList.remove('hidden');
+        }
+    });
+}
+
+function showDashboard() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+}
+
+function showLogin() {
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+}
+
+// ===== CONFIG LOADING =====
+async function loadConfig() {
+    try {
+        const resp = await fetch(API.config);
+        if (resp.ok) {
+            config = await resp.json();
+            setStatus('Configuration loaded');
+            renderSection();
+        } else {
+            setStatus('Failed to load config', true);
+        }
+    } catch (err) {
+        setStatus('Error loading config: ' + err.message, true);
+    }
+}
+
+// ===== NAVIGATION =====
+function setupNavigation() {
+    document.getElementById('sectionNav')?.addEventListener('click', (e) => {
+        const li = e.target.closest('li[data-section]');
+        if (!li) return;
+
+        document.querySelectorAll('#sectionNav li').forEach(l => l.classList.remove('active'));
+        li.classList.add('active');
+        currentSection = li.dataset.section;
+        renderSection();
+    });
+}
+
+function setupHeaderButtons() {
+    document.getElementById('btnSaveAll')?.addEventListener('click', saveCurrentSection);
+    document.getElementById('btnLogout')?.addEventListener('click', async () => {
+        await apiPost(API.auth, { action: 'logout' });
+        showLogin();
+    });
+}
+
+// ===== SECTION RENDERING =====
+function renderSection() {
+    const content = document.getElementById('editorContent');
+    if (!content) return;
+
+    const renderers = {
+        branding: renderBrandingEditor,
+        bootTips: renderBootTipsEditor,
+        desktopIcons: renderDesktopIconsEditor,
+        defaults: renderDefaultsEditor,
+        quickLaunch: renderQuickLaunchEditor,
+        wallpapers: renderWallpapersEditor,
+        colorSchemes: renderColorSchemesEditor,
+        features: renderFeaturesEditor,
+        apps: renderAppsEditor,
+        password: renderPasswordEditor
+    };
+
+    const renderer = renderers[currentSection];
+    if (renderer) {
+        content.innerHTML = renderer();
+        attachSectionHandlers();
+    }
+}
+
+// ===== BRANDING EDITOR =====
+function renderBrandingEditor() {
+    const b = config.branding || {};
+    return `
+        <div class="section-editor">
+            <h2>Branding</h2>
+            <p class="section-desc">Customize the OS name, version strings, and branding text.</p>
+            <div class="card">
+                ${field('branding.osName', 'OS Name', b.osName || '')}
+                ${field('branding.version', 'Version', b.version || '')}
+                ${field('branding.buildNumber', 'Build Number', b.buildNumber || '')}
+                ${field('branding.sidebarText', 'Start Menu Sidebar', b.sidebarText || '')}
+                ${field('branding.terminalBanner', 'Terminal Banner', b.terminalBanner || '')}
+                ${field('branding.screensaverText', 'Screensaver Text', b.screensaverText || '')}
+                ${field('branding.bootMessage', 'Boot Message', b.bootMessage || '')}
+                ${field('branding.shutdownMessage', 'Shutdown Message', b.shutdownMessage || '')}
+                ${field('branding.aboutText', 'About / Copyright', b.aboutText || '')}
+                ${field('branding.biosVersion', 'BIOS Version', b.biosVersion || '')}
+            </div>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Branding</button>
+        </div>
+    `;
+}
+
+// ===== BOOT TIPS EDITOR =====
+function renderBootTipsEditor() {
+    const tips = config.bootTips || [];
+    return `
+        <div class="section-editor">
+            <h2>Boot Tips</h2>
+            <p class="section-desc">Messages shown during the boot loading screen.</p>
+            <div class="card" id="bootTipsList">
+                ${tips.map((tip, i) => `
+                    <div class="list-item" data-index="${i}">
+                        <span class="drag-handle">\u2630</span>
+                        <div class="item-content">
+                            <input type="text" value="${escHtml(tip)}" data-field="bootTips[${i}]" class="tip-input">
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-danger btn-sm" onclick="removeTip(${i})">Remove</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-secondary" onclick="addTip()">+ Add Tip</button>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Boot Tips</button>
+        </div>
+    `;
+}
+
+// ===== DESKTOP ICONS EDITOR =====
+function renderDesktopIconsEditor() {
+    const icons = config.desktopIcons || [];
+    return `
+        <div class="section-editor">
+            <h2>Desktop Icons</h2>
+            <p class="section-desc">Icons displayed on the desktop. App icons launch apps; link icons open URLs.</p>
+            <div class="card" id="iconsList">
+                ${icons.map((icon, i) => `
+                    <div class="list-item" data-index="${i}">
+                        <span class="drag-handle">\u2630</span>
+                        <div class="item-content" style="flex-wrap: wrap; gap: 4px;">
+                            <input type="text" value="${escHtml(icon.emoji || '')}" style="width:50px" data-field="desktopIcons[${i}].emoji" placeholder="Emoji">
+                            <input type="text" value="${escHtml(icon.label || '')}" style="flex:1" data-field="desktopIcons[${i}].label" placeholder="Label">
+                            <select data-field="desktopIcons[${i}].type" style="width:80px">
+                                <option value="app" ${icon.type === 'app' ? 'selected' : ''}>App</option>
+                                <option value="link" ${icon.type === 'link' ? 'selected' : ''}>Link</option>
+                            </select>
+                            <input type="text" value="${escHtml(icon.id || icon.url || '')}"
+                                   style="flex:1" data-field="desktopIcons[${i}].${icon.type === 'link' ? 'url' : 'id'}"
+                                   placeholder="${icon.type === 'link' ? 'URL' : 'App ID'}">
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-danger btn-sm" onclick="removeIcon(${i})">Remove</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-secondary" onclick="addIcon()">+ Add Icon</button>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Icons</button>
+        </div>
+    `;
+}
+
+// ===== DEFAULTS EDITOR =====
+function renderDefaultsEditor() {
+    const d = config.defaults || {};
+    return `
+        <div class="section-editor">
+            <h2>Default Settings</h2>
+            <p class="section-desc">Default values for new users (before they change anything).</p>
+            <div class="card">
+                ${toggle('defaults.sound', 'Sound Enabled', d.sound)}
+                ${toggle('defaults.crtEffect', 'CRT Effect', d.crtEffect)}
+                ${toggle('defaults.petEnabled', 'Desktop Pet', d.petEnabled)}
+                ${field('defaults.screensaverDelay', 'Screensaver Delay (ms)', d.screensaverDelay || 300000, 'number')}
+                ${field('defaults.desktopBg', 'Desktop Background', d.desktopBg || '#008080', 'color')}
+                <div class="inline-row">
+                    <label>Default Wallpaper</label>
+                    <select data-field="defaults.wallpaper">
+                        ${Object.keys(config.wallpapers || {}).map(k =>
+                            `<option value="${k}" ${d.wallpaper === k ? 'selected' : ''}>${k}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="inline-row">
+                    <label>Default Color Scheme</label>
+                    <select data-field="defaults.colorScheme">
+                        ${Object.keys(config.colorSchemes || {}).map(k =>
+                            `<option value="${k}" ${d.colorScheme === k ? 'selected' : ''}>${k}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Defaults</button>
+        </div>
+    `;
+}
+
+// ===== QUICK LAUNCH EDITOR =====
+function renderQuickLaunchEditor() {
+    const items = config.quickLaunch || [];
+    return `
+        <div class="section-editor">
+            <h2>Quick Launch</h2>
+            <p class="section-desc">Buttons in the taskbar quick launch area.</p>
+            <div class="card" id="quickLaunchList">
+                ${items.map((item, i) => `
+                    <div class="list-item" data-index="${i}">
+                        <span class="drag-handle">\u2630</span>
+                        <div class="item-content">
+                            <input type="text" value="${escHtml(item.icon || '')}" style="width:50px" data-field="quickLaunch[${i}].icon" placeholder="Icon">
+                            <input type="text" value="${escHtml(item.title || '')}" style="flex:1" data-field="quickLaunch[${i}].title" placeholder="Title">
+                            <select data-field="quickLaunch[${i}].type" style="width:80px">
+                                <option value="app" ${item.type === 'app' ? 'selected' : ''}>App</option>
+                                <option value="link" ${item.type === 'link' ? 'selected' : ''}>Link</option>
+                            </select>
+                            <input type="text" value="${escHtml(item.appId || item.url || '')}" style="flex:1"
+                                   data-field="quickLaunch[${i}].${item.type === 'link' ? 'url' : 'appId'}"
+                                   placeholder="${item.type === 'link' ? 'URL' : 'App ID'}">
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-danger btn-sm" onclick="removeQuickLaunch(${i})">Remove</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-secondary" onclick="addQuickLaunch()">+ Add Item</button>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Quick Launch</button>
+        </div>
+    `;
+}
+
+// ===== WALLPAPERS EDITOR =====
+function renderWallpapersEditor() {
+    const wp = config.wallpapers || {};
+    return `
+        <div class="section-editor">
+            <h2>Wallpapers</h2>
+            <p class="section-desc">CSS gradient wallpapers available in Display Properties.</p>
+            <div class="card">
+                ${Object.entries(wp).map(([key, val]) => `
+                    <div class="list-item" style="flex-direction: column; align-items: stretch;">
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                            <strong>${key}</strong>
+                            <input type="text" value="${escHtml(val.label || key)}" data-field="wallpapers.${key}.label" placeholder="Label" style="width:150px">
+                            <div class="color-preview" style="width:60px;height:30px;background:${val.css || ''}"></div>
+                        </div>
+                        <textarea data-field="wallpapers.${key}.css" rows="2">${escHtml(val.css || '')}</textarea>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Wallpapers</button>
+        </div>
+    `;
+}
+
+// ===== COLOR SCHEMES EDITOR =====
+function renderColorSchemesEditor() {
+    const cs = config.colorSchemes || {};
+    return `
+        <div class="section-editor">
+            <h2>Color Schemes</h2>
+            <p class="section-desc">Window and titlebar color themes.</p>
+            <div class="card">
+                ${Object.entries(cs).map(([key, val]) => `
+                    <div class="list-item">
+                        <div class="item-content">
+                            <strong style="min-width:100px">${key}</strong>
+                            <input type="text" value="${escHtml(val.label || key)}" data-field="colorSchemes.${key}.label" style="width:150px" placeholder="Label">
+                            <label style="font-size:12px;color:var(--text-muted)">Window:</label>
+                            <input type="color" value="${val.window || '#c0c0c0'}" data-field="colorSchemes.${key}.window" style="width:50px;padding:2px">
+                            <label style="font-size:12px;color:var(--text-muted)">Titlebar:</label>
+                            <input type="color" value="${val.titlebar || '#000080'}" data-field="colorSchemes.${key}.titlebar" style="width:50px;padding:2px">
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Color Schemes</button>
+        </div>
+    `;
+}
+
+// ===== FEATURES EDITOR =====
+function renderFeaturesEditor() {
+    const features = config.features || {};
+    return `
+        <div class="section-editor">
+            <h2>Features</h2>
+            <p class="section-desc">Enable or disable system features.</p>
+            <div class="card">
+                ${Object.entries(features).map(([key, val]) => `
+                    <div class="list-item">
+                        <div class="item-content" style="justify-content: space-between;">
+                            <strong>${key}</strong>
+                            ${toggle(`features.${key}.enabled`, '', val.enabled !== false)}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Features</button>
+        </div>
+    `;
+}
+
+// ===== APPS EDITOR =====
+function renderAppsEditor() {
+    const apps = config.apps || {};
+    const disabled = apps.disabledApps || [];
+    return `
+        <div class="section-editor">
+            <h2>Applications</h2>
+            <p class="section-desc">Manage which applications are available.</p>
+            <div class="card">
+                <div class="form-group">
+                    <label>Disabled Apps (comma-separated IDs)</label>
+                    <textarea data-field="apps.disabledApps" rows="3">${disabled.join(', ')}</textarea>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="saveCurrentSection()">Save Apps</button>
+        </div>
+    `;
+}
+
+// ===== PASSWORD EDITOR =====
+function renderPasswordEditor() {
+    return `
+        <div class="section-editor">
+            <h2>Change Password</h2>
+            <p class="section-desc">Update the admin panel password.</p>
+            <div class="card">
+                ${field('pw.current', 'Current Password', '', 'password')}
+                ${field('pw.new', 'New Password', '', 'password')}
+                ${field('pw.confirm', 'Confirm Password', '', 'password')}
+            </div>
+            <button class="btn btn-success" onclick="changePassword()">Change Password</button>
+            <div id="pwResult"></div>
+        </div>
+    `;
+}
+
+// ===== HELPERS =====
+function field(key, label, value, type = 'text') {
+    return `
+        <div class="inline-row">
+            <label>${label}</label>
+            <input type="${type}" value="${escHtml(String(value))}" data-field="${key}">
+        </div>
+    `;
+}
+
+function toggle(key, label, checked) {
+    return `
+        <div class="inline-row">
+            ${label ? `<label>${label}</label>` : ''}
+            <label class="toggle">
+                <input type="checkbox" data-field="${key}" ${checked ? 'checked' : ''}>
+                <span class="slider"></span>
+            </label>
+        </div>
+    `;
+}
+
+function escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function getFieldValue(key) {
+    const el = document.querySelector(`[data-field="${key}"]`);
+    if (!el) return undefined;
+    if (el.type === 'checkbox') return el.checked;
+    if (el.type === 'number') return Number(el.value);
+    return el.value;
+}
+
+function attachSectionHandlers() {
+    // Mark unsaved on any input change
+    document.querySelectorAll('[data-field]').forEach(el => {
+        el.addEventListener('input', () => {
+            hasUnsavedChanges = true;
+            setStatus('Unsaved changes');
+        });
+    });
+}
+
+// ===== SECTION DATA COLLECTION =====
+function collectSectionData() {
+    switch (currentSection) {
+        case 'branding': return collectObject('branding', [
+            'osName', 'version', 'buildNumber', 'sidebarText', 'terminalBanner',
+            'screensaverText', 'bootMessage', 'shutdownMessage', 'aboutText', 'biosVersion'
+        ]);
+        case 'bootTips': return collectArray('bootTips');
+        case 'desktopIcons': return collectDesktopIcons();
+        case 'defaults': return collectDefaults();
+        case 'quickLaunch': return collectQuickLaunch();
+        case 'wallpapers': return collectWallpapers();
+        case 'colorSchemes': return collectColorSchemes();
+        case 'features': return collectFeatures();
+        case 'apps': return collectApps();
+        default: return null;
+    }
+}
+
+function collectObject(prefix, keys) {
+    const result = {};
+    for (const key of keys) {
+        const val = getFieldValue(`${prefix}.${key}`);
+        if (val !== undefined && val !== '') result[key] = val;
+    }
+    return result;
+}
+
+function collectArray(prefix) {
+    const inputs = document.querySelectorAll(`[data-field^="${prefix}["]`);
+    return Array.from(inputs).map(el => el.value).filter(v => v.trim());
+}
+
+function collectDesktopIcons() {
+    const icons = config.desktopIcons || [];
+    return icons.map((icon, i) => {
+        const emoji = getFieldValue(`desktopIcons[${i}].emoji`) || icon.emoji;
+        const label = getFieldValue(`desktopIcons[${i}].label`) || icon.label;
+        const type = getFieldValue(`desktopIcons[${i}].type`) || icon.type;
+        const idOrUrl = type === 'link'
+            ? getFieldValue(`desktopIcons[${i}].url`) || icon.url
+            : getFieldValue(`desktopIcons[${i}].id`) || icon.id;
+
+        const result = { emoji, label, type };
+        if (type === 'link') {
+            result.url = idOrUrl;
+            result.id = icon.id || label.toLowerCase().replace(/\s+/g, '-');
+        } else {
+            result.id = idOrUrl;
+        }
+        return result;
+    });
+}
+
+function collectDefaults() {
+    return {
+        sound: getFieldValue('defaults.sound'),
+        crtEffect: getFieldValue('defaults.crtEffect'),
+        petEnabled: getFieldValue('defaults.petEnabled'),
+        screensaverDelay: getFieldValue('defaults.screensaverDelay'),
+        desktopBg: getFieldValue('defaults.desktopBg'),
+        wallpaper: getFieldValue('defaults.wallpaper'),
+        colorScheme: getFieldValue('defaults.colorScheme')
+    };
+}
+
+function collectQuickLaunch() {
+    return (config.quickLaunch || []).map((item, i) => {
+        const icon = getFieldValue(`quickLaunch[${i}].icon`) || item.icon;
+        const title = getFieldValue(`quickLaunch[${i}].title`) || item.title;
+        const type = getFieldValue(`quickLaunch[${i}].type`) || item.type;
+        const result = { type, icon, title };
+        if (type === 'link') {
+            result.url = getFieldValue(`quickLaunch[${i}].url`) || item.url;
+        } else {
+            result.appId = getFieldValue(`quickLaunch[${i}].appId`) || item.appId;
+        }
+        return result;
+    });
+}
+
+function collectWallpapers() {
+    const result = {};
+    for (const key of Object.keys(config.wallpapers || {})) {
+        result[key] = {
+            label: getFieldValue(`wallpapers.${key}.label`) || key,
+            css: getFieldValue(`wallpapers.${key}.css`) || ''
+        };
+    }
+    return result;
+}
+
+function collectColorSchemes() {
+    const result = {};
+    for (const key of Object.keys(config.colorSchemes || {})) {
+        result[key] = {
+            label: getFieldValue(`colorSchemes.${key}.label`) || key,
+            window: getFieldValue(`colorSchemes.${key}.window`) || '#c0c0c0',
+            titlebar: getFieldValue(`colorSchemes.${key}.titlebar`) || '#000080'
+        };
+    }
+    return result;
+}
+
+function collectFeatures() {
+    const result = {};
+    for (const key of Object.keys(config.features || {})) {
+        result[key] = {
+            ...config.features[key],
+            enabled: getFieldValue(`features.${key}.enabled`)
+        };
+    }
+    return result;
+}
+
+function collectApps() {
+    const raw = getFieldValue('apps.disabledApps') || '';
+    return {
+        disabledApps: raw.split(',').map(s => s.trim()).filter(Boolean)
+    };
+}
+
+// ===== SAVE =====
+window.saveCurrentSection = async function() {
+    if (currentSection === 'password') return;
+
+    const data = collectSectionData();
+    if (!data) {
+        setStatus('Nothing to save', true);
+        return;
+    }
+
+    try {
+        const resp = await apiPost(API.save, {
+            action: 'save-section',
+            section: currentSection,
+            data,
+            csrfToken
+        });
+
+        if (resp.success) {
+            // Update local config
+            config[currentSection] = data;
+            hasUnsavedChanges = false;
+            setStatus(`${currentSection} saved successfully`);
+        }
+    } catch (err) {
+        setStatus('Save failed: ' + err.message, true);
+    }
+};
+
+// ===== PASSWORD CHANGE =====
+window.changePassword = async function() {
+    const current = getFieldValue('pw.current');
+    const newPw = getFieldValue('pw.new');
+    const confirm = getFieldValue('pw.confirm');
+    const resultEl = document.getElementById('pwResult');
+
+    if (newPw !== confirm) {
+        resultEl.innerHTML = '<div class="error-msg">Passwords do not match</div>';
+        return;
+    }
+
+    try {
+        const resp = await apiPost(API.auth, {
+            action: 'change-password',
+            currentPassword: current,
+            newPassword: newPw
+        });
+
+        if (resp.success) {
+            resultEl.innerHTML = '<div class="success-msg">Password changed successfully</div>';
+        }
+    } catch (err) {
+        resultEl.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+};
+
+// ===== LIST MANIPULATION =====
+window.addTip = function() {
+    config.bootTips = config.bootTips || [];
+    config.bootTips.push('New tip...');
+    renderSection();
+};
+
+window.removeTip = function(i) {
+    config.bootTips.splice(i, 1);
+    renderSection();
+};
+
+window.addIcon = function() {
+    config.desktopIcons = config.desktopIcons || [];
+    config.desktopIcons.push({ id: 'newapp', label: 'New Icon', emoji: '\u2B50', type: 'app' });
+    renderSection();
+};
+
+window.removeIcon = function(i) {
+    config.desktopIcons.splice(i, 1);
+    renderSection();
+};
+
+window.addQuickLaunch = function() {
+    config.quickLaunch = config.quickLaunch || [];
+    config.quickLaunch.push({ type: 'app', appId: 'terminal', icon: '\uD83D\uDCBB', title: 'New' });
+    renderSection();
+};
+
+window.removeQuickLaunch = function(i) {
+    config.quickLaunch.splice(i, 1);
+    renderSection();
+};
+
+// ===== STATUS =====
+function setStatus(msg, isError = false) {
+    const el = document.getElementById('statusText');
+    if (el) {
+        el.textContent = msg;
+        el.style.color = isError ? 'var(--danger)' : 'var(--text-muted)';
+    }
+}
+
+// ===== API HELPER =====
+async function apiPost(url, body) {
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+        throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+
+    return data;
+}
+
+// Warn before leaving with unsaved changes
+window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});

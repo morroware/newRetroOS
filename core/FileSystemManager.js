@@ -13,6 +13,7 @@
 import StorageManager from './StorageManager.js';
 import EventBus, { Events } from './EventBus.js';
 import { PATHS } from './Constants.js';
+import { getConfig } from './ConfigLoader.js';
 
 /**
  * Protected system paths that require godMode to modify
@@ -305,7 +306,75 @@ class FileSystemManager {
     if (saved) {
       return saved;
     }
-    return this.getDefaultFileSystem();
+    const defaults = this.getDefaultFileSystem();
+    this.applyConfigFilesystem(defaults);
+    return defaults;
+  }
+
+  /**
+   * Apply config-driven filesystem overrides (welcome file, document files, etc.)
+   * Only runs on first load when no saved filesystem exists.
+   * @param {Object} fs - The default filesystem object (mutated in place)
+   */
+  applyConfigFilesystem(fs) {
+    const fsConfig = getConfig('filesystem', null);
+    if (!fsConfig) return;
+
+    // Helper: navigate to a path and set file content
+    const setFile = (pathArray, content) => {
+      if (!pathArray || pathArray.length < 2) return;
+      let node = fs;
+      // Navigate to parent directory, creating intermediate directories
+      for (let i = 0; i < pathArray.length - 1; i++) {
+        const part = pathArray[i];
+        if (!node[part]) {
+          node[part] = { type: i === 0 ? 'drive' : 'directory', children: {} };
+        }
+        node = node[part].children || node[part];
+      }
+      const fileName = pathArray[pathArray.length - 1];
+      const ext = fileName.includes('.') ? fileName.split('.').pop() : 'txt';
+      node[fileName] = {
+        type: 'file',
+        content: content,
+        extension: ext,
+        size: content.length,
+        created: new Date().toISOString(),
+        modified: new Date().toISOString()
+      };
+    };
+
+    // Apply welcome file override
+    if (fsConfig.welcomeFile) {
+      setFile(fsConfig.welcomeFile.path, fsConfig.welcomeFile.content);
+    }
+
+    // Apply document file overrides
+    if (Array.isArray(fsConfig.documentFiles)) {
+      for (const file of fsConfig.documentFiles) {
+        if (file.path && file.content) {
+          setFile(file.path, file.content);
+        }
+      }
+    }
+
+    // Apply secret file overrides
+    if (Array.isArray(fsConfig.secretFiles)) {
+      for (const file of fsConfig.secretFiles) {
+        if (file.path && file.content) {
+          setFile(file.path, file.content);
+        }
+      }
+    }
+
+    // Apply project file overrides
+    if (Array.isArray(fsConfig.projectFiles)) {
+      for (const file of fsConfig.projectFiles) {
+        if (file.path && file.content) {
+          setFile(file.path, file.content);
+        }
+      }
+    }
   }
 
   /**

@@ -6,6 +6,7 @@
 import EventBus, { Events } from '../core/EventBus.js';
 import StateManager from '../core/StateManager.js';
 import AppRegistry from '../apps/AppRegistry.js';
+import { getConfig } from '../core/ConfigLoader.js';
 
 class StartMenuRendererClass {
     constructor() {
@@ -150,9 +151,10 @@ class StartMenuRendererClass {
 
         console.log('[StartMenuRenderer] render() called - building menu HTML');
 
+        const sidebarText = getConfig('branding.sidebarText', 'IlluminatOS!');
         this.element.innerHTML = `
             <div class="start-menu-sidebar">
-                <span class="sidebar-text">IlluminatOS!</span>
+                <span class="sidebar-text">${sidebarText}</span>
             </div>
             <div class="start-menu-content">
                 <div class="start-menu-items">

@@ -10,6 +10,7 @@ import StateManager from '../core/StateManager.js';
 import FileSystemManager from '../core/FileSystemManager.js';
 import { PATHS } from '../core/Constants.js';
 import ScriptEngine from '../core/script/ScriptEngine.js';
+import { getConfig } from '../core/ConfigLoader.js';
 
 class Terminal extends AppBase {
     constructor() {
@@ -42,7 +43,7 @@ class Terminal extends AppBase {
             'TMP': 'C:\\TEMP',
             'USERNAME': 'User',
             'COMPUTERNAME': 'ILLUMINATOS-PC',
-            'OS': 'IlluminatOS!',
+            'OS': getConfig('branding.osName', 'IlluminatOS!'),
             'WINDIR': 'C:\\WINDOWS'
         };
 
@@ -552,13 +553,14 @@ class Terminal extends AppBase {
     }
 
     runBootSequence() {
+        const banner = getConfig('branding.terminalBanner', 'IlluminatOS! [Version 95.0.1995]');
         const lines = [
-            'IlluminatOS! [Version 95.0.1995]',
+            banner,
             '   Starting command prompt...',
             '',
             'C:\\>ver',
             '',
-            'IlluminatOS! [Version 95.0.1995]',
+            banner,
             '',
             'C:\\>cd Users\\User',
             ''
@@ -1530,7 +1532,8 @@ FUN:       matrix, disco, party, cowsay, fortune, color`;
     // === SYSTEM COMMANDS ===
 
     cmdVer() {
-        return `\nIlluminatOS! [Version 95.0.1995]`;
+        const banner = getConfig('branding.terminalBanner', 'IlluminatOS! [Version 95.0.1995]');
+        return `\n${banner}`;
     }
 
     cmdVol(args) {
@@ -1713,12 +1716,16 @@ MS-DOS is resident in the high memory area.`;
 
     cmdSystemInfo() {
         const bootTime = new Date(Date.now() - Math.random() * 86400000);
+        const osName = getConfig('branding.osName', 'IlluminatOS!');
+        const version = getConfig('branding.version', '95.0');
+        const buildNumber = getConfig('branding.buildNumber', '1995');
+        const biosVersion = getConfig('branding.biosVersion', 'IlluminatOS BIOS v2.1');
 
         return `
 Host Name:                 ILLUMINATOS-PC
-OS Name:                   IlluminatOS! 95
-OS Version:                95.0.1995 Build 1995
-OS Manufacturer:           IlluminatOS Team
+OS Name:                   ${osName} 95
+OS Version:                ${version}.${buildNumber} Build ${buildNumber}
+OS Manufacturer:           ${osName} Team
 OS Configuration:          Standalone Workstation
 OS Build Type:             Multiprocessor Free
 Original Install Date:     12/25/1995, 12:00:00 AM
@@ -1728,7 +1735,7 @@ System Model:              IBM Compatible
 System Type:               x86-based PC
 Processor(s):              1 Processor(s) Installed.
                            [01]: Intel Pentium 133MHz
-BIOS Version:              IlluminatOS BIOS v2.1
+BIOS Version:              ${biosVersion}
 Windows Directory:         C:\\WINDOWS
 System Directory:          C:\\WINDOWS\\SYSTEM32
 Boot Device:               \\Device\\HarddiskVolume1
@@ -1983,9 +1990,11 @@ Active Connections
     }
 
     cmdAbout() {
+        const banner = getConfig('branding.terminalBanner', 'IlluminatOS! [Version 95.0.1995]');
+        const aboutText = getConfig('branding.aboutText', '(C) Copyright IlluminatOS Team 1995-2025');
         return `
-IlluminatOS! [Version 95.0.1995]
-(C) Copyright IlluminatOS Team 1995-2025
+${banner}
+${aboutText}
 
 A retro Windows 95 experience built with love and nostalgia.
 Visit: https://sethmorrow.com`;

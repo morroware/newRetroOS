@@ -10,6 +10,7 @@
 
 import EventBus, { Events } from './EventBus.js';
 import StorageManager from './StorageManager.js';
+import { getConfig } from './ConfigLoader.js';
 
 // Default desktop icons (used when localStorage is empty)
 // Positions are placeholders; they get auto-arranged on first load
@@ -117,16 +118,39 @@ class StateManagerClass {
         const savedPetType = StorageManager.get('currentPet');
         const hasVisited = StorageManager.get('hasVisited');
 
+        // Resolve default icons: config overrides inline defaults
+        const configIcons = getConfig('desktopIcons', null);
+        const defaultIcons = configIcons
+            ? configIcons.map(icon => ({ ...icon }))
+            : [...DEFAULT_ICONS];
+
         // Apply saved state OR auto-arrange defaults for the user's resolution
-        this.state.icons = savedIcons || arrangeDefaultIcons([...DEFAULT_ICONS]);
+        this.state.icons = savedIcons || arrangeDefaultIcons(defaultIcons);
         if (savedFilePositions) this.state.filePositions = savedFilePositions;
         if (savedMenu) this.state.menuItems = savedMenu;
         if (savedRecycled) this.state.recycledItems = savedRecycled;
         if (savedAchievements) this.state.achievements = savedAchievements;
-        if (savedSound !== null) this.state.settings.sound = savedSound === true || savedSound === 'true';
-        if (savedCRT !== null) this.state.settings.crtEffect = savedCRT === true || savedCRT === 'true';
-        if (savedPet !== null) this.state.settings.pet.enabled = savedPet === true || savedPet === 'true';
-        if (savedPetType) this.state.settings.pet.type = savedPetType;
+
+        // Resolve default settings from config
+        const configDefaults = getConfig('defaults', {});
+        if (savedSound !== null) {
+            this.state.settings.sound = savedSound === true || savedSound === 'true';
+        } else if (configDefaults.sound !== undefined) {
+            this.state.settings.sound = configDefaults.sound;
+        }
+        if (savedCRT !== null) {
+            this.state.settings.crtEffect = savedCRT === true || savedCRT === 'true';
+        } else if (configDefaults.crtEffect !== undefined) {
+            this.state.settings.crtEffect = configDefaults.crtEffect;
+        }
+        if (savedPet !== null) {
+            this.state.settings.pet.enabled = savedPet === true || savedPet === 'true';
+        } else if (configDefaults.petEnabled !== undefined) {
+            this.state.settings.pet.enabled = configDefaults.petEnabled;
+        }
+        if (savedPetType) {
+            this.state.settings.pet.type = savedPetType;
+        }
         if (hasVisited) this.state.user.hasVisited = true;
 
         console.log('[StateManager] Initialized with', this.state.icons.length, 'icons');
