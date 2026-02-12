@@ -140,6 +140,6 @@
   },
 
   "plugins": [
-    { "path": "../plugins/features/dvd-bouncer/index.js", "enabled": true }
+    { "path": "./plugins/features/dvd-bouncer/index.js", "enabled": true }
   ]
 }

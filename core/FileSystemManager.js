@@ -24,6 +24,33 @@ const PROTECTED_PATHS = [
     'C:/Program Files'
 ];
 
+/**
+ * Normalize path to canonical segments for robust path comparison.
+ * Handles separator variance and dot-segments.
+ * @param {string|string[]} path
+ * @returns {string[]}
+ */
+function normalizePathSegments(path) {
+  const raw = Array.isArray(path) ? path.join('/') : String(path || '');
+  const segments = raw
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(Boolean);
+
+  const normalized = [];
+  for (const segment of segments) {
+    if (segment === '.') continue;
+    if (segment === '..') {
+      normalized.pop();
+      continue;
+    }
+    normalized.push(segment);
+  }
+
+  // Windows-style paths are case-insensitive.
+  return normalized.map((segment, index) => index === 0 ? segment.toUpperCase() : segment.toLowerCase());
+}
+
 class FileSystemManager {
   constructor() {
     if (FileSystemManager.instance) {
@@ -63,8 +90,14 @@ class FileSystemManager {
    */
   _checkWritePermission(pathStr) {
     if (this.godMode) return;
+
+    const inputSegments = normalizePathSegments(pathStr);
+
     for (const protectedPath of PROTECTED_PATHS) {
-      if (pathStr.startsWith(protectedPath)) {
+      const protectedSegments = normalizePathSegments(protectedPath);
+      const isProtected = protectedSegments.every((segment, idx) => inputSegments[idx] === segment);
+
+      if (isProtected) {
         EventBus.emit(Events.FS_PERMISSION_DENIED, {
           path: pathStr,
           reason: 'Protected system path'
