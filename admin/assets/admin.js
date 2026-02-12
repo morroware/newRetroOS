@@ -4,9 +4,9 @@
  */
 
 const API = {
-    config: '/api/config.php',
-    save: '/api/save.php',
-    auth: '/api/auth.php'
+    config: '../api/config.php',
+    save: '../api/save.php',
+    auth: '../api/auth.php'
 };
 
 let config = {};
@@ -16,17 +16,23 @@ let hasUnsavedChanges = false;
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check auth state
-    const authResp = await apiPost(API.auth, { action: 'check' });
-    if (authResp.authenticated) {
-        csrfToken = authResp.csrfToken;
-        showDashboard();
-        await loadConfig();
-    }
-
+    // Always set up UI handlers first so login form works even if auth check fails
     setupLoginForm();
     setupNavigation();
     setupHeaderButtons();
+
+    // Check auth state (non-blocking — failure must not break the login form)
+    try {
+        const authResp = await apiPost(API.auth, { action: 'check' });
+        if (authResp.authenticated) {
+            csrfToken = authResp.csrfToken;
+            showDashboard();
+            await loadConfig();
+        }
+    } catch (err) {
+        // Auth check failed (server unreachable, etc.) — stay on login screen
+        console.warn('Auth check failed:', err.message);
+    }
 });
 
 // ===== AUTH =====
