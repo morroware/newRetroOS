@@ -101,7 +101,8 @@ class FeatureRegistryClass {
             return;
         }
 
-        // Disable first if enabled (handles dependents, saves state, emits events)
+        // Disable first if enabled (handles dependents, saves state, emits events,
+        // and runs cleanup + resets initialized flag)
         if (feature.isEnabled()) {
             try {
                 await this.disable(featureId);
@@ -110,7 +111,9 @@ class FeatureRegistryClass {
             }
         }
 
-        // Clean up resources
+        // Final cleanup for features that were already disabled but may
+        // still hold resources (e.g., hooks). Safe to call even after disable()
+        // since cleanup() is idempotent (clears already-empty arrays).
         try {
             feature.cleanup();
         } catch (error) {

@@ -457,20 +457,33 @@ class FileSystemManager {
   }
 
   /**
-   * Parse a path string into an array of parts
-   * @param {string} path - Path like "C:/Users/Seth/Documents"
-   * @returns {string[]} Array of path parts
+   * Parse a path string into a canonicalized array of parts.
+   * Resolves separator variance and dot-segments (. and ..) to prevent
+   * path traversal inconsistencies across read/write/list operations.
+   * @param {string} path - Path like "C:/Users/User/Documents"
+   * @returns {string[]} Array of normalized path parts
    */
   parsePath(path) {
     if (Array.isArray(path)) return path;
 
-    // Handle both forward and backward slashes
-    path = path.replace(/\\/g, '/');
+    // Handle both forward and backward slashes, split, filter empty
+    const segments = String(path || '')
+      .replace(/\\/g, '/')
+      .split('/')
+      .filter(p => p.length > 0);
 
-    // Split and filter empty parts
-    let parts = path.split('/').filter(p => p.length > 0);
+    // Resolve . and .. segments for consistent path handling
+    const resolved = [];
+    for (const segment of segments) {
+      if (segment === '.') continue;
+      if (segment === '..') {
+        resolved.pop();
+        continue;
+      }
+      resolved.push(segment);
+    }
 
-    return parts;
+    return resolved;
   }
 
   /**
@@ -1237,6 +1250,19 @@ class FileSystemManager {
     try {
       const now = new Date().toISOString();
 
+      // Build the desired set of .lnk filenames from current icons
+      const desiredLnkFiles = new Set();
+      for (const icon of icons) {
+        desiredLnkFiles.add(`${icon.label}.lnk`);
+      }
+
+      // Remove stale auto-generated .lnk files not in the desired set
+      for (const [fileName, fileNode] of Object.entries(desktopNode.children)) {
+        if (fileNode.extension === 'lnk' && fileNode.isShortcut && !desiredLnkFiles.has(fileName)) {
+          delete desktopNode.children[fileName];
+        }
+      }
+
       // Add shortcut files for each icon that doesn't already exist as a real file
       for (const icon of icons) {
         const fileName = `${icon.label}.lnk`;
@@ -1297,6 +1323,38 @@ class FileSystemManager {
     try {
       const now = new Date().toISOString();
 
+      // Build the desired set of app folder names and their app IDs
+      const desiredAppFolders = new Set();
+      const desiredAppIds = new Set();
+      for (const app of apps) {
+        if (app.category === 'system' || !app.showInMenu) continue;
+        desiredAppFolders.add(app.name);
+        desiredAppIds.add(app.id);
+      }
+
+      // Remove stale auto-generated app folders whose .exe files reference absent apps
+      for (const [folderName, folderNode] of Object.entries(programFilesNode.children)) {
+        if (folderNode.type !== 'directory') continue;
+        if (desiredAppFolders.has(folderName)) continue;
+
+        // Only remove folders that contain system-generated .exe files (have appId marker)
+        const children = folderNode.children || {};
+        const hasGeneratedExe = Object.values(children).some(f => f.isExecutable && f.appId);
+        const hasOnlyGeneratedFiles = Object.values(children).every(f => f.isExecutable && f.appId);
+
+        if (hasGeneratedExe && hasOnlyGeneratedFiles) {
+          // Safe to remove entirely - only contains auto-generated files
+          delete programFilesNode.children[folderName];
+        } else if (hasGeneratedExe) {
+          // Preserve user files, remove only generated .exe artifacts
+          for (const [fileName, fileNode] of Object.entries(children)) {
+            if (fileNode.isExecutable && fileNode.appId && !desiredAppIds.has(fileNode.appId)) {
+              delete children[fileName];
+            }
+          }
+        }
+      }
+
       for (const app of apps) {
         // Skip system apps that shouldn't appear in Program Files
         if (app.category === 'system' || !app.showInMenu) continue;
@@ -1311,7 +1369,7 @@ class FileSystemManager {
           };
         }
 
-        // Create the executable file
+        // Create the executable file with icon metadata (Fix #5)
         const exeName = `${app.id}.exe`;
         programFilesNode.children[folderName].children[exeName] = {
           type: 'file',
@@ -1321,7 +1379,8 @@ class FileSystemManager {
           created: now,
           modified: now,
           isExecutable: true,
-          appId: app.id
+          appId: app.id,
+          icon: app.icon
         };
       }
 

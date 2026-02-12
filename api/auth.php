@@ -80,7 +80,17 @@ function getCredentials(): array {
 function getRateLimitDir(): string {
     $dir = __DIR__ . '/../data/rate_limits';
     if (!is_dir($dir)) {
-        mkdir($dir, 0700, true);
+        if (!@mkdir($dir, 0700, true) && !is_dir($dir)) {
+            error_log('[auth.php] Failed to create rate limit directory: ' . $dir);
+            // Fall back to system temp directory
+            $dir = sys_get_temp_dir() . '/illuminatos_rate_limits';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0700, true);
+            }
+        }
+    }
+    if (!is_writable($dir)) {
+        error_log('[auth.php] Rate limit directory is not writable: ' . $dir);
     }
     return $dir;
 }
@@ -244,5 +254,8 @@ function handleChangePassword(array $input): void {
         return;
     }
 
-    echo json_encode(['success' => true]);
+    // Rotate CSRF token after privileged operation
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
+    echo json_encode(['success' => true, 'csrfToken' => $_SESSION['csrf_token']]);
 }

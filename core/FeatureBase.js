@@ -134,6 +134,7 @@ class FeatureBase {
         try {
             this.cleanup();
             this.enabled = false;
+            this.initialized = false;
             this.saveEnabledState(false);
 
             // Emit disable event

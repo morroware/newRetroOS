@@ -114,7 +114,7 @@ class CommandBusClass {
      */
     async executeAsync(command, payload = {}, timeout = 5000) {
         const requestId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        payload.requestId = requestId;
+        const requestPayload = { ...payload, requestId };
 
         return new Promise((resolve, reject) => {
             const timeoutId = setTimeout(() => {
@@ -134,7 +134,7 @@ class CommandBusClass {
                 }
             });
 
-            this.execute(command, payload);
+            this.execute(command, requestPayload);
         });
     }
 

@@ -324,6 +324,9 @@ async function initializeOS(onProgress = () => {}) {
         StateManager.setState('user.hasVisited', true, true);
     }
 
+    // Emit deferred storage fallback warning now that UI is ready
+    StorageManager.emitFallbackWarning();
+
     onProgress(100, 'Ready!');
     console.log('[IlluminatOS!] Initialization complete');
 }
