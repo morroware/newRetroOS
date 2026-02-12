@@ -42,6 +42,8 @@ import Winamp from './Winamp.js';
 import Defrag from './Defrag.js';
 import SkiFree from './SkiFree.js';
 import ChatRoom from './ChatRoom.js';
+import Phone from './Phone.js';
+import InstantMessenger from './InstantMessenger.js';
 import TaskManager from './TaskManager.js';
 import DisplayProperties from './DisplayProperties.js';
 import SoundSettings from './SoundSettings.js';
@@ -204,6 +206,8 @@ class AppRegistryClass {
         this.registerAll([
             new Browser(),
             new ChatRoom(),
+            new Phone(),
+            new InstantMessenger(),
         ]);
 
         // --- System Apps (category and showInMenu set in app config) ---
