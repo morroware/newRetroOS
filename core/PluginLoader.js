@@ -41,6 +41,43 @@ class PluginLoaderClass {
     }
 
     /**
+     * Track plugin-owned apps only when registration succeeded.
+     * Prevents accidental ownership claims on duplicate app IDs.
+     * @private
+     */
+    _trackRegisteredPluginApp(app, pluginId, registrationResult) {
+        const appId = app?.id;
+        if (!appId || registrationResult !== true) return;
+        if (app.pluginId !== pluginId) return;
+        this.pluginApps.set(appId, pluginId);
+    }
+
+    /**
+     * Unregister a plugin app only if ownership still matches.
+     * @private
+     */
+    async _unregisterPluginApp(appId, pluginId) {
+        const { default: AppRegistry } = await import('../apps/AppRegistry.js');
+        const app = AppRegistry.get(appId);
+
+        // Nothing to unregister, just clean stale tracking
+        if (!app) {
+            this.pluginApps.delete(appId);
+            return;
+        }
+
+        // Never unregister apps we don't own
+        if (app.pluginId !== pluginId) {
+            console.warn(`[PluginLoader] Skipping unregister for app "${appId}" - ownership mismatch (expected ${pluginId}, found ${app.pluginId || 'none'})`);
+            this.pluginApps.delete(appId);
+            return;
+        }
+
+        AppRegistry.unregister(appId);
+        this.pluginApps.delete(appId);
+    }
+
+    /**
      * Load a plugin from a module
      * @param {Object} pluginModule - Imported plugin module
      * @returns {boolean} Success status
@@ -86,8 +123,8 @@ class PluginLoaderClass {
                 const { default: AppRegistry } = await import('../apps/AppRegistry.js');
                 for (const app of plugin.apps) {
                     app.pluginId = plugin.id;
-                    AppRegistry.register(app);
-                    this.pluginApps.set(app.id, plugin.id);
+                    const registrationResult = AppRegistry.register(app);
+                    this._trackRegisteredPluginApp(app, plugin.id, registrationResult);
                 }
             }
 
@@ -108,10 +145,8 @@ class PluginLoaderClass {
 
                     // Roll back: unregister apps
                     if (plugin.apps && Array.isArray(plugin.apps)) {
-                        const { default: AppRegistry } = await import('../apps/AppRegistry.js');
                         for (const app of plugin.apps) {
-                            try { AppRegistry.unregister(app.id); } catch (e) { /* ignore */ }
-                            this.pluginApps.delete(app.id);
+                            try { await this._unregisterPluginApp(app.id, plugin.id); } catch (e) { /* ignore */ }
                         }
                     }
 
@@ -149,11 +184,7 @@ class PluginLoaderClass {
                     // Rollback apps
                     for (const [appId, pid] of this.pluginApps) {
                         if (pid === plugin.id) {
-                            try {
-                                const { default: AppRegistry } = await import('../apps/AppRegistry.js');
-                                AppRegistry.unregister(appId);
-                            } catch (e) { /* ignore */ }
-                            this.pluginApps.delete(appId);
+                            try { await this._unregisterPluginApp(appId, plugin.id); } catch (e) { /* ignore */ }
                         }
                     }
                     this.plugins.delete(plugin.id);
@@ -231,11 +262,9 @@ class PluginLoaderClass {
 
             // Unregister all apps from this plugin
             if (this.pluginApps.size > 0) {
-                const { default: AppRegistry } = await import('../apps/AppRegistry.js');
                 for (const [appId, pid] of this.pluginApps) {
                     if (pid === pluginId) {
-                        AppRegistry.unregister(appId);
-                        this.pluginApps.delete(appId);
+                        await this._unregisterPluginApp(appId, pluginId);
                     }
                 }
             }

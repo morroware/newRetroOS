@@ -98,7 +98,7 @@ class AppRegistryClass {
     register(app, meta = {}) {
         if (this.apps.has(app.id)) {
             console.warn(`[AppRegistry] App "${app.id}" already registered`);
-            return;
+            return false;
         }
 
         this.apps.set(app.id, app);
@@ -120,6 +120,7 @@ class AppRegistryClass {
         });
 
         this._log(`[AppRegistry] Registered: ${app.name} (${app.id}) [${this.metadata.get(app.id).category}]`);
+        return true;
     }
 
     /**

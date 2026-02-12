@@ -51,7 +51,8 @@ if (!$input) {
 }
 
 $csrfToken = $input['csrfToken'] ?? '';
-if ($csrfToken !== ($_SESSION['csrf_token'] ?? '')) {
+$sessionToken = $_SESSION['csrf_token'] ?? '';
+if (!$sessionToken || !hash_equals($sessionToken, $csrfToken)) {
     http_response_code(403);
     echo json_encode(['error' => 'Invalid CSRF token']);
     exit;

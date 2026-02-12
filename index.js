@@ -245,7 +245,7 @@ async function initializeOS(onProgress = () => {}) {
     await initComponent('PluginLoader', async () => {
         // Load plugin list from config or use inline default
         const configPlugins = getConfig('plugins', [
-            { path: '../plugins/features/dvd-bouncer/index.js', enabled: true }
+            { path: './plugins/features/dvd-bouncer/index.js', enabled: true }
         ]);
 
         // Derive manifest deterministically from config to prevent
