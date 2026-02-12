@@ -10,6 +10,6 @@
  */
 
 return [
-    'password_hash' => password_hash('admin', PASSWORD_BCRYPT),
+    'password_hash' => '$2y$12$5SwhxLazB5TD89J6GS9Gvu9aLVRIJxnD0BYeQKVGJfnPE9.4WXDIO',
     'force_change' => true
 ];
