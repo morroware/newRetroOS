@@ -145,6 +145,15 @@ function handleChangePassword(array $input): void {
         return;
     }
 
+    // Verify CSRF token (constant-time comparison)
+    $csrfToken = $input['csrfToken'] ?? '';
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    if (!$sessionToken || !hash_equals($sessionToken, $csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Invalid CSRF token']);
+        return;
+    }
+
     $currentPassword = $input['currentPassword'] ?? '';
     $newPassword = $input['newPassword'] ?? '';
 

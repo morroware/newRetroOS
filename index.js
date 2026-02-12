@@ -551,13 +551,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Start boot animation IMMEDIATELY (don't wait for init)
     // This ensures users see progress even if init has issues
     const bootPromise = new Promise((resolve) => {
+        let cleaned = false;
+        const cleanup = () => {
+            if (cleaned) return;
+            cleaned = true;
+            clearInterval(progressInterval);
+            clearInterval(tipInterval);
+        };
+
         const progressInterval = setInterval(() => {
             // Use actual init progress if available, otherwise animate slowly
             if (initComplete) {
                 boot.progress = 100;
             } else if (initError) {
-                clearInterval(progressInterval);
-                clearInterval(tipInterval);
+                cleanup();
                 resolve();
                 return;
             } else {
@@ -571,8 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (boot.progress >= 100) {
-                clearInterval(progressInterval);
-                clearInterval(tipInterval);
+                cleanup();
                 setTimeout(() => {
                     boot.complete();
                     resolve();

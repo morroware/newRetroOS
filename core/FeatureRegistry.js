@@ -157,6 +157,9 @@ class FeatureRegistryClass {
         // Sort by dependencies
         this.initOrder = this.resolveDependencies();
 
+        // Track features that failed to initialize so dependents can be skipped
+        const failedFeatures = new Set();
+
         // Initialize in order
         for (const featureId of this.initOrder) {
             const feature = this.features.get(featureId);
@@ -174,6 +177,15 @@ class FeatureRegistryClass {
 
             // Check if feature should be enabled
             if (feature.isEnabled()) {
+                // Check if any dependency failed — skip this feature if so
+                const failedDeps = feature.dependencies.filter(d => failedFeatures.has(d));
+                if (failedDeps.length > 0) {
+                    console.warn(`[FeatureRegistry] Skipped ${feature.name}: dependency failed (${failedDeps.join(', ')})`);
+                    failedFeatures.add(featureId);
+                    EventBus.emit('feature:dependency-failed', { featureId, failedDependencies: failedDeps });
+                    continue;
+                }
+
                 try {
                     // Trigger before-init hook
                     this.triggerGlobalHook('feature:before-init', { featureId });
@@ -192,6 +204,7 @@ class FeatureRegistryClass {
                     this._log(`[FeatureRegistry] Initialized: ${feature.name}`);
                 } catch (error) {
                     console.error(`[FeatureRegistry] Failed to initialize ${feature.name}:`, error);
+                    failedFeatures.add(featureId);
                 }
             } else {
                 this._log(`[FeatureRegistry] Skipped (disabled): ${feature.name}`);
@@ -200,6 +213,9 @@ class FeatureRegistryClass {
 
         this.initialized = true;
         this._log(`[FeatureRegistry] Initialization complete - ${this.features.size} features registered`);
+        if (failedFeatures.size > 0) {
+            console.warn(`[FeatureRegistry] ${failedFeatures.size} feature(s) failed to initialize:`, [...failedFeatures]);
+        }
 
         // Emit initialization complete event
         EventBus.emit('features:initialized');
