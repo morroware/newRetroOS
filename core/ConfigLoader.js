@@ -12,6 +12,30 @@
  */
 
 let _config = null;
+let _backendAvailable = false;
+
+/**
+ * Resolve the API base path relative to the document's location.
+ * Handles subdirectory deployments (e.g. /retro/) by deriving the
+ * base from the current page URL rather than assuming root.
+ * @returns {string} Base path ending with '/' (e.g. '/' or '/retro/')
+ */
+function getApiBasePath() {
+    // For the main app, the document is at the root of the deployment.
+    // For admin/index.php, the document is at <base>/admin/index.php.
+    // We detect the base by finding the path up to (but not including) known subdirs.
+    const path = window.location.pathname;
+
+    // If we're inside the admin panel, strip '/admin/...' to get the base
+    const adminIdx = path.indexOf('/admin');
+    if (adminIdx !== -1) {
+        return path.substring(0, adminIdx + 1);
+    }
+
+    // For the main app, use the directory of the current page
+    const lastSlash = path.lastIndexOf('/');
+    return path.substring(0, lastSlash + 1);
+}
 
 /**
  * Load config from the server.
@@ -22,10 +46,14 @@ let _config = null;
  * @returns {Promise<Object>} The loaded config (or empty object on failure)
  */
 export async function loadConfig() {
+    const basePath = getApiBasePath();
+    const configUrl = `${basePath}api/config.php`;
+
     try {
-        const resp = await fetch('/api/config.php');
+        const resp = await fetch(configUrl);
         if (resp.ok) {
             _config = await resp.json();
+            _backendAvailable = true;
             console.log('[ConfigLoader] Server config loaded successfully');
         } else {
             console.warn(`[ConfigLoader] Server returned ${resp.status}, using inline defaults`);
@@ -69,4 +97,15 @@ export function hasServerConfig() {
     return _config !== null && Object.keys(_config).length > 0;
 }
 
-export default { loadConfig, getConfig, hasServerConfig };
+/**
+ * Check if the PHP backend responded successfully.
+ * Returns false when running on a static server or when the API is unreachable.
+ * @returns {boolean}
+ */
+export function isBackendAvailable() {
+    return _backendAvailable;
+}
+
+export { getApiBasePath };
+
+export default { loadConfig, getConfig, hasServerConfig, isBackendAvailable, getApiBasePath };

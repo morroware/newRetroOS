@@ -19,6 +19,7 @@
 import EventBus, { Events } from '../core/EventBus.js';
 import { CATEGORIES } from '../core/Constants.js';
 import WindowManager from '../core/WindowManager.js';
+import { getConfig } from '../core/ConfigLoader.js';
 
 // --- App Imports ---
 import Calculator from './Calculator.js';
@@ -217,6 +218,16 @@ class AppRegistryClass {
     }
 
     /**
+     * Check if an app is disabled via admin config (apps.disabledApps)
+     * @param {string} appId - App ID
+     * @returns {boolean} True if the app is disabled
+     */
+    isDisabled(appId) {
+        const disabledApps = getConfig('apps.disabledApps', []);
+        return Array.isArray(disabledApps) && disabledApps.includes(appId);
+    }
+
+    /**
      * Launch an application with comprehensive error handling
      * Implements Windows 95-style behavior:
      * - If app is already open and minimized, restore it instead of creating a new window
@@ -251,6 +262,17 @@ class AppRegistryClass {
                 message: `Cannot find application: ${appId}`,
                 title: 'Application Not Found',
                 icon: 'error'
+            });
+            return false;
+        }
+
+        // Check if app is disabled by admin config
+        if (this.isDisabled(appId)) {
+            console.warn(`[AppRegistry] App "${appId}" is disabled by admin configuration`);
+            EventBus.emit('dialog:alert', {
+                message: `${app.name} has been disabled by the system administrator.`,
+                title: 'Application Disabled',
+                icon: 'warning'
             });
             return false;
         }
@@ -363,14 +385,16 @@ class AppRegistryClass {
     }
 
     /**
-     * Get all registered app metadata
+     * Get all registered app metadata (excludes admin-disabled apps)
      */
     getAll() {
-        return Array.from(this.metadata.values());
+        const disabledApps = getConfig('apps.disabledApps', []);
+        return Array.from(this.metadata.values())
+            .filter(m => !Array.isArray(disabledApps) || !disabledApps.includes(m.id));
     }
 
     /**
-     * Get apps by category
+     * Get apps by category (excludes admin-disabled apps)
      */
     getByCategory(category) {
         const all = this.getAll();

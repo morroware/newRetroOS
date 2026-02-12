@@ -7,7 +7,7 @@
  */
 
 // === CONFIG LOADER (must be first) ===
-import { loadConfig, getConfig } from './core/ConfigLoader.js';
+import { loadConfig, getConfig, isBackendAvailable } from './core/ConfigLoader.js';
 
 // === CORE SYSTEMS ===
 import StorageManager from './core/StorageManager.js';
@@ -151,6 +151,11 @@ async function initializeOS(onProgress = () => {}) {
     // === Phase -1: Load server config (or fall back to defaults) ===
     console.log('[IlluminatOS!] Phase -1: Config Loader');
     await loadConfig();
+
+    if (!isBackendAvailable()) {
+        console.warn('[IlluminatOS!] ⚠ PHP backend not available — running with inline defaults. Admin config changes will not take effect. To enable the backend, serve the app with PHP (e.g. php -S localhost:8000).');
+    }
+
     BOOT_TIPS = getConfig('bootTips', DEFAULT_BOOT_TIPS);
 
     // Patch boot screen branding from config (JS patching approach — keeps index.html static)
@@ -342,8 +347,8 @@ function applySettings() {
         desktop.style.backgroundColor = savedBg;
     }
 
-    // Apply wallpaper pattern (default: space)
-    const savedWallpaper = StorageManager.get('desktopWallpaper') ?? 'space';
+    // Apply wallpaper pattern (default from admin config, fallback: space)
+    const savedWallpaper = StorageManager.get('desktopWallpaper') ?? getConfig('defaults.wallpaper', 'space');
     if (savedWallpaper && desktop) {
         // Inline fallback patterns (used if no server config)
         const INLINE_WALLPAPERS = {
@@ -363,8 +368,8 @@ function applySettings() {
         }
     }
 
-    // Apply color scheme (default: slate)
-    const colorScheme = StorageManager.get('colorScheme') ?? 'slate';
+    // Apply color scheme (default from admin config, fallback: slate)
+    const colorScheme = StorageManager.get('colorScheme') ?? getConfig('defaults.colorScheme', 'slate');
     if (colorScheme && colorScheme !== 'win95') {
         const INLINE_COLOR_SCHEMES = {
             highcontrast: { window: '#000000', titlebar: '#800080' },
