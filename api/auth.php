@@ -74,19 +74,64 @@ function getCredentials(): array {
     return require $credFile;
 }
 
+/**
+ * IP-based rate limiting helpers (file-backed, survives session resets)
+ */
+function getRateLimitDir(): string {
+    $dir = __DIR__ . '/../data/rate_limits';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir;
+}
+
+function getIpRateLimitData(string $ip): ?array {
+    $file = getRateLimitDir() . '/' . md5($ip) . '.json';
+    if (!file_exists($file)) return null;
+    $data = json_decode(file_get_contents($file), true);
+    if (!is_array($data)) return null;
+    return $data;
+}
+
+function setIpRateLimitData(string $ip, array $data): void {
+    $file = getRateLimitDir() . '/' . md5($ip) . '.json';
+    file_put_contents($file, json_encode($data), LOCK_EX);
+}
+
+function clearIpRateLimitData(string $ip): void {
+    $file = getRateLimitDir() . '/' . md5($ip) . '.json';
+    if (file_exists($file)) {
+        unlink($file);
+    }
+}
+
 function handleLogin(array $input): void {
     $password = $input['password'] ?? '';
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
-    // Basic rate limiting: track failed attempts in the session
+    // IP-based rate limiting (survives session resets)
+    $ipData = getIpRateLimitData($ip);
+    if ($ipData) {
+        // Reset after 15 minutes of inactivity
+        if (time() - ($ipData['last_attempt'] ?? 0) > 900) {
+            clearIpRateLimitData($ip);
+            $ipData = null;
+        } elseif (($ipData['attempts'] ?? 0) >= 10) {
+            $retryAfter = 900 - (time() - $ipData['last_attempt']);
+            http_response_code(429);
+            echo json_encode(['error' => 'Too many login attempts. Try again later.', 'retryAfter' => max(0, $retryAfter)]);
+            return;
+        }
+    }
+
+    // Session-based rate limiting (secondary layer)
     $attempts = $_SESSION['login_attempts'] ?? 0;
     $lastAttempt = $_SESSION['last_attempt_time'] ?? 0;
 
-    // Reset attempt counter after 15 minutes of inactivity
     if (time() - $lastAttempt > 900) {
         $attempts = 0;
     }
 
-    // Block after 10 failed attempts within the window
     if ($attempts >= 10) {
         $retryAfter = 900 - (time() - $lastAttempt);
         http_response_code(429);
@@ -100,9 +145,10 @@ function handleLogin(array $input): void {
         // Regenerate session ID to prevent session fixation
         session_regenerate_id(true);
 
-        // Reset attempt counter on success
+        // Reset attempt counters on success
         unset($_SESSION['login_attempts']);
         unset($_SESSION['last_attempt_time']);
+        clearIpRateLimitData($ip);
 
         $_SESSION['admin_authenticated'] = true;
         $_SESSION['admin_login_time'] = time();
@@ -116,9 +162,16 @@ function handleLogin(array $input): void {
             'csrfToken' => $_SESSION['csrf_token']
         ]);
     } else {
-        // Track failed attempt
+        // Track failed attempt in session
         $_SESSION['login_attempts'] = $attempts + 1;
         $_SESSION['last_attempt_time'] = time();
+
+        // Track failed attempt by IP
+        $currentIpAttempts = $ipData['attempts'] ?? 0;
+        setIpRateLimitData($ip, [
+            'attempts' => $currentIpAttempts + 1,
+            'last_attempt' => time()
+        ]);
 
         http_response_code(401);
         echo json_encode(['error' => 'Invalid password']);
@@ -126,6 +179,15 @@ function handleLogin(array $input): void {
 }
 
 function handleLogout(): void {
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params['path'], $params['domain'],
+            $params['secure'], $params['httponly']);
+    }
+
     session_destroy();
     echo json_encode(['success' => true]);
 }

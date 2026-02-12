@@ -243,11 +243,79 @@ function validateSection(string $section, $data): ?string {
             break;
 
         case 'features':
+            if (!is_array($data)) return 'Features must be an object';
+            foreach ($data as $featureId => $featureCfg) {
+                if (!preg_match('/^[a-zA-Z0-9_-]+$/', $featureId)) {
+                    return "Feature ID '$featureId' contains invalid characters";
+                }
+                if (!is_array($featureCfg)) return "Feature '$featureId' must be an object";
+                if (isset($featureCfg['enabled']) && !is_bool($featureCfg['enabled'])) {
+                    return "Feature '$featureId' enabled must be a boolean";
+                }
+                if (isset($featureCfg['config']) && !is_array($featureCfg['config'])) {
+                    return "Feature '$featureId' config must be an object";
+                }
+            }
+            break;
+
         case 'filesystem':
+            if (!is_array($data)) return 'Filesystem must be an object';
+            $validFsKeys = ['welcomeFile', 'documentFiles', 'secretFiles', 'projectFiles'];
+            foreach (array_keys($data) as $key) {
+                if (!in_array($key, $validFsKeys, true)) {
+                    return "Filesystem contains unknown key '$key'";
+                }
+            }
+            if (isset($data['welcomeFile'])) {
+                if (!is_array($data['welcomeFile'])) return 'welcomeFile must be an object';
+                if (isset($data['welcomeFile']['content']) && !is_string($data['welcomeFile']['content'])) {
+                    return 'welcomeFile content must be a string';
+                }
+            }
+            foreach (['documentFiles', 'secretFiles', 'projectFiles'] as $fileKey) {
+                if (isset($data[$fileKey])) {
+                    if (!is_array($data[$fileKey])) return "$fileKey must be an array";
+                    foreach ($data[$fileKey] as $i => $file) {
+                        if (!is_array($file)) return "$fileKey #$i must be an object";
+                        if (!isset($file['path'])) return "$fileKey #$i missing path";
+                        if (!isset($file['content']) || !is_string($file['content'])) {
+                            return "$fileKey #$i missing or invalid content";
+                        }
+                    }
+                }
+            }
+            break;
+
         case 'apps':
+            if (!is_array($data)) return 'Apps must be an object';
+            if (isset($data['disabledApps'])) {
+                if (!is_array($data['disabledApps'])) return 'disabledApps must be an array';
+                foreach ($data['disabledApps'] as $i => $appId) {
+                    if (!is_string($appId)) return "disabledApps #$i must be a string";
+                    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $appId)) {
+                        return "disabledApps #$i contains invalid characters";
+                    }
+                }
+            }
+            if (isset($data['startMenuOverrides']) && !is_array($data['startMenuOverrides'])) {
+                return 'startMenuOverrides must be an object';
+            }
+            break;
+
         case 'plugins':
-            // Basic type check
-            if (!is_array($data)) return "$section must be an object or array";
+            if (!is_array($data)) return 'Plugins must be an array';
+            foreach ($data as $i => $plugin) {
+                if (!is_array($plugin)) return "Plugin #$i must be an object";
+                if (empty($plugin['path']) || !is_string($plugin['path'])) {
+                    return "Plugin #$i missing or invalid path";
+                }
+                if (!preg_match('#^\./plugins/features/[a-zA-Z0-9_-]+/index\.js$#', $plugin['path'])) {
+                    return "Plugin #$i has untrusted path: {$plugin['path']}";
+                }
+                if (isset($plugin['enabled']) && !is_bool($plugin['enabled'])) {
+                    return "Plugin #$i enabled must be a boolean";
+                }
+            }
             break;
     }
 

@@ -628,6 +628,14 @@ window.saveCurrentSection = async function() {
 };
 
 // ===== PASSWORD CHANGE =====
+function setResultMessage(el, message, isError) {
+    el.textContent = '';
+    const div = document.createElement('div');
+    div.className = isError ? 'error-msg' : 'success-msg';
+    div.textContent = message;
+    el.appendChild(div);
+}
+
 window.changePassword = async function() {
     const current = getFieldValue('pw.current');
     const newPw = getFieldValue('pw.new');
@@ -635,7 +643,7 @@ window.changePassword = async function() {
     const resultEl = document.getElementById('pwResult');
 
     if (newPw !== confirm) {
-        resultEl.innerHTML = '<div class="error-msg">Passwords do not match</div>';
+        setResultMessage(resultEl, 'Passwords do not match', true);
         return;
     }
 
@@ -647,10 +655,10 @@ window.changePassword = async function() {
         });
 
         if (resp.success) {
-            resultEl.innerHTML = '<div class="success-msg">Password changed successfully</div>';
+            setResultMessage(resultEl, 'Password changed successfully', false);
         }
     } catch (err) {
-        resultEl.innerHTML = `<div class="error-msg">${err.message}</div>`;
+        setResultMessage(resultEl, err.message, true);
     }
 };
 

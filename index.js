@@ -248,16 +248,21 @@ async function initializeOS(onProgress = () => {}) {
             { path: './plugins/features/dvd-bouncer/index.js', enabled: true }
         ]);
 
-        // Derive manifest deterministically from config to prevent
-        // duplicate entries accumulating across reboots
+        // Merge config with existing manifest to preserve runtime toggles
+        // (e.g., user disabled a plugin at runtime — that state survives reboot)
+        const existingManifest = PluginLoader.getPluginManifest();
+        const existingByPath = {};
+        for (const p of (existingManifest.plugins || [])) {
+            existingByPath[p.path] = p;
+        }
+
         const manifest = { plugins: [] };
         for (const plugin of configPlugins) {
-            if (plugin.enabled !== false) {
-                manifest.plugins.push({
-                    path: plugin.path,
-                    enabled: true
-                });
-            }
+            const existing = existingByPath[plugin.path];
+            manifest.plugins.push({
+                path: plugin.path,
+                enabled: existing !== undefined ? existing.enabled : (plugin.enabled !== false)
+            });
         }
 
         PluginLoader.savePluginManifest(manifest);
