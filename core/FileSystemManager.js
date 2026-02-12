@@ -981,10 +981,12 @@ class FileSystemManager {
 
     this.saveFileSystem();
 
-    EventBus.emit(Events.FS_FILE_MOVE, {
+    const moveEvent = (srcNode.type === 'directory') ? 'fs:directory:move' : Events.FS_FILE_MOVE;
+    EventBus.emit(moveEvent, {
       sourcePath: srcPathStr,
       destPath: [...destParts, srcName].join('/'),
-      fileName: srcName
+      fileName: srcName,
+      itemType: srcNode.type || 'file'
     });
 
     return true;
@@ -1053,10 +1055,12 @@ class FileSystemManager {
 
     this.saveFileSystem();
 
-    EventBus.emit(Events.FS_FILE_COPY, {
+    const copyEvent = (srcNode.type === 'directory') ? 'fs:directory:copy' : Events.FS_FILE_COPY;
+    EventBus.emit(copyEvent, {
       sourcePath: srcPathStr,
       destPath: [...destParts, newName].join('/'),
-      fileName: newName
+      fileName: newName,
+      itemType: srcNode.type || 'file'
     });
 
     return true;

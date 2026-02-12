@@ -133,6 +133,35 @@ class PluginLoaderClass {
             return true;
         } catch (error) {
             console.error('[PluginLoader] Failed to load plugin:', error);
+
+            // Rollback any partially-registered features and apps
+            try {
+                const plugin = typeof pluginModule === 'object'
+                    ? (pluginModule.default || pluginModule) : null;
+                if (plugin && plugin.id) {
+                    // Rollback features
+                    for (const [featureId, pid] of this.pluginFeatures) {
+                        if (pid === plugin.id) {
+                            try { await FeatureRegistry.unregister(featureId); } catch (e) { /* ignore */ }
+                            this.pluginFeatures.delete(featureId);
+                        }
+                    }
+                    // Rollback apps
+                    for (const [appId, pid] of this.pluginApps) {
+                        if (pid === plugin.id) {
+                            try {
+                                const { default: AppRegistry } = await import('../apps/AppRegistry.js');
+                                AppRegistry.unregister(appId);
+                            } catch (e) { /* ignore */ }
+                            this.pluginApps.delete(appId);
+                        }
+                    }
+                    this.plugins.delete(plugin.id);
+                }
+            } catch (rollbackError) {
+                console.error('[PluginLoader] Rollback also failed:', rollbackError);
+            }
+
             return false;
         }
     }

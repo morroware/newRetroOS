@@ -223,7 +223,7 @@ class CommandBusClass {
         this.register('fs:write', async (payload) => {
             const { path, content } = payload;
             FileSystemManager.writeFile(path, content);
-            EventBus.emit('fs:file:update', { path, content });
+            // Note: FileSystemManager already emits FS_FILE_WRITE — no duplicate emit here
             return { path, written: true };
         });
 
@@ -238,14 +238,14 @@ class CommandBusClass {
             } else {
                 FileSystemManager.deleteFile(path);
             }
-            EventBus.emit('fs:file:delete', { path });
+            // Note: FileSystemManager already emits FS_FILE_DELETE — no duplicate emit here
             return { path, deleted: true };
         });
 
         this.register('fs:mkdir', async (payload) => {
             const { path } = payload;
             FileSystemManager.createDirectory(path);
-            EventBus.emit('fs:directory:create', { path });
+            // Note: FileSystemManager already emits FS_DIR_CREATE — no duplicate emit here
             return { path, created: true };
         });
 
