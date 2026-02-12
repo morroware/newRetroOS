@@ -54,16 +54,39 @@ function getCredentials(): array {
 
 function handleLogin(array $input): void {
     $password = $input['password'] ?? '';
+
+    // Basic rate limiting: track failed attempts in the session
+    $attempts = $_SESSION['login_attempts'] ?? 0;
+    $lastAttempt = $_SESSION['last_attempt_time'] ?? 0;
+
+    // Reset attempt counter after 15 minutes of inactivity
+    if (time() - $lastAttempt > 900) {
+        $attempts = 0;
+    }
+
+    // Block after 10 failed attempts within the window
+    if ($attempts >= 10) {
+        $retryAfter = 900 - (time() - $lastAttempt);
+        http_response_code(429);
+        echo json_encode(['error' => 'Too many login attempts. Try again later.', 'retryAfter' => max(0, $retryAfter)]);
+        return;
+    }
+
     $credentials = getCredentials();
 
     if (password_verify($password, $credentials['password_hash'])) {
+        // Regenerate session ID to prevent session fixation
+        session_regenerate_id(true);
+
+        // Reset attempt counter on success
+        unset($_SESSION['login_attempts']);
+        unset($_SESSION['last_attempt_time']);
+
         $_SESSION['admin_authenticated'] = true;
         $_SESSION['admin_login_time'] = time();
 
-        // Generate CSRF token
-        if (empty($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        }
+        // Generate CSRF token (always fresh after session regeneration)
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
         echo json_encode([
             'success' => true,
@@ -71,6 +94,10 @@ function handleLogin(array $input): void {
             'csrfToken' => $_SESSION['csrf_token']
         ]);
     } else {
+        // Track failed attempt
+        $_SESSION['login_attempts'] = $attempts + 1;
+        $_SESSION['last_attempt_time'] = time();
+
         http_response_code(401);
         echo json_encode(['error' => 'Invalid password']);
     }

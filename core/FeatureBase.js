@@ -39,6 +39,7 @@
 import EventBus, { Events } from './EventBus.js';
 import StateManager from './StateManager.js';
 import StorageManager from './StorageManager.js';
+import { getConfig } from './ConfigLoader.js';
 
 class FeatureBase {
     /**
@@ -189,13 +190,22 @@ class FeatureBase {
     }
 
     /**
-     * Load enabled state from storage
+     * Load enabled state from storage, with server config as fallback.
+     * Priority: localStorage user preference > server config (admin panel) > constructor default.
      * @returns {boolean}
      */
     loadEnabledState() {
         const saved = StorageManager.get(`feature_${this.id}_enabled`);
         if (saved !== null) {
+            // User has explicitly toggled this feature — respect their preference
             this.enabled = saved === true || saved === 'true';
+        } else {
+            // No user preference — check server config from admin panel
+            const serverEnabled = getConfig(`features.${this.id}.enabled`, undefined);
+            if (serverEnabled !== undefined) {
+                this.enabled = serverEnabled === true;
+            }
+            // else: keep the constructor default
         }
         return this.enabled;
     }

@@ -63,6 +63,7 @@ if (file_exists($overridesFile)) {
 }
 
 $action = $input['action'] ?? 'save-section';
+$section = null;
 
 switch ($action) {
     case 'save-section':

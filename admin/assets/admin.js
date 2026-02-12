@@ -3,10 +3,27 @@
  * Handles authentication, config loading, section editing, and saving.
  */
 
+/**
+ * Derive API base path from the current page URL.
+ * admin/index.php is always one level below the deployment root,
+ * so we strip the '/admin/...' suffix to get the base.
+ */
+function getAdminApiBasePath() {
+    const path = window.location.pathname;
+    const adminIdx = path.indexOf('/admin');
+    if (adminIdx !== -1) {
+        return path.substring(0, adminIdx + 1);
+    }
+    // Fallback: assume root
+    const lastSlash = path.lastIndexOf('/');
+    return path.substring(0, lastSlash + 1);
+}
+
+const API_BASE = getAdminApiBasePath();
 const API = {
-    config: '/api/config.php',
-    save: '/api/save.php',
-    auth: '/api/auth.php'
+    config: `${API_BASE}api/config.php`,
+    save: `${API_BASE}api/save.php`,
+    auth: `${API_BASE}api/auth.php`
 };
 
 let config = {};
@@ -184,7 +201,8 @@ function renderDesktopIconsEditor() {
     return `
         <div class="section-editor">
             <h2>Desktop Icons</h2>
-            <p class="section-desc">Icons displayed on the desktop. App icons launch apps; link icons open URLs.</p>
+            <p class="section-desc">Icons displayed on the desktop. App icons launch apps; link icons open URLs.
+            <br><strong>Note:</strong> These defaults apply to new users only. Existing users who have already rearranged or modified their desktop icons will keep their saved layout.</p>
             <div class="card" id="iconsList">
                 ${icons.map((icon, i) => `
                     <div class="list-item" data-index="${i}">
@@ -218,7 +236,10 @@ function renderDefaultsEditor() {
     return `
         <div class="section-editor">
             <h2>Default Settings</h2>
-            <p class="section-desc">Default values for new users (before they change anything).</p>
+            <p class="section-desc">Default values for new users (before they change anything).
+            <br><strong>Note:</strong> These defaults only apply when a user has no saved preferences in their browser.
+            Existing users who have already changed settings will keep their saved values.
+            To reset an existing user, they must clear their browser localStorage.</p>
             <div class="card">
                 ${toggle('defaults.sound', 'Sound Enabled', d.sound)}
                 ${toggle('defaults.crtEffect', 'CRT Effect', d.crtEffect)}
@@ -433,6 +454,24 @@ function attachSectionHandlers() {
             setStatus('Unsaved changes');
         });
     });
+
+    // When type select changes on desktop icons or quick launch,
+    // collect current values into config and re-render so data-field
+    // attributes match the new type.
+    if (currentSection === 'desktopIcons' || currentSection === 'quickLaunch') {
+        document.querySelectorAll('select[data-field*=".type"]').forEach(sel => {
+            sel.addEventListener('change', () => {
+                // Collect current values into config before re-render
+                if (currentSection === 'desktopIcons') {
+                    config.desktopIcons = collectDesktopIcons();
+                } else if (currentSection === 'quickLaunch') {
+                    config.quickLaunch = collectQuickLaunch();
+                }
+                hasUnsavedChanges = true;
+                renderSection();
+            });
+        });
+    }
 }
 
 // ===== SECTION DATA COLLECTION =====
@@ -474,9 +513,10 @@ function collectDesktopIcons() {
         const emoji = getFieldValue(`desktopIcons[${i}].emoji`) || icon.emoji;
         const label = getFieldValue(`desktopIcons[${i}].label`) || icon.label;
         const type = getFieldValue(`desktopIcons[${i}].type`) || icon.type;
+        // Try both field names since the data-field may still reference the old type
         const idOrUrl = type === 'link'
-            ? getFieldValue(`desktopIcons[${i}].url`) || icon.url
-            : getFieldValue(`desktopIcons[${i}].id`) || icon.id;
+            ? (getFieldValue(`desktopIcons[${i}].url`) || getFieldValue(`desktopIcons[${i}].id`) || icon.url)
+            : (getFieldValue(`desktopIcons[${i}].id`) || getFieldValue(`desktopIcons[${i}].url`) || icon.id);
 
         const result = { emoji, label, type };
         if (type === 'link') {
@@ -508,9 +548,10 @@ function collectQuickLaunch() {
         const type = getFieldValue(`quickLaunch[${i}].type`) || item.type;
         const result = { type, icon, title };
         if (type === 'link') {
-            result.url = getFieldValue(`quickLaunch[${i}].url`) || item.url;
+            // Try both field names in case type was just switched
+            result.url = getFieldValue(`quickLaunch[${i}].url`) || getFieldValue(`quickLaunch[${i}].appId`) || item.url;
         } else {
-            result.appId = getFieldValue(`quickLaunch[${i}].appId`) || item.appId;
+            result.appId = getFieldValue(`quickLaunch[${i}].appId`) || getFieldValue(`quickLaunch[${i}].url`) || item.appId;
         }
         return result;
     });
