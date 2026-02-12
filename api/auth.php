@@ -43,8 +43,9 @@ switch ($action) {
 function getCredentials(): array {
     $credFile = __DIR__ . '/../config/admin-credentials.php';
     if (!file_exists($credFile)) {
+        // Static bcrypt hash of 'admin' - fallback if credentials file is missing
         return [
-            'password_hash' => password_hash('admin', PASSWORD_BCRYPT),
+            'password_hash' => '$2y$12$5SwhxLazB5TD89J6GS9Gvu9aLVRIJxnD0BYeQKVGJfnPE9.4WXDIO',
             'force_change' => true
         ];
     }
