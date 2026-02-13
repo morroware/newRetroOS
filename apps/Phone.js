@@ -1900,6 +1900,24 @@ class Phone extends AppBase {
                 delay: data.delay
             }));
         });
+
+        // === ARG ENHANCEMENTS ===
+
+        // COMMAND: Set the entire botResponses map for a contact
+        this.registerCommand('setBotResponses', (payload) => {
+            const name = payload.name || payload.contact;
+            const responses = payload.responses;
+            if (!name || !responses || !Array.isArray(responses)) {
+                return { success: false, error: 'Name and responses array required' };
+            }
+            this.botResponses[name] = responses;
+            return { success: true, name };
+        });
+
+        // QUERY: Get current view name
+        this.registerQuery('getView', () => {
+            return { view: this.currentView || 'dialer' };
+        });
     }
 }
 

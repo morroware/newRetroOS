@@ -1,6 +1,16 @@
 /**
  * Browser App - Internet Explorer Style
  * A retro web browser using iframes
+ *
+ * SCRIPTING SUPPORT:
+ *   Commands: navigate, back, forward, refresh, home,
+ *             setHomepage, addBookmark, removeBookmark,
+ *             setStatusText, setAddressBar, reset
+ *   Queries:  getCurrentUrl, getHistory, getHomepage,
+ *             getBookmarks, getConfig
+ *   Events:   browser:navigated,
+ *             app:browser:bookmarkAdded, app:browser:bookmarkRemoved,
+ *             app:browser:homepageChanged
  */
 
 import AppBase from './AppBase.js';
@@ -24,6 +34,14 @@ class Browser extends AppBase {
         this.historyIndex = -1;
         this.homepage = 'https://www.wikipedia.org';
         this.initialUrl = null;
+
+        // Bookmarks for scripting
+        this.bookmarks = [
+            { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
+            { name: 'Internet Archive', url: 'https://archive.org' },
+            { name: 'Google', url: 'https://www.google.com' },
+            { name: 'Hacker News', url: 'https://news.ycombinator.com' }
+        ];
 
         // Register semantic event commands
         this.registerCommands();
@@ -69,6 +87,72 @@ class Browser extends AppBase {
             this.navigate(this.homepage);
             return { success: true, url: this.homepage };
         });
+
+        // === ARG SCRIPTING COMMANDS ===
+
+        this.registerCommand('setHomepage', (payload) => {
+            const url = payload.url || payload.value;
+            if (!url) return { success: false, error: 'URL required' };
+            this.homepage = url;
+            this.emitAppEvent('homepageChanged', { url });
+            return { success: true, homepage: url };
+        });
+
+        this.registerCommand('addBookmark', (payload) => {
+            const name = payload.name || payload.label;
+            const url = payload.url;
+            if (!name || !url) return { success: false, error: 'Name and URL required' };
+            if (this.bookmarks.find(b => b.url === url)) {
+                return { success: false, error: 'Bookmark already exists' };
+            }
+            this.bookmarks.push({ name, url });
+            this._renderBookmarks();
+            this.emitAppEvent('bookmarkAdded', { name, url });
+            return { success: true, name, url };
+        });
+
+        this.registerCommand('removeBookmark', (payload) => {
+            const url = payload.url;
+            const name = payload.name;
+            const idx = this.bookmarks.findIndex(b =>
+                (url && b.url === url) || (name && b.name === name)
+            );
+            if (idx === -1) return { success: false, error: 'Bookmark not found' };
+            const removed = this.bookmarks.splice(idx, 1)[0];
+            this._renderBookmarks();
+            this.emitAppEvent('bookmarkRemoved', { name: removed.name, url: removed.url });
+            return { success: true };
+        });
+
+        this.registerCommand('setStatusText', (payload) => {
+            const text = payload.text || payload.value || '';
+            const statusBar = this.getElement('#statusBar');
+            if (statusBar) statusBar.textContent = text;
+            return { success: true };
+        });
+
+        this.registerCommand('setAddressBar', (payload) => {
+            const text = payload.text || payload.url || '';
+            const addressInput = this.getElement('#addressInput');
+            if (addressInput) addressInput.value = text;
+            return { success: true };
+        });
+
+        this.registerCommand('reset', () => {
+            this.history = [];
+            this.historyIndex = -1;
+            this.homepage = 'https://www.wikipedia.org';
+            this.bookmarks = [
+                { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
+                { name: 'Internet Archive', url: 'https://archive.org' },
+                { name: 'Google', url: 'https://www.google.com' },
+                { name: 'Hacker News', url: 'https://news.ycombinator.com' }
+            ];
+            this._renderBookmarks();
+            const statusBar = this.getElement('#statusBar');
+            if (statusBar) statusBar.textContent = 'Ready';
+            return { success: true };
+        });
     }
 
     registerQueries() {
@@ -83,6 +167,19 @@ class Browser extends AppBase {
         this.registerQuery('getHomepage', () => {
             return { homepage: this.homepage };
         });
+
+        this.registerQuery('getBookmarks', () => {
+            return this.bookmarks.map(b => ({ ...b }));
+        });
+
+        this.registerQuery('getConfig', () => {
+            return {
+                homepage: this.homepage,
+                currentUrl: this.history[this.historyIndex] || null,
+                historyLength: this.history.length,
+                bookmarkCount: this.bookmarks.length
+            };
+        });
     }
 
     setParams(params) {
@@ -93,112 +190,6 @@ class Browser extends AppBase {
 
     onOpen() {
         return `
-            <style>
-                /* Override window-content padding for proper sizing */
-                #window-browser .window-content {
-                    padding: 0 !important;
-                    overflow: hidden !important;
-                }
-                .browser-app {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                    background: #c0c0c0;
-                }
-                .browser-toolbar {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 4px;
-                    background: #c0c0c0;
-                    border-bottom: 1px solid #808080;
-                }
-                .browser-btn {
-                    width: 28px;
-                    height: 28px;
-                    border: 2px outset #fff;
-                    background: #c0c0c0;
-                    cursor: pointer;
-                    font-size: 14px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .browser-btn:active {
-                    border-style: inset;
-                }
-                .browser-btn:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                }
-                .browser-address-bar {
-                    flex: 1;
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                }
-                .browser-address-label {
-                    font-size: 12px;
-                    font-weight: bold;
-                }
-                .browser-address-input {
-                    flex: 1;
-                    height: 22px;
-                    border: 2px inset #fff;
-                    padding: 0 4px;
-                    font-size: 12px;
-                    font-family: 'Segoe UI', Tahoma, sans-serif;
-                }
-                .browser-content {
-                    flex: 1;
-                    background: #fff;
-                    border: 2px inset #808080;
-                    margin: 4px;
-                    position: relative;
-                    overflow: hidden;
-                }
-                .browser-iframe {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    border: none;
-                }
-                .browser-status {
-                    height: 20px;
-                    padding: 2px 8px;
-                    font-size: 11px;
-                    background: #c0c0c0;
-                    border-top: 1px solid #808080;
-                    display: flex;
-                    align-items: center;
-                }
-                .browser-loading {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-size: 14px;
-                    color: #666;
-                }
-                .browser-bookmarks {
-                    display: flex;
-                    gap: 8px;
-                    padding: 4px 8px;
-                    background: #d4d0c8;
-                    border-bottom: 1px solid #808080;
-                    font-size: 11px;
-                }
-                .browser-bookmark {
-                    cursor: pointer;
-                    color: #00c;
-                    text-decoration: underline;
-                }
-                .browser-bookmark:hover {
-                    color: #c00;
-                }
-            </style>
             <div class="browser-app">
                 <div class="browser-toolbar">
                     <button class="browser-btn" id="btnBack" title="Back">◀</button>
@@ -211,11 +202,8 @@ class Browser extends AppBase {
                     </div>
                     <button class="browser-btn" id="btnGo" title="Go">→</button>
                 </div>
-                <div class="browser-bookmarks">
-                    <span class="browser-bookmark" data-url="https://www.wikipedia.org">Wikipedia</span>
-                    <span class="browser-bookmark" data-url="https://archive.org">Internet Archive</span>
-                    <span class="browser-bookmark" data-url="https://www.google.com">Google</span>
-                    <span class="browser-bookmark" data-url="https://news.ycombinator.com">Hacker News</span>
+                <div class="browser-bookmarks" id="bookmarksBar">
+                    ${this.bookmarks.map(b => `<span class="browser-bookmark" data-url="${b.url}">${b.name}</span>`).join('')}
                 </div>
                 <div class="browser-content">
                     <div class="browser-loading" id="loadingMsg">Loading...</div>
@@ -350,6 +338,20 @@ class Browser extends AppBase {
 
         if (btnBack) btnBack.disabled = this.historyIndex <= 0;
         if (btnForward) btnForward.disabled = this.historyIndex >= this.history.length - 1;
+    }
+
+    _renderBookmarks() {
+        const bar = this.getElement('#bookmarksBar');
+        if (!bar) return;
+        bar.innerHTML = this.bookmarks.map(b =>
+            `<span class="browser-bookmark" data-url="${b.url}">${b.name}</span>`
+        ).join('');
+        // Re-attach click handlers
+        this.getElements('.browser-bookmark').forEach(el => {
+            this.addHandler(el, 'click', () => {
+                this.navigate(el.dataset.url);
+            });
+        });
     }
 }
 

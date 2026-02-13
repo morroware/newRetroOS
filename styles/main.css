@@ -65,6 +65,9 @@
 @import url('apps/calendar.css');
 @import url('apps/phone.css');
 @import url('apps/inbox.css');
+@import url('apps/instant-messenger.css');
+@import url('apps/chatroom.css');
+@import url('apps/browser.css');
 
 /* ============================================
    EFFECTS - Animations (near end)

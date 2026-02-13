@@ -4,11 +4,17 @@
  *
  * SCRIPTING SUPPORT:
  *   Commands: login, sendMessage, joinRoom, setNick, clear, addBot, removeBot,
- *             injectMessage, injectSystemMessage
- *   Queries:  getStatus, getCurrentRoom, getUsers, getMessages, getRooms
+ *             injectMessage, injectSystemMessage,
+ *             simulateUserJoin, simulateUserLeave, setUserColor,
+ *             scheduledMessage, setRoomTopic, lockRoom, unlockRoom,
+ *             setBotResponses, reset
+ *   Queries:  getStatus, getCurrentRoom, getUsers, getMessages, getRooms,
+ *             getConfig, getRoomTopic
  *   Events:   app:chatroom:loggedIn, app:chatroom:messageSent,
  *             app:chatroom:messageReceived, app:chatroom:roomChanged,
- *             app:chatroom:userJoined, app:chatroom:userLeft
+ *             app:chatroom:userJoined, app:chatroom:userLeft,
+ *             app:chatroom:roomLocked, app:chatroom:roomUnlocked,
+ *             app:chatroom:topicChanged
  */
 
 import AppBase from './AppBase.js';
@@ -33,6 +39,13 @@ class ChatRoom extends AppBase {
         this.chatInterval = null;
         this.typingUsers = [];
         this.isLoggedIn = false;
+
+        // ARG scripting state
+        this._roomLocked = false;
+        this._roomTopic = '';
+        this._customBotResponses = {};
+        this._scheduledMessages = {};
+        this._scheduleCounter = 0;
 
         // Simulated users with 90s-style usernames
         this.botUsers = [
@@ -104,208 +117,6 @@ class ChatRoom extends AppBase {
 
     onOpen() {
         return `
-            <style>
-                .chatroom-container {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                    background: #c0c0c0;
-                    font-family: 'Comic Sans MS', 'Arial', sans-serif;
-                }
-                .chatroom-header {
-                    background: linear-gradient(180deg, #000080 0%, #0000cd 100%);
-                    color: #ffff00;
-                    padding: 5px 10px;
-                    font-weight: bold;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                .chatroom-header marquee {
-                    font-size: 12px;
-                }
-                .chatroom-main {
-                    flex: 1;
-                    display: flex;
-                    overflow: hidden;
-                }
-                .chatroom-sidebar {
-                    width: 140px;
-                    background: #fff;
-                    border-right: 2px groove #fff;
-                    display: flex;
-                    flex-direction: column;
-                }
-                .chatroom-rooms {
-                    border-bottom: 2px groove #fff;
-                    padding: 5px;
-                }
-                .chatroom-rooms-title {
-                    font-weight: bold;
-                    font-size: 10px;
-                    color: #000080;
-                    margin-bottom: 5px;
-                }
-                .chatroom-room {
-                    padding: 3px 5px;
-                    font-size: 10px;
-                    cursor: pointer;
-                    border: 1px solid transparent;
-                }
-                .chatroom-room:hover {
-                    background: #e0e0ff;
-                }
-                .chatroom-room.active {
-                    background: #000080;
-                    color: #fff;
-                }
-                .chatroom-users {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 5px;
-                }
-                .chatroom-users-title {
-                    font-weight: bold;
-                    font-size: 10px;
-                    color: #000080;
-                    margin-bottom: 5px;
-                }
-                .chatroom-user {
-                    font-size: 10px;
-                    padding: 2px 5px;
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                }
-                .chatroom-user-status {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                }
-                .chatroom-user-status.online { background: #0f0; }
-                .chatroom-user-status.away { background: #ff0; }
-                .chatroom-content {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    background: #fff;
-                }
-                .chatroom-messages {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 10px;
-                    font-size: 12px;
-                    background: #fff;
-                    border: 2px inset #fff;
-                    margin: 5px;
-                }
-                .chatroom-message {
-                    margin-bottom: 5px;
-                    word-wrap: break-word;
-                }
-                .chatroom-message-time {
-                    color: #808080;
-                    font-size: 10px;
-                }
-                .chatroom-message-user {
-                    font-weight: bold;
-                }
-                .chatroom-message-system {
-                    color: #808080;
-                    font-style: italic;
-                }
-                .chatroom-message-action {
-                    color: #800080;
-                    font-style: italic;
-                }
-                .chatroom-typing {
-                    padding: 2px 10px;
-                    font-size: 10px;
-                    color: #808080;
-                    font-style: italic;
-                    height: 14px;
-                }
-                .chatroom-input-area {
-                    display: flex;
-                    padding: 5px;
-                    gap: 5px;
-                    background: #c0c0c0;
-                    border-top: 2px groove #fff;
-                }
-                .chatroom-input {
-                    flex: 1;
-                    padding: 5px;
-                    border: 2px inset #fff;
-                    font-family: 'Comic Sans MS', 'Arial', sans-serif;
-                    font-size: 12px;
-                }
-                .chatroom-send {
-                    padding: 5px 15px;
-                    background: #c0c0c0;
-                    border: 2px outset #fff;
-                    cursor: pointer;
-                    font-weight: bold;
-                    font-family: 'Comic Sans MS', 'Arial', sans-serif;
-                }
-                .chatroom-send:active {
-                    border-style: inset;
-                }
-                .chatroom-login {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100%;
-                    gap: 15px;
-                    background: linear-gradient(180deg, #87ceeb 0%, #4169e1 100%);
-                }
-                .chatroom-login-box {
-                    background: #c0c0c0;
-                    border: 3px outset #fff;
-                    padding: 30px;
-                    text-align: center;
-                }
-                .chatroom-login-title {
-                    font-size: 24px;
-                    color: #000080;
-                    margin-bottom: 20px;
-                    text-shadow: 2px 2px #fff;
-                }
-                .chatroom-login-input {
-                    padding: 8px;
-                    font-size: 14px;
-                    border: 2px inset #fff;
-                    width: 200px;
-                    margin-bottom: 15px;
-                    font-family: 'Comic Sans MS', 'Arial', sans-serif;
-                }
-                .chatroom-login-btn {
-                    padding: 8px 30px;
-                    font-size: 14px;
-                    background: #c0c0c0;
-                    border: 2px outset #fff;
-                    cursor: pointer;
-                    font-family: 'Comic Sans MS', 'Arial', sans-serif;
-                }
-                .chatroom-login-btn:active {
-                    border-style: inset;
-                }
-                .chatroom-emojis {
-                    padding: 5px;
-                    display: flex;
-                    gap: 5px;
-                    flex-wrap: wrap;
-                    border-top: 1px solid #ccc;
-                }
-                .chatroom-emoji {
-                    cursor: pointer;
-                    font-size: 14px;
-                    padding: 2px;
-                }
-                .chatroom-emoji:hover {
-                    background: #e0e0e0;
-                }
-            </style>
             <div class="chatroom-container">
                 <div class="chatroom-login" id="loginScreen">
                     <div class="chatroom-login-box">
@@ -660,6 +471,12 @@ class ChatRoom extends AppBase {
         const room = this.rooms.find(r => r.name === roomName);
         if (!room) return;
 
+        // Check if room switching is locked (ARG confinement)
+        if (this._roomLocked && roomName !== this.currentRoom) {
+            this.addSystemMessage('*** You cannot leave this room right now ***');
+            return;
+        }
+
         const previousRoom = this.currentRoom;
         this.currentRoom = roomName;
 
@@ -885,6 +702,157 @@ class ChatRoom extends AppBase {
                 users: r.users,
                 active: r.name === this.currentRoom
             }));
+        });
+
+        // ===== ARG SCRIPTING COMMANDS =====
+
+        // COMMAND: Simulate a user joining the room
+        this.registerCommand('simulateUserJoin', (payload) => {
+            const name = payload.name || payload.username;
+            if (!name) return { success: false, error: 'User name required' };
+            if (this.users.find(u => u.name === name)) {
+                return { success: false, error: 'User already in room' };
+            }
+            const user = {
+                name,
+                status: payload.status || 'online',
+                color: payload.color || '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')
+            };
+            this.users.push(user);
+            this.addSystemMessage(`*** ${name} has entered the room ***`);
+            this.updateUserList();
+            this.emitAppEvent('userJoined', { username: name, room: this.currentRoom });
+            return { success: true, user };
+        });
+
+        // COMMAND: Simulate a user leaving the room
+        this.registerCommand('simulateUserLeave', (payload) => {
+            const name = payload.name || payload.username;
+            if (!name) return { success: false, error: 'User name required' };
+            const idx = this.users.findIndex(u => u.name === name && !u.isUser);
+            if (idx === -1) return { success: false, error: 'User not found or is the player' };
+            this.users.splice(idx, 1);
+            const leaveMsg = payload.message || `*** ${name} has left the room ***`;
+            this.addSystemMessage(leaveMsg);
+            this.updateUserList();
+            this.emitAppEvent('userLeft', { username: name, room: this.currentRoom });
+            return { success: true };
+        });
+
+        // COMMAND: Set a user's chat color
+        this.registerCommand('setUserColor', (payload) => {
+            const name = payload.name || payload.username;
+            const color = payload.color;
+            if (!name || !color) return { success: false, error: 'Name and color required' };
+            const user = this.users.find(u => u.name === name);
+            if (!user) return { success: false, error: 'User not found' };
+            user.color = color;
+            return { success: true, name, color };
+        });
+
+        // COMMAND: Schedule a message from a user after a delay
+        this.registerCommand('scheduledMessage', (payload) => {
+            const from = payload.from || payload.username;
+            const message = payload.message || payload.text;
+            const delay = payload.delay || 5000;
+            if (!from || !message) return { success: false, error: 'From and message required' };
+
+            const id = 'sched_' + (++this._scheduleCounter);
+            const color = payload.color || '#000';
+            const timeoutId = setTimeout(() => {
+                delete this._scheduledMessages[id];
+                if (this.isLoggedIn) {
+                    this.addMessage(from, message, color);
+                    this.emitAppEvent('messageReceived', { from, message, room: this.currentRoom });
+                }
+            }, delay);
+            this._scheduledMessages[id] = { timeoutId, from, message, delay };
+            return { success: true, id };
+        });
+
+        // COMMAND: Set room topic/header text
+        this.registerCommand('setRoomTopic', (payload) => {
+            const topic = payload.topic || payload.text || '';
+            this._roomTopic = topic;
+            // Update topic display if it exists
+            const topicEl = this.getElement('#roomTopic');
+            if (topicEl) {
+                topicEl.textContent = topic;
+                topicEl.style.display = topic ? 'block' : 'none';
+            }
+            this.addSystemMessage(`*** Topic is now: ${topic} ***`);
+            this.emitAppEvent('topicChanged', { topic, room: this.currentRoom });
+            return { success: true, topic };
+        });
+
+        // COMMAND: Lock room - prevent user from switching rooms
+        this.registerCommand('lockRoom', () => {
+            this._roomLocked = true;
+            // Add locked CSS class to room items
+            this.getElements('.chatroom-room').forEach(el => {
+                if (el.dataset.room !== this.currentRoom) {
+                    el.classList.add('locked');
+                }
+            });
+            this.emitAppEvent('roomLocked', { room: this.currentRoom });
+            return { success: true, room: this.currentRoom };
+        });
+
+        // COMMAND: Unlock room - allow user to switch rooms
+        this.registerCommand('unlockRoom', () => {
+            this._roomLocked = false;
+            this.getElements('.chatroom-room').forEach(el => {
+                el.classList.remove('locked');
+            });
+            this.emitAppEvent('roomUnlocked', { room: this.currentRoom });
+            return { success: true };
+        });
+
+        // COMMAND: Set custom bot responses for a specific user
+        this.registerCommand('setBotResponses', (payload) => {
+            const name = payload.name || payload.username;
+            const responses = payload.responses;
+            if (!name || !responses || !Array.isArray(responses)) {
+                return { success: false, error: 'Name and responses array required' };
+            }
+            this._customBotResponses[name] = responses;
+            return { success: true, name };
+        });
+
+        // COMMAND: Full state reset
+        this.registerCommand('reset', () => {
+            // Cancel scheduled messages
+            for (const id of Object.keys(this._scheduledMessages)) {
+                clearTimeout(this._scheduledMessages[id].timeoutId);
+            }
+            this._scheduledMessages = {};
+            this._customBotResponses = {};
+            this._roomLocked = false;
+            this._roomTopic = '';
+            this.messages = [];
+            const messagesEl = this.getElement('#messages');
+            if (messagesEl) messagesEl.innerHTML = '';
+            return { success: true };
+        });
+
+        // QUERY: Get config state
+        this.registerQuery('getConfig', () => {
+            return {
+                loggedIn: this.isLoggedIn,
+                username: this.username || null,
+                room: this.currentRoom,
+                roomLocked: this._roomLocked,
+                roomTopic: this._roomTopic,
+                userCount: this.users.length,
+                messageCount: this.messages.length,
+                customBotResponseCount: Object.keys(this._customBotResponses).length,
+                scheduledMessages: Object.keys(this._scheduledMessages).length
+            };
+        });
+
+        // QUERY: Get room topic
+        this.registerQuery('getRoomTopic', () => {
+            return { topic: this._roomTopic, room: this.currentRoom };
         });
     }
 }

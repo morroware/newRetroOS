@@ -8,15 +8,18 @@
  *             moveMessage, deleteMessage, restoreMessage,
  *             createFolder, renameFolder, deleteFolder,
  *             setFlag, clearFlag,
- *             setNotificationState, clearNewIndicator
+ *             setNotificationState, clearNewIndicator,
+ *             scheduledDelivery, setAutoReply, clearAutoReply,
+ *             bulkDeliver, reset
  *   Queries:  getFolders, getMessages, getMessageById,
- *             getUnreadCount, searchMessages, getStatus
+ *             getUnreadCount, searchMessages, getStatus, getConfig
  *   Events:   app:inbox:messageReceived, app:inbox:messageSent,
  *             app:inbox:messageReadChanged, app:inbox:messageMoved,
  *             app:inbox:messageDeleted, app:inbox:messageRestored,
  *             app:inbox:folderChanged,
  *             app:inbox:unreadCountChanged,
- *             app:inbox:notificationStateChanged
+ *             app:inbox:notificationStateChanged,
+ *             app:inbox:scheduledDelivered, app:inbox:autoReplySet
  */
 
 import AppBase from './AppBase.js';
@@ -57,6 +60,11 @@ class Inbox extends AppBase {
         // tray icon element reference
         this._trayIcon = null;
         this._trayUnsub = null;
+
+        // ARG scripting state
+        this._autoReply = null;
+        this._scheduledDeliveries = {};
+        this._scheduleCounter = 0;
     }
 
     // ===================================================================
@@ -65,331 +73,6 @@ class Inbox extends AppBase {
 
     onOpen() {
         return `
-            <style>
-                /* ----- Inbox App Styles (90s Outlook Express / Eudora vibe) ----- */
-                .inbox-app {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                    background: var(--window-bg, #c0c0c0);
-                    font-family: 'Tahoma', 'Arial', sans-serif;
-                    font-size: 12px;
-                    user-select: none;
-                }
-
-                /* ---- Toolbar ---- */
-                .inbox-toolbar {
-                    display: flex;
-                    align-items: center;
-                    background: #d4d0c8;
-                    border-bottom: 1px solid #808080;
-                    padding: 3px 4px;
-                    gap: 2px;
-                    flex-shrink: 0;
-                }
-                .inbox-toolbar-btn {
-                    padding: 3px 8px;
-                    background: #d4d0c8;
-                    border: 1px outset #fff;
-                    cursor: pointer;
-                    font-size: 11px;
-                    font-family: inherit;
-                    white-space: nowrap;
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                }
-                .inbox-toolbar-btn:active { border-style: inset; }
-                .inbox-toolbar-btn:hover { background: #e8e4dc; }
-                .inbox-toolbar-btn.disabled {
-                    opacity: 0.5;
-                    pointer-events: none;
-                }
-                .inbox-toolbar-sep {
-                    width: 1px;
-                    height: 20px;
-                    background: #808080;
-                    margin: 0 4px;
-                }
-                .inbox-search {
-                    margin-left: auto;
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                }
-                .inbox-search input {
-                    width: 140px;
-                    padding: 2px 4px;
-                    border: 2px inset #fff;
-                    font-size: 11px;
-                    font-family: inherit;
-                }
-
-                /* ---- Three-pane layout ---- */
-                .inbox-body {
-                    display: flex;
-                    flex: 1;
-                    overflow: hidden;
-                }
-
-                /* ---- Folder pane ---- */
-                .inbox-folder-pane {
-                    width: 140px;
-                    min-width: 110px;
-                    background: #fff;
-                    border-right: 2px groove #ccc;
-                    display: flex;
-                    flex-direction: column;
-                    overflow-y: auto;
-                }
-                .inbox-folder-header {
-                    background: linear-gradient(180deg, #336699, #003366);
-                    color: #fff;
-                    padding: 6px 8px;
-                    font-weight: bold;
-                    font-size: 11px;
-                }
-                .inbox-folder-item {
-                    padding: 5px 8px 5px 12px;
-                    cursor: pointer;
-                    font-size: 11px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    border-bottom: 1px solid #f0f0f0;
-                }
-                .inbox-folder-item:hover { background: #e8e8ff; }
-                .inbox-folder-item.active {
-                    background: #336699;
-                    color: #fff;
-                }
-                .inbox-folder-item .folder-icon { margin-right: 5px; }
-                .inbox-folder-badge {
-                    background: #cc0000;
-                    color: #fff;
-                    font-size: 9px;
-                    font-weight: bold;
-                    padding: 1px 5px;
-                    border-radius: 8px;
-                    min-width: 14px;
-                    text-align: center;
-                }
-                .inbox-folder-item.active .inbox-folder-badge {
-                    background: #fff;
-                    color: #336699;
-                }
-
-                /* ---- Message list pane ---- */
-                .inbox-list-pane {
-                    width: 280px;
-                    min-width: 180px;
-                    display: flex;
-                    flex-direction: column;
-                    border-right: 2px groove #ccc;
-                    background: #fff;
-                }
-                .inbox-list-header {
-                    display: flex;
-                    background: #d4d0c8;
-                    border-bottom: 1px solid #808080;
-                    font-size: 10px;
-                    font-weight: bold;
-                    color: #333;
-                }
-                .inbox-list-header span {
-                    padding: 3px 6px;
-                    cursor: pointer;
-                    border-right: 1px solid #b0b0b0;
-                    flex-shrink: 0;
-                }
-                .inbox-list-header span:hover { background: #e0e0e0; }
-                .inbox-list-header .col-flag { width: 22px; text-align: center; }
-                .inbox-list-header .col-from { width: 100px; }
-                .inbox-list-header .col-subject { flex: 1; min-width: 60px; }
-                .inbox-list-header .col-date { width: 70px; text-align: right; }
-                .inbox-list-scroll {
-                    flex: 1;
-                    overflow-y: auto;
-                }
-                .inbox-msg-row {
-                    display: flex;
-                    align-items: center;
-                    padding: 3px 0;
-                    cursor: pointer;
-                    border-bottom: 1px solid #f0f0f0;
-                    font-size: 11px;
-                }
-                .inbox-msg-row:hover { background: #f0f0ff; }
-                .inbox-msg-row.active { background: #336699; color: #fff; }
-                .inbox-msg-row.unread { font-weight: bold; }
-                .inbox-msg-row .col-flag { width: 22px; text-align: center; padding: 0 3px; flex-shrink: 0; }
-                .inbox-msg-row .col-from {
-                    width: 100px; padding: 0 6px;
-                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;
-                }
-                .inbox-msg-row .col-subject {
-                    flex: 1; padding: 0 6px; min-width: 0;
-                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                }
-                .inbox-msg-row .col-date {
-                    width: 70px; padding: 0 6px; text-align: right;
-                    font-size: 10px; color: #666; flex-shrink: 0;
-                }
-                .inbox-msg-row.active .col-date { color: #cce; }
-                .inbox-list-empty {
-                    padding: 20px;
-                    text-align: center;
-                    color: #999;
-                    font-style: italic;
-                }
-
-                /* ---- Viewer / Composer pane ---- */
-                .inbox-viewer-pane {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    background: #fff;
-                    min-width: 0;
-                }
-                .inbox-viewer-empty {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: #999;
-                    gap: 10px;
-                }
-                .inbox-viewer-empty-icon { font-size: 48px; opacity: 0.3; }
-                .inbox-viewer-headers {
-                    padding: 8px 10px;
-                    border-bottom: 1px solid #ddd;
-                    background: #f8f8f0;
-                    font-size: 11px;
-                    flex-shrink: 0;
-                }
-                .inbox-viewer-headers .hdr-row {
-                    display: flex;
-                    margin-bottom: 2px;
-                }
-                .inbox-viewer-headers .hdr-label {
-                    font-weight: bold;
-                    color: #336699;
-                    width: 60px;
-                    flex-shrink: 0;
-                }
-                .inbox-viewer-headers .hdr-value {
-                    color: #333;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-                .inbox-viewer-headers .hdr-extra {
-                    margin-top: 4px;
-                    padding-top: 4px;
-                    border-top: 1px dashed #ccc;
-                    font-size: 10px;
-                    color: #888;
-                    font-family: 'Courier New', monospace;
-                    max-height: 60px;
-                    overflow-y: auto;
-                }
-                .inbox-viewer-body {
-                    flex: 1;
-                    padding: 10px 12px;
-                    overflow-y: auto;
-                    font-size: 12px;
-                    line-height: 1.5;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                    color: #222;
-                }
-                .inbox-viewer-attachments {
-                    padding: 6px 10px;
-                    border-top: 1px solid #ddd;
-                    background: #f0f0f0;
-                    font-size: 10px;
-                    display: flex;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                }
-                .inbox-attachment {
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    padding: 2px 6px;
-                    background: #fff;
-                    border: 1px solid #ccc;
-                    cursor: pointer;
-                }
-                .inbox-attachment:hover { background: #e8e8ff; }
-
-                /* ---- Compose pane ---- */
-                .inbox-compose {
-                    display: flex;
-                    flex-direction: column;
-                    flex: 1;
-                }
-                .inbox-compose-fields {
-                    padding: 8px 10px;
-                    border-bottom: 1px solid #ddd;
-                    background: #f8f8f0;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                    flex-shrink: 0;
-                }
-                .inbox-compose-row {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-                .inbox-compose-label {
-                    font-weight: bold;
-                    font-size: 11px;
-                    color: #336699;
-                    width: 55px;
-                    flex-shrink: 0;
-                }
-                .inbox-compose-input {
-                    flex: 1;
-                    padding: 3px 5px;
-                    border: 2px inset #fff;
-                    font-size: 11px;
-                    font-family: inherit;
-                }
-                .inbox-compose-body {
-                    flex: 1;
-                    padding: 8px;
-                    border: none;
-                    font-size: 12px;
-                    font-family: inherit;
-                    resize: none;
-                    line-height: 1.5;
-                    outline: none;
-                }
-                .inbox-compose-toolbar {
-                    display: flex;
-                    padding: 4px 8px;
-                    gap: 4px;
-                    background: #e8e8e8;
-                    border-top: 1px solid #ccc;
-                    flex-shrink: 0;
-                }
-
-                /* ---- Status bar ---- */
-                .inbox-statusbar {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 2px 8px;
-                    background: #d4d0c8;
-                    border-top: 1px solid #808080;
-                    font-size: 10px;
-                    color: #333;
-                    flex-shrink: 0;
-                }
-            </style>
             <div class="inbox-app">
                 <!-- Toolbar -->
                 <div class="inbox-toolbar" id="inboxToolbar">
@@ -1094,6 +777,106 @@ class Inbox extends AppBase {
             hasNewMail: this.hasNewMail,
             totalMessages: this.messages.length,
             folders: [...this.folders]
+        }));
+
+        // ===== ARG SCRIPTING COMMANDS =====
+
+        // COMMAND: Schedule a message delivery after a delay
+        this.registerCommand('scheduledDelivery', (payload) => {
+            const delay = payload.delay || 5000;
+            const msg = {
+                from: payload.from || 'Unknown',
+                subject: payload.subject || '(No Subject)',
+                body: payload.body || payload.text || '',
+                folder: payload.folder || 'Inbox',
+                headers: payload.headers || null,
+                attachments: payload.attachments || null,
+                starred: payload.starred || false
+            };
+
+            const id = 'sched_' + (++this._scheduleCounter);
+            const timeoutId = setTimeout(() => {
+                delete this._scheduledDeliveries[id];
+                // Use the existing deliverMessage command pattern
+                EventBus.emit(`command:${this.id}:deliverMessage`, msg);
+                this.emitAppEvent('scheduledDelivered', { id, from: msg.from, subject: msg.subject });
+            }, delay);
+
+            this._scheduledDeliveries[id] = { timeoutId, msg, delay };
+            return { success: true, id };
+        });
+
+        // COMMAND: Set auto-reply message
+        this.registerCommand('setAutoReply', (payload) => {
+            const message = payload.message || payload.text;
+            if (!message) return { success: false, error: 'Message required' };
+            this._autoReply = {
+                subject: payload.subject || 'Auto-Reply',
+                body: message,
+                from: payload.from || 'Auto-Reply System'
+            };
+            this.emitAppEvent('autoReplySet', { message });
+            return { success: true };
+        });
+
+        // COMMAND: Clear auto-reply
+        this.registerCommand('clearAutoReply', () => {
+            this._autoReply = null;
+            return { success: true };
+        });
+
+        // COMMAND: Deliver multiple messages at once (for ARG phase transitions)
+        this.registerCommand('bulkDeliver', (payload) => {
+            const messages = payload.messages;
+            if (!messages || !Array.isArray(messages)) {
+                return { success: false, error: 'Messages array required' };
+            }
+            const delivered = [];
+            for (const msg of messages) {
+                EventBus.emit(`command:${this.id}:deliverMessage`, {
+                    from: msg.from || 'Unknown',
+                    subject: msg.subject || '(No Subject)',
+                    body: msg.body || msg.text || '',
+                    folder: msg.folder || 'Inbox',
+                    headers: msg.headers || null,
+                    attachments: msg.attachments || null,
+                    starred: msg.starred || false
+                });
+                delivered.push(msg.subject || '(No Subject)');
+            }
+            return { success: true, count: delivered.length, subjects: delivered };
+        });
+
+        // COMMAND: Full state reset
+        this.registerCommand('reset', () => {
+            // Cancel scheduled deliveries
+            for (const id of Object.keys(this._scheduledDeliveries)) {
+                clearTimeout(this._scheduledDeliveries[id].timeoutId);
+            }
+            this._scheduledDeliveries = {};
+            this._autoReply = null;
+            this.messages = [];
+            this.activeMessageId = null;
+            this.composing = false;
+            this.unreadCount = 0;
+            this.hasNewMail = false;
+            this._updateUnreadCount();
+            this._renderFolderList();
+            this._renderMessageList();
+            this._renderViewer();
+            return { success: true };
+        });
+
+        // QUERY: Get config state
+        this.registerQuery('getConfig', () => ({
+            activeFolder: this.activeFolder,
+            composing: this.composing,
+            unreadCount: this.unreadCount,
+            hasNewMail: this.hasNewMail,
+            totalMessages: this.messages.length,
+            folders: [...this.folders],
+            autoReply: this._autoReply ? { ...this._autoReply } : null,
+            scheduledDeliveries: Object.keys(this._scheduledDeliveries).length
         }));
     }
 

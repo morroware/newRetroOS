@@ -1,0 +1,155 @@
+/* ============================================
+   Browser App - 90s Internet Explorer 4/5 Style
+   Win95 themed with proper 3D beveled borders
+   ============================================ */
+
+/* Override window-content padding for proper sizing */
+[id^="window-browser"] .window-content {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* === Container === */
+.browser-app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--win95-gray);
+    font-family: var(--win95-font-family);
+    color: var(--win95-text-color);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* ============================================
+   TOOLBAR
+   ============================================ */
+.browser-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--win95-gray);
+    border-bottom: 1px solid var(--win95-button-shadow);
+}
+.browser-btn {
+    width: 28px;
+    height: 28px;
+    /* Win95 raised button */
+    border-top: 2px solid var(--win95-button-highlight);
+    border-left: 2px solid var(--win95-button-highlight);
+    border-right: 2px solid #000;
+    border-bottom: 2px solid #000;
+    background: var(--win95-button-face);
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--win95-text-color);
+}
+.browser-btn:active {
+    border-top: 2px solid #000;
+    border-left: 2px solid #000;
+    border-right: 2px solid var(--win95-button-highlight);
+    border-bottom: 2px solid var(--win95-button-highlight);
+}
+.browser-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   ADDRESS BAR
+   ============================================ */
+.browser-address-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.browser-address-label {
+    font-size: 12px;
+    font-weight: bold;
+}
+.browser-address-input {
+    flex: 1;
+    height: 22px;
+    /* Win95 sunken field */
+    border-top: 2px solid var(--win95-button-shadow);
+    border-left: 2px solid var(--win95-button-shadow);
+    border-right: 2px solid var(--win95-button-highlight);
+    border-bottom: 2px solid var(--win95-button-highlight);
+    background: var(--win95-input-bg);
+    padding: 0 4px;
+    font-size: 12px;
+    font-family: var(--win95-font-family);
+    color: var(--win95-text-color);
+}
+
+/* ============================================
+   BOOKMARKS BAR
+   ============================================ */
+.browser-bookmarks {
+    display: flex;
+    gap: 8px;
+    padding: 4px 8px;
+    background: var(--win95-gray);
+    border-bottom: 1px solid var(--win95-button-shadow);
+    font-size: 11px;
+}
+.browser-bookmark {
+    cursor: pointer;
+    color: var(--win95-blue);
+    text-decoration: underline;
+}
+.browser-bookmark:hover {
+    color: #c00;
+}
+
+/* ============================================
+   CONTENT AREA
+   ============================================ */
+.browser-content {
+    flex: 1;
+    background: var(--win95-input-bg);
+    /* Win95 sunken field */
+    border-top: 2px solid var(--win95-button-shadow);
+    border-left: 2px solid var(--win95-button-shadow);
+    border-right: 2px solid var(--win95-button-highlight);
+    border-bottom: 2px solid var(--win95-button-highlight);
+    margin: 4px;
+    position: relative;
+    overflow: hidden;
+}
+.browser-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+.browser-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    color: var(--win95-button-shadow);
+}
+
+/* ============================================
+   STATUS BAR
+   ============================================ */
+.browser-status {
+    height: 20px;
+    padding: 2px 8px;
+    font-size: 11px;
+    background: var(--win95-gray);
+    /* Win95 sunken status bar panel */
+    border-top: 1px solid var(--win95-button-shadow);
+    display: flex;
+    align-items: center;
+    color: var(--win95-text-color);
+}
