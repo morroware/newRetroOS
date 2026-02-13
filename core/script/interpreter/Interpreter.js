@@ -691,9 +691,39 @@ export class Interpreter {
     }
 
     async visitCommandStatement(stmt) {
-        // Generic command execution - could be used for extensibility
-        if (stmt.command) {
-            console.log('[Command]', stmt.command, stmt.args);
+        if (!stmt.command) return;
+
+        // Evaluate all argument expressions
+        const resolvedArgs = [];
+        for (const arg of (stmt.args || [])) {
+            resolvedArgs.push(await this.visitExpression(arg));
+        }
+
+        // Try to dispatch through EventBus as a semantic command
+        // This allows scripts to call app commands registered via registerCommand()
+        // e.g., CommandStatement("inbox:deliverMessage", [{ from: "User", ... }])
+        //   → EventBus.emit("command:inbox:deliverMessage", { from: "User", ... })
+        const EventBus = this.context.EventBus;
+        if (EventBus && stmt.command.includes(':')) {
+            const eventName = `command:${stmt.command}`;
+            const payload = (resolvedArgs.length > 0 && typeof resolvedArgs[0] === 'object' && resolvedArgs[0] !== null)
+                ? resolvedArgs[0]
+                : {};
+            EventBus.emit(eventName, payload);
+            return;
+        }
+
+        // Fallback: try CommandBus for built-in commands
+        const CommandBus = this.context.CommandBus;
+        if (CommandBus) {
+            const payload = (resolvedArgs.length > 0 && typeof resolvedArgs[0] === 'object' && resolvedArgs[0] !== null)
+                ? resolvedArgs[0]
+                : {};
+            try {
+                await CommandBus.execute(stmt.command, payload);
+            } catch (error) {
+                console.warn(`[Command] Failed to execute '${stmt.command}':`, error.message);
+            }
         }
     }
 
