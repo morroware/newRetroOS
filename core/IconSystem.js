@@ -45,6 +45,10 @@ export const Icons = {
     ADMIN_PANEL: 'fa-solid fa-user-shield',
     TASK_MANAGER: 'fa-solid fa-chart-line',
     CHAT_ROOM: 'fa-solid fa-comments',
+    INBOX: 'fa-solid fa-envelope',
+    ENVELOPE: 'fa-solid fa-envelope',
+    ENVELOPE_OPEN: 'fa-solid fa-envelope-open',
+    MAIL: 'fa-solid fa-envelope',
 
     // === Games ===
     GAME: 'fa-solid fa-gamepad',
@@ -207,6 +211,10 @@ export const Emojis = {
     ADMIN_PANEL: '⚙️',
     TASK_MANAGER: '📊',
     CHAT_ROOM: '💬',
+    INBOX: '📧',
+    ENVELOPE: '📧',
+    ENVELOPE_OPEN: '📨',
+    MAIL: '📧',
 
     // === Games ===
     GAME: '🎮',

@@ -19,12 +19,31 @@ const DEFAULT_ICONS = [
     { id: 'mycomputer', label: 'My Computer', emoji: '💻', type: 'app', x: 20, y: 20 },
     { id: 'recyclebin', label: 'Recycle Bin', emoji: '🗑️', type: 'app', x: 20, y: 110 },
     { id: 'terminal', label: 'Terminal', emoji: '📟', type: 'app', x: 20, y: 200 },
-    { id: 'ciphers', label: 'Cipher Decoder', emoji: '🔍', url: 'https://sethmorrow.com/ciphers', x: 20, y: 290, type: 'link' },
-    { id: 'music', label: 'Music', emoji: '🎵', url: 'https://sethmorrow.com/music', x: 20, y: 380, type: 'link' },
-    { id: 'videos', label: 'Videos', emoji: '📺', url: 'https://sethmorrow.com/videos', x: 20, y: 470, type: 'link' },
-    { id: 'books', label: 'Books', emoji: '📚', url: 'https://sethmorrow.com/books', x: 20, y: 560, type: 'link' },
-    { id: 'audiobooks', label: 'Audiobooks', emoji: '🎧', url: 'https://sethmorrow.com/audiobooks', x: 20, y: 650, type: 'link' },
+    { id: 'inbox', label: 'Inbox', emoji: '📧', type: 'app', x: 20, y: 290 },
+    { id: 'ciphers', label: 'Cipher Decoder', emoji: '🔍', url: 'https://sethmorrow.com/ciphers', x: 20, y: 380, type: 'link' },
+    { id: 'music', label: 'Music', emoji: '🎵', url: 'https://sethmorrow.com/music', x: 20, y: 470, type: 'link' },
+    { id: 'videos', label: 'Videos', emoji: '📺', url: 'https://sethmorrow.com/videos', x: 20, y: 560, type: 'link' },
+    { id: 'books', label: 'Books', emoji: '📚', url: 'https://sethmorrow.com/books', x: 20, y: 650, type: 'link' },
+    { id: 'audiobooks', label: 'Audiobooks', emoji: '🎧', url: 'https://sethmorrow.com/audiobooks', x: 20, y: 740, type: 'link' },
 ];
+
+/**
+ * Migrate existing saved icon sets to include new default icons.
+ * For each icon in DEFAULT_ICONS that doesn't exist in the saved set,
+ * append it to the end (it will be auto-arranged).
+ * @param {Array} icons - Existing saved icons
+ * @returns {Array} Icons with any missing defaults appended
+ */
+function migrateIcons(icons) {
+    let changed = false;
+    for (const def of DEFAULT_ICONS) {
+        if (!icons.find(i => i.id === def.id)) {
+            icons.push({ ...def });
+            changed = true;
+        }
+    }
+    return changed ? arrangeDefaultIcons(icons) : icons;
+}
 
 /**
  * Arrange icons in a grid that adapts to the current viewport.
@@ -124,8 +143,9 @@ class StateManagerClass {
             ? configIcons.map(icon => ({ ...icon }))
             : [...DEFAULT_ICONS];
 
-        // Apply saved state OR auto-arrange defaults for the user's resolution
-        this.state.icons = savedIcons || arrangeDefaultIcons(defaultIcons);
+        // Apply saved state OR auto-arrange defaults for the user's resolution.
+        // If saved icons exist, migrate to include any new default icons (e.g., Inbox).
+        this.state.icons = savedIcons ? migrateIcons(savedIcons) : arrangeDefaultIcons(defaultIcons);
         if (savedFilePositions) this.state.filePositions = savedFilePositions;
         if (savedMenu) this.state.menuItems = savedMenu;
         if (savedRecycled) this.state.recycledItems = savedRecycled;
