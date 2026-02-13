@@ -5,13 +5,19 @@
  * SCRIPTING SUPPORT:
  *   Commands: signOn, signOff, sendMessage, setAway, addBuddy, removeBuddy,
  *             openConversation, closeConversation, setStatus, warnBuddy,
- *             simulateMessage, setBuddyStatus
+ *             simulateMessage, setBuddyStatus,
+ *             setBuddyResponses, clearBuddyResponses,
+ *             simulateBuddyTyping, setConversation, clearConversation,
+ *             clearAllConversations, scheduledMessage, setBuddyProfile, reset
  *   Queries:  getStatus, getBuddyList, getConversation, getAwayMessage,
- *             getOnlineBuddies, getWarningLevel
+ *             getOnlineBuddies, getWarningLevel, getAllConversations, getConfig
  *   Events:   app:instantmessenger:signedOn, app:instantmessenger:signedOff,
  *             app:instantmessenger:messageReceived, app:instantmessenger:messageSent,
  *             app:instantmessenger:buddyOnline, app:instantmessenger:buddyOffline,
- *             app:instantmessenger:awayChanged
+ *             app:instantmessenger:awayChanged,
+ *             app:instantmessenger:conversationOpened,
+ *             app:instantmessenger:conversationClosed,
+ *             app:instantmessenger:buddyStatusChanged
  */
 
 import AppBase from './AppBase.js';
@@ -112,316 +118,17 @@ class InstantMessenger extends AppBase {
         ];
 
         this._botTimers = [];
+
+        // Custom buddy responses (for ARG scripting)
+        this._customBuddyResponses = {};
+
+        // Scheduled message timers
+        this._scheduledMessages = {};
+        this._scheduleCounter = 0;
     }
 
     onOpen() {
         return `
-            <style>
-                .im-container {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                    background: #e8e8e8;
-                    font-family: 'Tahoma', 'Arial', sans-serif;
-                    font-size: 12px;
-                }
-                /* SIGN-ON SCREEN */
-                .im-signon {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100%;
-                    background: linear-gradient(180deg, #336699 0%, #003366 100%);
-                    gap: 10px;
-                }
-                .im-signon-logo {
-                    font-size: 48px;
-                    margin-bottom: 5px;
-                    animation: im-bounce 2s ease-in-out infinite;
-                }
-                @keyframes im-bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-10px); }
-                }
-                .im-signon-title {
-                    color: #fff;
-                    font-size: 22px;
-                    font-weight: bold;
-                    text-shadow: 2px 2px #000;
-                    margin-bottom: 10px;
-                }
-                .im-signon-subtitle {
-                    color: #aaccee;
-                    font-size: 11px;
-                    margin-bottom: 15px;
-                }
-                .im-signon-box {
-                    background: #e8e8e8;
-                    border: 2px outset #fff;
-                    padding: 20px;
-                    width: 250px;
-                }
-                .im-signon-field {
-                    width: 100%;
-                    padding: 5px;
-                    margin: 5px 0;
-                    border: 2px inset #fff;
-                    font-family: 'Tahoma', 'Arial', sans-serif;
-                    font-size: 12px;
-                    box-sizing: border-box;
-                }
-                .im-signon-btn {
-                    width: 100%;
-                    padding: 6px;
-                    margin-top: 10px;
-                    background: #c0c0c0;
-                    border: 2px outset #fff;
-                    cursor: pointer;
-                    font-weight: bold;
-                    font-family: 'Tahoma', 'Arial', sans-serif;
-                }
-                .im-signon-btn:active { border-style: inset; }
-                .im-signon-label { font-size: 11px; color: #333; font-weight: bold; }
-                /* MAIN LAYOUT - buddy list + conversation side by side */
-                .im-main {
-                    display: flex;
-                    flex: 1;
-                    overflow: hidden;
-                }
-                /* BUDDY LIST PANEL */
-                .im-buddy-panel {
-                    width: 200px;
-                    min-width: 180px;
-                    background: #fff;
-                    border-right: 2px groove #ccc;
-                    display: flex;
-                    flex-direction: column;
-                }
-                .im-buddy-header {
-                    background: linear-gradient(180deg, #336699, #003366);
-                    color: #fff;
-                    padding: 6px 10px;
-                    font-weight: bold;
-                    font-size: 11px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                .im-my-status {
-                    font-size: 10px;
-                    color: #aad;
-                    cursor: pointer;
-                }
-                .im-buddy-toolbar {
-                    display: flex;
-                    background: #e0e0e0;
-                    border-bottom: 1px solid #ccc;
-                    padding: 3px;
-                    gap: 3px;
-                }
-                .im-toolbar-btn {
-                    padding: 2px 6px;
-                    font-size: 10px;
-                    background: #d0d0d0;
-                    border: 1px outset #fff;
-                    cursor: pointer;
-                }
-                .im-toolbar-btn:active { border-style: inset; }
-                .im-buddy-list {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 5px;
-                }
-                .im-group-header {
-                    font-weight: bold;
-                    font-size: 11px;
-                    color: #333;
-                    padding: 4px 5px;
-                    cursor: pointer;
-                    user-select: none;
-                }
-                .im-group-header:hover { background: #f0f0f0; }
-                .im-buddy {
-                    display: flex;
-                    align-items: center;
-                    padding: 3px 5px 3px 15px;
-                    cursor: pointer;
-                    gap: 6px;
-                    font-size: 11px;
-                    border-radius: 2px;
-                }
-                .im-buddy:hover { background: #e8e8ff; }
-                .im-buddy.active { background: #336699; color: #fff; }
-                .im-buddy-icon {
-                    width: 14px;
-                    height: 14px;
-                    font-size: 12px;
-                    flex-shrink: 0;
-                }
-                .im-buddy-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                .im-buddy-idle {
-                    font-size: 9px;
-                    color: #999;
-                }
-                .im-buddy.active .im-buddy-idle { color: #cce; }
-                .im-online-count {
-                    font-size: 10px;
-                    color: #666;
-                    padding: 5px 10px;
-                    border-top: 1px solid #ddd;
-                    background: #f5f5f5;
-                }
-                /* CONVERSATION PANEL */
-                .im-convo-panel {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    background: #fff;
-                }
-                .im-convo-header {
-                    background: #e0e0e0;
-                    padding: 6px 10px;
-                    border-bottom: 1px solid #ccc;
-                    font-weight: bold;
-                    font-size: 12px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                .im-convo-close {
-                    cursor: pointer;
-                    font-size: 14px;
-                    color: #666;
-                    padding: 0 4px;
-                }
-                .im-convo-close:hover { color: #f00; }
-                .im-convo-empty {
-                    flex: 1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #999;
-                    font-style: italic;
-                    font-size: 13px;
-                    flex-direction: column;
-                    gap: 10px;
-                }
-                .im-convo-empty-logo { font-size: 48px; opacity: 0.3; }
-                .im-convo-messages {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 8px;
-                    font-size: 12px;
-                    background: #fff;
-                }
-                .im-msg {
-                    margin-bottom: 4px;
-                    word-wrap: break-word;
-                }
-                .im-msg-name {
-                    font-weight: bold;
-                }
-                .im-msg-name.me { color: #0000cc; }
-                .im-msg-name.them { color: #cc0000; }
-                .im-msg-time { color: #999; font-size: 10px; }
-                .im-msg-system {
-                    color: #888;
-                    font-style: italic;
-                    font-size: 11px;
-                    margin: 6px 0;
-                }
-                .im-typing-indicator {
-                    padding: 2px 8px;
-                    font-size: 10px;
-                    color: #999;
-                    font-style: italic;
-                    height: 14px;
-                }
-                .im-convo-input-area {
-                    display: flex;
-                    border-top: 1px solid #ccc;
-                    background: #f0f0f0;
-                }
-                .im-convo-input {
-                    flex: 1;
-                    padding: 6px;
-                    border: 2px inset #fff;
-                    font-family: 'Tahoma', 'Arial', sans-serif;
-                    font-size: 12px;
-                    resize: none;
-                    height: 40px;
-                }
-                .im-convo-send {
-                    padding: 6px 14px;
-                    background: #c0c0c0;
-                    border: 2px outset #fff;
-                    cursor: pointer;
-                    font-weight: bold;
-                    font-size: 11px;
-                    align-self: stretch;
-                }
-                .im-convo-send:active { border-style: inset; }
-                .im-convo-toolbar {
-                    display: flex;
-                    padding: 3px 5px;
-                    gap: 8px;
-                    background: #f0f0f0;
-                    border-top: 1px solid #ddd;
-                    font-size: 14px;
-                }
-                .im-convo-tool {
-                    cursor: pointer;
-                    opacity: 0.5;
-                }
-                .im-convo-tool:hover { opacity: 1; }
-                /* AWAY MESSAGE DIALOG */
-                .im-away-bar {
-                    background: #ffffcc;
-                    padding: 4px 10px;
-                    font-size: 10px;
-                    border-bottom: 1px solid #ddd;
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                }
-                .im-away-bar button {
-                    font-size: 9px;
-                    padding: 1px 6px;
-                    cursor: pointer;
-                    border: 1px outset #fff;
-                    background: #ddd;
-                }
-                /* Buddy info popup */
-                .im-profile-popup {
-                    position: absolute;
-                    background: #ffffee;
-                    border: 2px outset #ccc;
-                    padding: 12px;
-                    width: 220px;
-                    font-size: 11px;
-                    z-index: 100;
-                    box-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-                    display: none;
-                }
-                .im-profile-name { font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #336699; }
-                .im-profile-field { margin-bottom: 4px; }
-                .im-profile-label { font-weight: bold; color: #666; }
-                .im-profile-close {
-                    position: absolute;
-                    top: 4px;
-                    right: 6px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    color: #999;
-                }
-                .im-profile-close:hover { color: #f00; }
-                .im-warn-bar {
-                    font-size: 10px;
-                    color: #c00;
-                    padding: 0 10px 4px;
-                }
-            </style>
             <div class="im-container">
                 <!-- SIGN-ON SCREEN -->
                 <div class="im-signon" id="imSignOn">
@@ -728,15 +435,21 @@ class InstantMessenger extends AppBase {
 
         // Focus input
         setTimeout(() => this.getElement('#imConvoInput')?.focus(), 50);
+
+        this.emitAppEvent('conversationOpened', { buddy: screenName });
     }
 
     closeActiveConversation() {
+        const closedBuddy = this.activeBuddy;
         this.activeBuddy = null;
         const empty = this.getElement('#imConvoEmpty');
         const active = this.getElement('#imConvoActive');
         if (empty) empty.style.display = 'flex';
         if (active) active.style.display = 'none';
         this.renderBuddyList();
+        if (closedBuddy) {
+            this.emitAppEvent('conversationClosed', { buddy: closedBuddy });
+        }
     }
 
     renderConversation(screenName) {
@@ -831,6 +544,12 @@ class InstantMessenger extends AppBase {
     }
 
     getBotResponse(buddy, userText) {
+        // Check for custom scripted responses first (ARG support)
+        if (this._customBuddyResponses[buddy] && this._customBuddyResponses[buddy].length > 0) {
+            const responses = this._customBuddyResponses[buddy];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
         const lower = userText.toLowerCase();
 
         // SmarterChild has special logic
@@ -1215,6 +934,9 @@ class InstantMessenger extends AppBase {
             } else if (oldStatus !== 'offline' && status === 'offline') {
                 this.emitAppEvent('buddyOffline', { screenName });
             }
+            if (oldStatus !== status) {
+                this.emitAppEvent('buddyStatusChanged', { screenName, oldStatus, newStatus: status });
+            }
             return { success: true, screenName, status };
         });
 
@@ -1270,6 +992,169 @@ class InstantMessenger extends AppBase {
             const buddy = this.findBuddy(screenName);
             if (!buddy) return { error: 'Buddy not found' };
             return { screenName, warningLevel: buddy.warningLevel || 0 };
+        });
+
+        // ===== ARG SCRIPTING COMMANDS =====
+
+        // COMMAND: Set custom auto-responses for a buddy
+        this.registerCommand('setBuddyResponses', (payload) => {
+            const screenName = payload.screenName || payload.buddy;
+            const responses = payload.responses;
+            if (!screenName || !responses || !Array.isArray(responses)) {
+                return { success: false, error: 'Screen name and responses array required' };
+            }
+            this._customBuddyResponses[screenName] = responses;
+            return { success: true, screenName };
+        });
+
+        // COMMAND: Clear custom responses for a buddy
+        this.registerCommand('clearBuddyResponses', (payload) => {
+            const screenName = payload?.screenName || payload?.buddy;
+            if (screenName) {
+                delete this._customBuddyResponses[screenName];
+            } else {
+                this._customBuddyResponses = {};
+            }
+            return { success: true };
+        });
+
+        // COMMAND: Show typing indicator for a buddy for N ms
+        this.registerCommand('simulateBuddyTyping', (payload) => {
+            const buddy = payload.buddy || payload.screenName;
+            const duration = payload.duration || 3000;
+            if (!buddy) return { success: false, error: 'Buddy name required' };
+            if (this.activeBuddy === buddy) {
+                const typing = this.getElement('#imTypingIndicator');
+                if (typing) {
+                    typing.textContent = `${buddy} is typing...`;
+                    setTimeout(() => {
+                        if (typing) typing.textContent = '';
+                    }, duration);
+                }
+            }
+            return { success: true, buddy, duration };
+        });
+
+        // COMMAND: Set a full conversation history (for staging ARG state)
+        this.registerCommand('setConversation', (payload) => {
+            const buddy = payload.buddy || payload.screenName;
+            const messages = payload.messages;
+            if (!buddy || !messages || !Array.isArray(messages)) {
+                return { success: false, error: 'Buddy and messages array required' };
+            }
+            this.conversations[buddy] = messages.map(m => ({
+                from: m.from || buddy,
+                text: m.text || m.message || '',
+                time: m.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                unread: m.unread || false,
+                system: m.system || false
+            }));
+            if (this.activeBuddy === buddy) {
+                this.renderConversation(buddy);
+            }
+            this.renderBuddyList();
+            return { success: true, buddy, count: messages.length };
+        });
+
+        // COMMAND: Clear conversation with a buddy
+        this.registerCommand('clearConversation', (payload) => {
+            const buddy = payload.buddy || payload.screenName;
+            if (!buddy) return { success: false, error: 'Buddy name required' };
+            this.conversations[buddy] = [];
+            if (this.activeBuddy === buddy) {
+                this.renderConversation(buddy);
+            }
+            this.renderBuddyList();
+            return { success: true, buddy };
+        });
+
+        // COMMAND: Clear all conversations
+        this.registerCommand('clearAllConversations', () => {
+            this.conversations = {};
+            if (this.activeBuddy) {
+                this.renderConversation(this.activeBuddy);
+            }
+            this.renderBuddyList();
+            return { success: true };
+        });
+
+        // COMMAND: Schedule a message from a buddy after a delay
+        this.registerCommand('scheduledMessage', (payload) => {
+            const from = payload.from || payload.buddy;
+            const message = payload.message || payload.text;
+            const delay = payload.delay || 5000;
+            if (!from || !message) return { success: false, error: 'From and message required' };
+
+            const id = 'sched_' + (++this._scheduleCounter);
+            const timeoutId = setTimeout(() => {
+                delete this._scheduledMessages[id];
+                if (this.isSignedOn) {
+                    this.receiveIMMessage(from, message);
+                    this.emitAppEvent('scheduledMessageDelivered', { id, from, message });
+                }
+            }, delay);
+
+            this._scheduledMessages[id] = { timeoutId, from, message, delay };
+            return { success: true, id };
+        });
+
+        // COMMAND: Set buddy profile text and away message
+        this.registerCommand('setBuddyProfile', (payload) => {
+            const screenName = payload.screenName || payload.buddy;
+            if (!screenName) return { success: false, error: 'Screen name required' };
+            const buddy = this.findBuddy(screenName);
+            if (!buddy) return { success: false, error: 'Buddy not found' };
+            if (payload.profile !== undefined) buddy.profile = payload.profile;
+            if (payload.awayMsg !== undefined) buddy.awayMsg = payload.awayMsg;
+            return { success: true, screenName };
+        });
+
+        // COMMAND: Full state reset (for ARG scene changes)
+        this.registerCommand('reset', () => {
+            // Cancel scheduled messages
+            for (const id of Object.keys(this._scheduledMessages)) {
+                clearTimeout(this._scheduledMessages[id].timeoutId);
+            }
+            this._scheduledMessages = {};
+            this._customBuddyResponses = {};
+            this._botTimers.forEach(t => clearTimeout(t));
+            this._botTimers = [];
+            this.conversations = {};
+            this.awayMessage = '';
+            this.status = 'online';
+            this.activeBuddy = null;
+            if (this.activeBuddy) {
+                this.closeActiveConversation();
+            }
+            this.renderBuddyList();
+            return { success: true };
+        });
+
+        // QUERY: Get all conversations
+        this.registerQuery('getAllConversations', () => {
+            const result = {};
+            for (const [buddy, messages] of Object.entries(this.conversations)) {
+                result[buddy] = messages.map(m => ({ ...m }));
+            }
+            return result;
+        });
+
+        // QUERY: Get IM config state
+        this.registerQuery('getConfig', () => {
+            return {
+                signedOn: this.isSignedOn,
+                username: this.username || null,
+                status: this.status,
+                away: !!this.awayMessage,
+                awayMessage: this.awayMessage || null,
+                activeBuddy: this.activeBuddy,
+                buddyGroupCount: Object.keys(this.buddyGroups).length,
+                totalBuddies: this.getAllBuddies().length,
+                onlineBuddies: this.getAllBuddies().filter(b => b.status !== 'offline').length,
+                conversationCount: Object.keys(this.conversations).length,
+                customResponseCount: Object.keys(this._customBuddyResponses).length,
+                scheduledMessages: Object.keys(this._scheduledMessages).length
+            };
         });
     }
 }
