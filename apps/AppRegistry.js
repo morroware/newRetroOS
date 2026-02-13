@@ -57,6 +57,7 @@ import HyperCard from './HyperCard.js';
 import FeaturesSettings from './FeaturesSettings.js';
 import ScriptRunner from './ScriptRunner.js';
 import RunDialog from './RunDialog.js';
+import Inbox from './Inbox.js';
 // --- System App Placeholders (Simple implementations for completeness) ---
 import AppBase from './AppBase.js';
 
@@ -208,6 +209,7 @@ class AppRegistryClass {
             new ChatRoom(),
             new Phone(),
             new InstantMessenger(),
+            new Inbox(),
         ]);
 
         // --- System Apps (category and showInMenu set in app config) ---

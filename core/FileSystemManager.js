@@ -307,6 +307,40 @@ class FileSystemManager {
                     type: 'directory',
                     children: {}
                   },
+                  'Mail': {
+                    type: 'directory',
+                    children: {
+                      'Inbox': { type: 'directory', children: {
+                        'msg-welcome.mail.json': {
+                          type: 'file',
+                          content: JSON.stringify({
+                            id: 'msg-welcome',
+                            threadId: null,
+                            from: 'Postmaster',
+                            to: ['User'],
+                            subject: 'Welcome to IlluminatOS! Mail',
+                            body: 'Hello!\n\nWelcome to your new Inbox. This is IlluminatOS! Mail, your personal communication hub.\n\nYou can receive messages from the system, from other apps, and from... other sources.\n\nFeatures:\n- Read, compose, reply, and forward messages\n- Organize mail into folders (Archive, Trash, or custom)\n- Star important messages\n- Search your mailbox\n- Keyboard shortcuts: Ctrl+N (compose), Del (delete), arrows (navigate)\n\nThis app is fully scriptable! Other apps and RetroScript can deliver mail to you.\n\nCheck back often. You never know what might arrive.\n\n- The Postmaster',
+                            folder: 'Inbox',
+                            timestamp: new Date('2024-01-01T09:00:00Z').toISOString(),
+                            read: false,
+                            starred: false,
+                            tags: ['system', 'welcome'],
+                            attachments: [],
+                            scriptMeta: {},
+                            headers: { 'X-Mailer': 'IlluminatOS! Mail v1.0' }
+                          }, null, 2),
+                          extension: 'json',
+                          size: 800,
+                          created: new Date('2024-01-01').toISOString(),
+                          modified: new Date('2024-01-01').toISOString()
+                        }
+                      } },
+                      'Sent': { type: 'directory', children: {} },
+                      'Drafts': { type: 'directory', children: {} },
+                      'Archive': { type: 'directory', children: {} },
+                      'Trash': { type: 'directory', children: {} }
+                    }
+                  },
                   'Projects': {
                     type: 'directory',
                     children: {

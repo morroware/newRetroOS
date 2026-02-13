@@ -38,6 +38,7 @@ export const PATHS = Object.freeze({
     DOCUMENTS: Object.freeze(['C:', 'Users', 'User', 'Documents']),
     PICTURES: Object.freeze(['C:', 'Users', 'User', 'Pictures']),
     MUSIC: Object.freeze(['C:', 'Users', 'User', 'Music']),
+    MAIL: Object.freeze(['C:', 'Users', 'User', 'Mail']),
     PROGRAM_FILES: Object.freeze(['C:', 'Program Files']),
     WINDOWS: Object.freeze(['C:', 'Windows']),
     SYSTEM32: Object.freeze(['C:', 'Windows', 'System32']),

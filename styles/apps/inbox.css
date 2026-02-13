@@ -1,0 +1,14 @@
+/**
+ * Inbox App - External styles
+ * Supplemental styles for the Inbox mail client that cannot live inline.
+ */
+
+/* Tray icon new-mail animation */
+#inboxTrayIcon.has-new-mail {
+    animation: inbox-tray-pulse 1.5s ease-in-out 3;
+}
+
+@keyframes inbox-tray-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+}

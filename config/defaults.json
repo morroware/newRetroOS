@@ -30,6 +30,7 @@
     { "id": "mycomputer", "label": "My Computer", "emoji": "\uD83D\uDCBB", "type": "app" },
     { "id": "recyclebin", "label": "Recycle Bin", "emoji": "\uD83D\uDDD1\uFE0F", "type": "app" },
     { "id": "terminal", "label": "Terminal", "emoji": "\uD83D\uDCDF", "type": "app" },
+    { "id": "inbox", "label": "Inbox", "emoji": "\uD83D\uDCE7", "type": "app" },
     { "id": "ciphers", "label": "Cipher Decoder", "emoji": "\uD83D\uDD0D", "type": "link", "url": "https://sethmorrow.com/ciphers" },
     { "id": "music", "label": "Music", "emoji": "\uD83C\uDFB5", "type": "link", "url": "https://sethmorrow.com/music" },
     { "id": "videos", "label": "Videos", "emoji": "\uD83D\uDCFA", "type": "link", "url": "https://sethmorrow.com/videos" },
