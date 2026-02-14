@@ -2169,14 +2169,14 @@ notify RetroScript Test Suite Complete!`;
                         <div class="output-content" id="outputContent">
                             <pre class="output-text" id="outputText"><span class="info">RetroScript IDE v1.0</span>
 
-Welcome to the RetroScript IDE - a professional scripting
-environment for RetroOS automation and development.
+Welcome to the RetroScript IDE - the automation layer behind
+RetroOS Engine investor demos, interactive stories, and live ops.
 
 <span class="success">Getting Started:</span>
   - Write code in the editor on the left
   - Press F5 or click Run to execute
   - Click "Record" to capture your actions as code
-  - Click "Tests" to load the comprehensive test suite
+  - Use emit/launch/write to orchestrate cross-app demo moments
 
 <span class="success">Keyboard Shortcuts:</span>
   F5          Run script
@@ -2192,7 +2192,7 @@ environment for RetroOS automation and development.
   set $name = "User"
   print "Welcome, $name!"
 
-Type your script or click "Help" for full reference.
+Type your script or click "Help" to explore the full scripting + events reference.
 </pre>
                         </div>
                     </div>

@@ -72,7 +72,7 @@
   "clippy": {
     "id": "clippy",
     "name": "Clippy Assistant",
-    "description": "The existentially challenged paperclip assistant - context-aware help with personality",
+    "description": "Context-aware retro demo guide for onboarding, storytelling, and investor walkthroughs",
     "icon": "📎",
     "category": "enhancement",
     "enabled": true,

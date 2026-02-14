@@ -258,7 +258,7 @@ class FileSystemManager {
                     children: {
                       'Welcome.txt': {
                         type: 'file',
-                        content: 'Welcome to IlluminatOS!\n\nEverything you see here is running in your browser.\n\nTry exploring the file system using:\n- Terminal (type "dir" and "cd")\n- My Computer\n- This desktop!\n\nYou can create, edit, and save files that persist across your session.\n\nHave fun!',
+                        content: 'Welcome to RetroOS Engine Demo!\n\nThis build showcases a complete retro experience platform running in the browser:\n- Desktop shell, windows, and Start menu\n- 30+ apps across productivity, media, communication, and games\n- RetroScript automation + startup orchestration\n- Modular features, plugin runtime, and semantic event bus\n\nInvestor Demo Quick Tour:\n1. Open Help > Investor Showcase\n2. Launch Script Runner and run a RetroScript sample\n3. Explore Media Player + Video Player for multimedia support\n4. Open Features Settings to see runtime feature toggles\n\nEverything can be themed, extended, and scripted for branded retro activations.',
                         extension: 'txt',
                         size: 250,
                         created: new Date('2024-01-01').toISOString(),
@@ -287,7 +287,7 @@ class FileSystemManager {
                       },
                       'welcome.txt': {
                         type: 'file',
-                        content: 'Welcome to IlluminatOS!\n\nThis is a fully functional retro desktop environment.\nTry exploring the file system, opening applications, and discovering easter eggs!\n\nHave fun!',
+                        content: 'Welcome to the RetroOS Engine Demo workspace.\n\nUse this folder as your pitch kit:\n- Open apps to demonstrate breadth (tools, games, media, messaging)\n- Use RetroScript to automate story moments and guided tours\n- Trigger events, notifications, and dynamic UI changes from scripts\n\nThis platform is designed to power investor-facing retro experiences with fast content iteration.',
                         extension: 'txt',
                         size: 165,
                         created: new Date('2024-01-01').toISOString(),

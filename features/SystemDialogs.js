@@ -244,23 +244,23 @@ class SystemDialogs extends FeatureBase {
             <div class="system-dialog welcome-dialog">
                 <div class="dialog-titlebar">
                     <span class="dialog-title-icon">🎉</span>
-                    <span>Welcome to IlluminatOS!</span>
+                    <span>Welcome to RetroOS Engine Demo</span>
                     <button class="dialog-close-btn">×</button>
                 </div>
                 <div class="dialog-body">
                     <div class="welcome-content">
                         <div class="welcome-banner">
-                            <div class="welcome-logo">IlluminatOS!</div>
+                            <div class="welcome-logo">RetroOS Engine</div>
                         </div>
                         <div class="welcome-tips">
-                            <h3>💡 Did you know?</h3>
+                            <h3>🚀 Investor Demo Highlights</h3>
                             <ul class="tips-list">
-                                <li>Double-click desktop icons to open applications</li>
-                                <li>Right-click anywhere for context menus</li>
-                                <li>Try the Konami Code for a surprise! ↑↑↓↓←→←→BA</li>
-                                <li>Click the clock 10 times for disco mode!</li>
-                                <li>Type "rosebud" to unlock admin access</li>
-                                <li>Check out the Terminal for Easter eggs</li>
+                                <li>Explore a full retro desktop shell with window management and taskbar UX</li>
+                                <li>Launch apps spanning productivity, media, communications, and games</li>
+                                <li>Open Script Runner to automate flows with RetroScript + events</li>
+                                <li>Use Features Settings to toggle modular runtime capabilities</li>
+                                <li>Show plugin extensibility via the plugin-powered feature system</li>
+                                <li>Browse the virtual filesystem to reveal branded story assets</li>
                             </ul>
                         </div>
                         <div class="welcome-checkbox">
@@ -272,7 +272,7 @@ class SystemDialogs extends FeatureBase {
                     </div>
                 </div>
                 <div class="dialog-buttons">
-                    <button class="btn btn-primary" id="welcomeOkBtn">Let's Go!</button>
+                    <button class="btn btn-primary" id="welcomeOkBtn">Start the Demo</button>
                 </div>
             </div>
         `;

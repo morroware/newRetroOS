@@ -281,13 +281,13 @@ class HelpSystem extends AppBase {
     renderNavTree() {
         return `
             <div class="help-tree-item expandable expanded" data-topic="getting-started">
-                Getting Started
+                Investor Showcase
             </div>
             <div class="help-tree-children expanded">
-                <div class="help-tree-item topic" data-topic="welcome">Welcome to IlluminatOS!</div>
-                <div class="help-tree-item topic" data-topic="desktop">Using the Desktop</div>
-                <div class="help-tree-item topic" data-topic="start-menu">The Start Menu</div>
-                <div class="help-tree-item topic" data-topic="windows">Working with Windows</div>
+                <div class="help-tree-item topic" data-topic="welcome">Platform Overview</div>
+                <div class="help-tree-item topic" data-topic="desktop">Desktop Experience Engine</div>
+                <div class="help-tree-item topic" data-topic="start-menu">Launch Surface & Discovery</div>
+                <div class="help-tree-item topic" data-topic="windows">Windowing System</div>
             </div>
 
             <div class="help-tree-item expandable" data-topic="applications">
@@ -335,7 +335,7 @@ class HelpSystem extends AppBase {
             </div>
             <div class="help-tree-children">
                 <div class="help-tree-item topic" data-topic="common-issues">Common Issues</div>
-                <div class="help-tree-item topic" data-topic="reset">Reset IlluminatOS!</div>
+                <div class="help-tree-item topic" data-topic="reset">Reset RetroOS Demo</div>
             </div>
         `;
     }
@@ -343,33 +343,31 @@ class HelpSystem extends AppBase {
     getTopicContent(topic) {
         const topics = {
             'welcome': `
-                <div class="help-title">Welcome to IlluminatOS!</div>
+                <div class="help-title">RetroOS Engine: Platform Overview</div>
                 <div class="help-section">
-                    <p>Welcome to IlluminatOS!, a nostalgic recreation of the Windows 95 experience in your web browser!</p>
-                    <p>IlluminatOS! includes many of the classic features you remember:</p>
+                    <p>RetroOS Engine is an experience platform for building branded nostalgia products in the browser.</p>
+                    <p>This demo combines productized operating-system UX with modern extensibility:</p>
                     <ul class="help-list">
-                        <li>Classic Start Menu navigation</li>
-                        <li>Desktop icons and shortcuts</li>
-                        <li>Window management (drag, resize, minimize, maximize)</li>
-                        <li>Classic applications (Notepad, Paint, Calculator)</li>
-                        <li>Retro games (Minesweeper, Solitaire, Snake, DOOM)</li>
-                        <li>Customizable settings and themes</li>
+                        <li>Complete desktop shell (boot, desktop, taskbar, start menu, windows)</li>
+                        <li>App ecosystem for productivity, communication, games, and multimedia</li>
+                        <li>RetroScript runtime for scenario automation and interactive storytelling</li>
+                        <li>Feature + plugin architecture for modular capability rollout</li>
+                        <li>Virtual filesystem for content, narrative assets, and persistence</li>
+                        <li>Semantic event and command buses for app-to-app orchestration</li>
                     </ul>
                 </div>
                 <div class="help-tip">
-                    <span class="help-tip-icon">💡 Tip:</span> Try the Konami Code (↑↑↓↓←→←→BA) for a surprise!
+                    <span class="help-tip-icon">💡 Demo Flow:</span> Start Menu → Help (overview), Script Runner (automation), Media apps (multimedia), Features Settings (runtime toggles).
                 </div>
                 <div class="help-section">
-                    <div class="help-section-title">Getting Started</div>
-                    <p>Click the <strong>Start</strong> button in the bottom-left corner to access programs and settings.</p>
-                    <p>Double-click desktop icons to open applications.</p>
-                    <p>Right-click anywhere for context menus with additional options.</p>
+                    <div class="help-section-title">What Investors Should Notice</div>
+                    <p>Fast themeability, high content density, and low-friction extensibility for campaigns, education, gamified onboarding, or premium nostalgia products.</p>
                 </div>
             `,
             'desktop': `
                 <div class="help-title">Using the Desktop</div>
                 <div class="help-section">
-                    <p>The desktop is your main workspace in IlluminatOS!. Here you can:</p>
+                    <p>The desktop is your presentation stage in RetroOS Engine. Here you can:</p>
                     <ul class="help-list">
                         <li><strong>Double-click icons</strong> to open applications</li>
                         <li><strong>Right-click</strong> for context menus</li>
@@ -497,7 +495,7 @@ class HelpSystem extends AppBase {
                 </div>
             `,
             'reset': `
-                <div class="help-title">Reset IlluminatOS!</div>
+                <div class="help-title">Reset RetroOS Demo</div>
                 <div class="help-section">
                     <p>If you need to start fresh, you can reset IlluminatOS! to its default settings.</p>
                     <div class="help-tip">
@@ -581,26 +579,25 @@ class HelpSystem extends AppBase {
                 </div>
             `,
             'terminal': `
-                <div class="help-title">Terminal</div>
+                <div class="help-title">Terminal + RetroScript Surface</div>
                 <div class="help-section">
-                    <p>Command-line interface for advanced operations.</p>
-                    <div class="help-section-title">Commands</div>
+                    <div class="help-section-title">Demo-Ready Commands</div>
                     <ul class="help-list">
-                        <li><span class="help-shortcut">help</span> - Show available commands</li>
-                        <li><span class="help-shortcut">dir</span> - List directory contents</li>
-                        <li><span class="help-shortcut">cd</span> - Change directory</li>
-                        <li><span class="help-shortcut">type</span> - Display file contents</li>
-                        <li><span class="help-shortcut">clear</span> - Clear screen</li>
+                        <li><span class="help-shortcut">help</span> - Discover command capabilities</li>
+                        <li><span class="help-shortcut">dir</span> / <span class="help-shortcut">cd</span> - Navigate the virtual filesystem</li>
+                        <li><span class="help-shortcut">type</span> - Present narrative and briefing files live</li>
+                        <li><span class="help-shortcut">retro &lt;path&gt;</span> - Execute RetroScript scenarios</li>
+                        <li><span class="help-shortcut">clear</span> - Reset the presentation view</li>
                     </ul>
                 </div>
                 <div class="help-tip">
-                    <span class="help-tip-icon">💡 Tip:</span> Try typing some unusual commands for surprises!
+                    <span class="help-tip-icon">💡 Investor Angle:</span> The same scripting/runtime model powers tutorials, quests, dynamic events, and branded interactive campaigns.
                 </div>
             `,
             'control-panel': `
                 <div class="help-title">Control Panel</div>
                 <div class="help-section">
-                    <p>The Control Panel lets you customize IlluminatOS! settings.</p>
+                    <p>Control Panel demonstrates how runtime settings can re-skin and reconfigure the experience instantly.</p>
                     <div class="help-section-title">Settings Available</div>
                     <ul class="help-list">
                         <li><strong>Display</strong> - Background color, CRT effect</li>
