@@ -72,7 +72,7 @@
   "clippy": {
     "id": "clippy",
     "name": "Clippy Assistant",
-    "description": "Context-aware retro demo guide for onboarding, storytelling, and investor walkthroughs",
+    "description": "Context-aware creator guide for building retro games, ARGs, and analog horror flows",
     "icon": "📎",
     "category": "enhancement",
     "enabled": true,

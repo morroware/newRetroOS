@@ -244,7 +244,7 @@ class SystemDialogs extends FeatureBase {
             <div class="system-dialog welcome-dialog">
                 <div class="dialog-titlebar">
                     <span class="dialog-title-icon">🎉</span>
-                    <span>Welcome to RetroOS Engine Demo</span>
+                    <span>Welcome to RetroOS Engine Creator Demo</span>
                     <button class="dialog-close-btn">×</button>
                 </div>
                 <div class="dialog-body">
@@ -253,14 +253,14 @@ class SystemDialogs extends FeatureBase {
                             <div class="welcome-logo">RetroOS Engine</div>
                         </div>
                         <div class="welcome-tips">
-                            <h3>🚀 Investor Demo Highlights</h3>
+                            <h3>🎮 Creator Platform Highlights</h3>
                             <ul class="tips-list">
-                                <li>Explore a full retro desktop shell with window management and taskbar UX</li>
-                                <li>Launch apps spanning productivity, media, communications, and games</li>
-                                <li>Open Script Runner to automate flows with RetroScript + events</li>
-                                <li>Use Features Settings to toggle modular runtime capabilities</li>
-                                <li>Show plugin extensibility via the plugin-powered feature system</li>
-                                <li>Browse the virtual filesystem to reveal branded story assets</li>
+                                <li>Build game worlds on a full retro desktop shell with authentic UX</li>
+                                <li>Use bundled apps as diegetic tools for clues, puzzles, and progression</li>
+                                <li>Script branching events, timed reveals, and ARG triggers with RetroScript</li>
+                                <li>Toggle mechanics fast using modular runtime features and plugins</li>
+                                <li>Prototype new systems quickly with plugin-powered feature extensions</li>
+                                <li>Hide lore across the virtual filesystem for analog horror investigations</li>
                             </ul>
                         </div>
                         <div class="welcome-checkbox">
@@ -272,7 +272,7 @@ class SystemDialogs extends FeatureBase {
                     </div>
                 </div>
                 <div class="dialog-buttons">
-                    <button class="btn btn-primary" id="welcomeOkBtn">Start the Demo</button>
+                    <button class="btn btn-primary" id="welcomeOkBtn">Start Creating</button>
                 </div>
             </div>
         `;

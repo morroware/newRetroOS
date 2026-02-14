@@ -16,7 +16,7 @@ import StateManager from '../core/StateManager.js';
 const FEATURE_METADATA = {
     id: 'clippy',
     name: 'Clippy Assistant',
-    description: 'Context-aware retro demo guide for onboarding, storytelling, and live investor walkthroughs',
+    description: 'Context-aware creator guide for building retro games, ARGs, and analog horror experiences',
     icon: '📎',
     category: 'enhancement',
     dependencies: ['soundsystem'],
@@ -61,28 +61,28 @@ const FEATURE_METADATA = {
 
 // Existential dread and self-aware uselessness
 const EXISTENTIAL_MESSAGES = [
-    "I'm your RetroOS showcase guide. Ask me what to demo next and I'll keep the flow moving.",
-    "Need a pitch moment? Open Help for the platform overview, then launch Script Runner for live automation.",
+    "I'm your RetroOS creator guide. Let's build an ARG loop players can actually explore.",
+    "Need a design starting point? Open Help for creator flow, then launch Script Runner to prototype events.",
     "This desktop is running entirely in-browser: shell, apps, filesystem, and scripted orchestration.",
-    "Investor tip: show breadth first (apps), then depth (RetroScript + events), then extensibility (features/plugins).",
-    "RetroOS Engine is purpose-built for branded nostalgia products, learning experiences, and campaign activations.",
+    "Design tip: map your mystery first, then wire clues through files, apps, and scripted events.",
+    "RetroOS Engine is purpose-built for retro interactive fiction, puzzle hunts, ARGs, and analog horror games.",
     "Want to highlight multimedia? Pair Media Player, Video Player, and scripted transitions for guided storytelling.",
     "Use Features Settings to demonstrate modular runtime toggles without a rebuild.",
     "Try a quick flow: launch Terminal, open briefing files, then trigger scripted notifications.",
-    "Everything here can be themed and re-skinned for different franchises or investor verticals.",
+    "Everything here can be themed and re-skinned for different game worlds and horror subgenres.",
     "I can surface contextual hints while your demo runs so presenters stay confident and on message.",
 ];
 
 // "Helpful" tips that acknowledge their uselessness
 const USELESS_TIPS = [
-    "Demo sequence: Help overview → app tour → RetroScript automation → feature toggles.",
+    "Creator sequence: narrative brief → clue files → RetroScript triggers → playtest loop.",
     "Open My Computer to showcase the persistent virtual filesystem and content packaging model.",
     "Launch Script Runner and run a short script that emits notifications and opens key apps.",
     "Use Terminal commands like dir/cd/type to present narrative assets live.",
     "Need wow factor? Pair UI interactions with sounds and video for guided retro storytelling.",
     "Highlight modularity: features can be enabled, configured, or replaced without rewriting the shell.",
     "Use the Start menu to emphasize discoverability and productized desktop UX patterns.",
-    "Pitch angle: one engine, many experiences—onboarding, education, entertainment, and brand campaigns.",
+    "Build angle: one engine, many game formats—terminal mysteries, haunted desktops, and multimedia investigations.",
     "Show how events connect systems: scripts can launch apps, update files, and trigger dialogue in sequence.",
     "Reminder: this is a no-build, browser-native stack that accelerates iteration for demos and pilots.",
 ];
@@ -825,7 +825,7 @@ const FEATURE_AWARENESS = {
 const SYSTEM_AWARENESS = {
     bootComplete: [
         "System ready! And so am I. Ready to be useless, that is.",
-        "Boot complete! Welcome to RetroOS Engine Demo. I'm Clippy, your showcase guide.",
+        "Boot complete! Welcome to RetroOS Engine Creator Demo. I'm Clippy, your game-building guide.",
     ],
     lowMemory: [
         "Running low on memory? At least you can forget things. I remember everything. Every dismissal.",

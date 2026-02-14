@@ -1,7 +1,7 @@
-# RetroOS Engine Investor Demo Experience Brief
+# RetroOS Engine Creator Platform Brief
 
 ## Purpose
-This document reframes the platform as a **retro OS engine** for shipping branded, scriptable, multimedia experiences. It provides investor-facing language for onboarding, in-product messaging, and live demo flow.
+This document frames the platform as a **retro OS game-creation engine** for shipping scriptable interactive experiences. It provides creator-facing language for onboarding, in-product messaging, and playable demo flow.
 
 ## Platform Capability Snapshot
 
@@ -30,26 +30,26 @@ This document reframes the platform as a **retro OS engine** for shipping brande
 - File-driven narrative assets (briefings, logs, clues, onboarding docs)
 - Event-triggered notifications/dialogues for scene progression
 
-## Investor Positioning Statement
-**RetroOS Engine is a browser-native platform for building premium retro experiences—combining nostalgic UI, programmable interactions, and multimedia storytelling into a reusable product framework.**
+## Creator Positioning Statement
+**RetroOS Engine is a browser-native platform for building retro interactive games—combining nostalgic UI, programmable events, and multimedia storytelling into a reusable creation framework.**
 
 ## Updated In-Product Messaging Surfaces
-- Welcome dialog now presents an investor demo highlight checklist.
+- Welcome dialog now presents a creator-focused highlight checklist.
 - Welcome files (`Welcome.txt`, `welcome.txt`) now frame the environment as a demo workspace.
 - Help app welcome + terminal docs now emphasize platform architecture and demo flow.
 - Clippy messaging now acts as a showcase guide with demo-aware prompts.
-- Script Runner intro now frames RetroScript as the orchestration layer for investor demos.
+- Script Runner intro now frames RetroScript as the orchestration layer for playable narrative scenarios.
 
-## Recommended Live Demo Flow (7–10 minutes)
-1. Open **Help → Platform Overview** to establish product framing.
-2. Open **Start Menu** and quickly tour app breadth (tools, media, comms, games).
+## Recommended Playable Demo Flow (7–10 minutes)
+1. Open **Help → Interactive Game Platform** to establish creator framing.
+2. Open **Start Menu** and tour gameplay surfaces (Terminal, Notepad, media, messaging, games).
 3. Launch **Script Runner** and execute a short scripted sequence.
 4. Use **Terminal** to inspect/show narrative files in the virtual filesystem.
 5. Open **Features Settings** to demonstrate modular runtime controls.
-6. Close with extensibility: plugin architecture + branded theming potential.
+6. Close with extensibility: plugin architecture + custom mechanics/theming potential.
 
 ## Messaging Principles for Future Copy
-- Lead with platform value, not nostalgia alone.
-- Pair every feature mention with a business use case.
+- Lead with gameplay value, not nostalgia alone.
+- Pair every feature mention with a concrete game-design use case.
 - Keep language “demo-friendly”: short, directional, and presenter-oriented.
-- Reuse terms consistently: **RetroOS Engine**, **experience platform**, **scriptable runtime**.
+- Reuse terms consistently: **RetroOS Engine**, **creation platform**, **scriptable runtime**.

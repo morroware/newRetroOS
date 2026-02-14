@@ -101,7 +101,7 @@
   "filesystem": {
     "welcomeFile": {
       "path": ["C:", "Users", "User", "Desktop", "Welcome.txt"],
-      "content": "Welcome to RetroOS Engine Demo!\n\nThis build showcases a complete retro experience platform running in the browser:\n- Desktop shell, windows, and Start menu\n- 30+ apps across productivity, media, communication, and games\n- RetroScript automation + startup orchestration\n- Modular features, plugin runtime, and semantic event bus\n\nInvestor Demo Quick Tour:\n1. Open Help > Investor Showcase\n2. Launch Script Runner and run a RetroScript sample\n3. Explore Media Player + Video Player for multimedia support\n4. Open Features Settings to see runtime feature toggles\n\nEverything can be themed, extended, and scripted for branded retro activations."
+      "content": "Welcome to RetroOS Engine Creator Demo!\n\nThis build is a creation platform for retro-native interactive games:\n- Desktop shell + app framework for in-world game interfaces\n- RetroScript events for ARG progression, puzzles, and triggers\n- Multimedia pipeline for analog horror tapes, audio logs, and cutscenes\n- Modular features/plugins for rapidly prototyping new mechanics\n\nCreator Quick Tour:\n1. Open Help > Creator Showcase\n2. Launch Script Runner and run a RetroScript scenario\n3. Explore Media Player + Video Player for story media playback\n4. Use Terminal + filesystem files for clues, logs, and branching content\n\nBuild once, then iterate quickly on retro gaming experiences."
     },
     "documentFiles": [
       {
@@ -114,7 +114,7 @@
       },
       {
         "path": ["C:", "Users", "User", "Documents", "welcome.txt"],
-        "content": "Welcome to the RetroOS Engine Demo workspace.\n\nUse this folder as your pitch kit:\n- Open apps to demonstrate breadth (tools, games, media, messaging)\n- Use RetroScript to automate story moments and guided tours\n- Trigger events, notifications, and dynamic UI changes from scripts\n\nThis platform is designed to power investor-facing retro experiences with fast content iteration."
+        "content": "Welcome to the RetroOS Engine creator workspace.\n\nUse this folder as your game design kit:\n- Stage ARG breadcrumbs in text files, mail, and hidden directories\n- Drive encounters with RetroScript events, timers, and app launches\n- Blend media clues with in-world tools (Terminal, Notepad, Browser)\n\nThis platform is built for retro gamers creating interactive narrative experiences."
       }
     ],
     "secretFiles": [

@@ -281,7 +281,7 @@ class HelpSystem extends AppBase {
     renderNavTree() {
         return `
             <div class="help-tree-item expandable expanded" data-topic="getting-started">
-                Investor Showcase
+                Creator Showcase
             </div>
             <div class="help-tree-children expanded">
                 <div class="help-tree-item topic" data-topic="welcome">Platform Overview</div>
@@ -343,25 +343,25 @@ class HelpSystem extends AppBase {
     getTopicContent(topic) {
         const topics = {
             'welcome': `
-                <div class="help-title">RetroOS Engine: Platform Overview</div>
+                <div class="help-title">RetroOS Engine: Interactive Game Platform</div>
                 <div class="help-section">
-                    <p>RetroOS Engine is an experience platform for building branded nostalgia products in the browser.</p>
+                    <p>RetroOS Engine is a creation platform for retro gamers building interactive stories, ARGs, and analog horror experiences in the browser.</p>
                     <p>This demo combines productized operating-system UX with modern extensibility:</p>
                     <ul class="help-list">
                         <li>Complete desktop shell (boot, desktop, taskbar, start menu, windows)</li>
-                        <li>App ecosystem for productivity, communication, games, and multimedia</li>
-                        <li>RetroScript runtime for scenario automation and interactive storytelling</li>
+                        <li>App ecosystem that doubles as in-universe gameplay surfaces</li>
+                        <li>RetroScript runtime for branching quests, puzzle logic, and event choreography</li>
                         <li>Feature + plugin architecture for modular capability rollout</li>
-                        <li>Virtual filesystem for content, narrative assets, and persistence</li>
+                        <li>Virtual filesystem for clues, logs, hidden files, and persistent world state</li>
                         <li>Semantic event and command buses for app-to-app orchestration</li>
                     </ul>
                 </div>
                 <div class="help-tip">
-                    <span class="help-tip-icon">💡 Demo Flow:</span> Start Menu → Help (overview), Script Runner (automation), Media apps (multimedia), Features Settings (runtime toggles).
+                    <span class="help-tip-icon">💡 Creator Flow:</span> Define your narrative files → script triggers in Script Runner → link media evidence → test progression in Terminal.
                 </div>
                 <div class="help-section">
-                    <div class="help-section-title">What Investors Should Notice</div>
-                    <p>Fast themeability, high content density, and low-friction extensibility for campaigns, education, gamified onboarding, or premium nostalgia products.</p>
+                    <div class="help-section-title">What Creators Can Build</div>
+                    <p>Fast iteration loops for puzzle games, investigative ARG campaigns, and replayable retro narrative worlds.</p>
                 </div>
             `,
             'desktop': `
@@ -591,7 +591,7 @@ class HelpSystem extends AppBase {
                     </ul>
                 </div>
                 <div class="help-tip">
-                    <span class="help-tip-icon">💡 Investor Angle:</span> The same scripting/runtime model powers tutorials, quests, dynamic events, and branded interactive campaigns.
+                    <span class="help-tip-icon">💡 Creator Angle:</span> The same scripting/runtime model powers quest logic, spooky reveals, fail states, and dynamic ARG progression.
                 </div>
             `,
             'control-panel': `

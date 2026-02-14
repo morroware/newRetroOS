@@ -2170,13 +2170,13 @@ notify RetroScript Test Suite Complete!`;
                             <pre class="output-text" id="outputText"><span class="info">RetroScript IDE v1.0</span>
 
 Welcome to the RetroScript IDE - the automation layer behind
-RetroOS Engine investor demos, interactive stories, and live ops.
+RetroOS Engine games, ARG scenarios, analog horror beats, and live narrative ops.
 
 <span class="success">Getting Started:</span>
   - Write code in the editor on the left
   - Press F5 or click Run to execute
   - Click "Record" to capture your actions as code
-  - Use emit/launch/write to orchestrate cross-app demo moments
+  - Use emit/launch/write to orchestrate puzzle states, scares, and cross-app progression
 
 <span class="success">Keyboard Shortcuts:</span>
   F5          Run script
