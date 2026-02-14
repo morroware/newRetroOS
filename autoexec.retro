@@ -10,6 +10,7 @@
 set $CFG_DEV_MODE = 0
 set $CFG_FAST_MODE = 0
 set $CFG_SHOW_HINTS = 1
+set $CFG_CREATOR_SHOWCASE = 1
 
 # ========================= RUNTIME MODE =========================
 set $is_autoexec = 0
@@ -144,6 +145,69 @@ func writeCaseboard {
     set $txt = $txt + "- Endings are flavored by your trust profile.\n"
 
     write $txt to "C:/Users/User/Desktop/EREBUS/CASEBOARD.txt"
+}
+
+func runCreatorShowcase {
+    if $CFG_CREATOR_SHOWCASE != 1 then { return }
+
+    emit notification:show title="CREATOR MODE" message="Running RetroOS interactive-game showcase sequence."
+    wait call msMedium
+
+    emit dialog:alert title="RETROOS ENGINE" message="This desktop is your game world. Apps are diegetic mechanics."
+    wait call msMedium
+
+    emit desktop:bg-change color="#140c1f"
+    emit sound:play type="startup"
+    wait call msMedium
+
+    launch help
+    emit notification:show title="SHOWCASE" message="Help: review Creator Showcase + Interactive Game Platform."
+    wait call msLong
+
+    launch scriptrunner
+    emit notification:show title="SHOWCASE" message="Script Runner: wire quests, branches, and timed reveals."
+    wait call msLong
+
+    launch terminal
+    emit notification:show title="SHOWCASE" message="Terminal: validate clues with dir/type/find and run retro scripts."
+    wait call msLong
+
+    launch mycomputer
+    emit notification:show title="SHOWCASE" message="Filesystem: hide evidence in lore files, mail, and secret folders."
+    wait call msLong
+
+    launch inbox
+    emit command:inbox:deliverMessage from="Game Director" to=["User"] subject="SHOWCASE: ARG Seed" body="You are not debugging an OS.
+You are authoring a haunted machine.
+
+- Leave clue files in C:/Users/User/Desktop/EREBUS
+- Trigger reveals from RetroScript events
+- Blend audio/video evidence with app interactions
+
+Goal: make players investigate, doubt, and return."
+    wait call msLong
+
+    launch videoplayer
+    launch mediaplayer
+    emit notification:show title="SHOWCASE" message="Multimedia: stage VHS tapes, whispers, and forensic audio drops."
+    wait call msLong
+
+    launch paint
+    launch notepad
+    emit notification:show title="SHOWCASE" message="Creation loop: author assets in-app, then script consequences."
+    wait call msLong
+
+    launch controlpanel
+    emit notification:show title="SHOWCASE" message="Control Panel: tune visuals/sound while playtesting mechanics."
+    wait call msLong
+
+    launch minesweeper
+    launch zork
+    emit dialog:alert title="DESIGN PROMPT" message="Mix retro games + narrative systems for puzzle-driven ARG campaigns."
+    wait call msMedium
+
+    emit sound:play type="achievement"
+    emit notification:show title="SHOWCASE COMPLETE" message="Now open C:/Users/User/Desktop/EREBUS and begin building your scenario."
 }
 
 func deployBaseFiles {
@@ -352,6 +416,11 @@ print "[BOOT] Initializing observer mesh"
 wait call msShort
 
 call deployBaseFiles
+
+if $is_autoexec == 1 then {
+    call runCreatorShowcase
+}
+
 set $phase = 1
 set $boot_done = 1
 
