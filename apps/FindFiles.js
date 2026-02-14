@@ -23,6 +23,59 @@ class FindFiles extends AppBase {
 
         this.searchResults = [];
         this.isSearching = false;
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('search', (payload) => {
+            if (payload) {
+                const nameInput = this.getElement('#search-name');
+                const contentInput = this.getElement('#search-content');
+                const locationSelect = this.getElement('#search-location');
+                if (nameInput && payload.name !== undefined) nameInput.value = payload.name;
+                if (contentInput && payload.content !== undefined) contentInput.value = payload.content;
+                if (locationSelect && payload.location !== undefined) locationSelect.value = payload.location;
+            }
+            this.startSearch();
+            return { success: true };
+        });
+
+        this.registerCommand('stopSearch', () => {
+            this.stopSearch();
+            return { success: true };
+        });
+
+        this.registerCommand('clearResults', () => {
+            this.newSearch();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getResults', () => {
+            return this.searchResults.map(r => ({
+                name: r.name,
+                folder: r.folder,
+                size: r.size,
+                type: r.type
+            }));
+        });
+
+        this.registerQuery('getSearchState', () => {
+            return {
+                isSearching: this.isSearching,
+                resultCount: this.searchResults.length
+            };
+        });
     }
 
     onOpen() {

@@ -20,6 +20,21 @@ class RunDialog extends AppBase {
             category: 'system',
             showInMenu: false
         });
+
+        // Register scriptability hooks
+        this.registerCommands();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('execute', (payload) => {
+            if (!payload || !payload.command) return { success: false, error: 'No command provided' };
+            const errorEl = this.getElement('#run-error');
+            this.executeCommand(payload.command, errorEl);
+            return { success: true };
+        });
     }
 
     onOpen() {

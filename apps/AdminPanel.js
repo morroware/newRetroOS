@@ -20,6 +20,86 @@ class AdminPanel extends AppBase {
             category: 'system',
             showInMenu: true
         });
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('addIcon', (payload) => {
+            if (!payload || !payload.emoji || !payload.id || !payload.label) {
+                return { success: false, error: 'emoji, id, and label are required' };
+            }
+            const icons = StateManager.getState('icons') || [];
+            const newIcon = {
+                emoji: payload.emoji,
+                id: payload.id,
+                label: payload.label,
+                type: payload.type || 'app',
+                x: payload.x || 20,
+                y: payload.y || 20
+            };
+            if (payload.url) newIcon.url = payload.url;
+            icons.push(newIcon);
+            StateManager.setState('icons', icons, true);
+            EventBus.emit('desktop:refresh');
+            this.emitAppEvent('icon:added', newIcon);
+            return { success: true };
+        });
+
+        this.registerCommand('removeIcon', (payload) => {
+            if (!payload || payload.index === undefined) return { success: false, error: 'index is required' };
+            const icons = StateManager.getState('icons') || [];
+            if (payload.index < 0 || payload.index >= icons.length) return { success: false, error: 'Invalid index' };
+            const removed = icons.splice(payload.index, 1)[0];
+            StateManager.setState('icons', icons, true);
+            EventBus.emit('desktop:refresh');
+            this.emitAppEvent('icon:removed', removed);
+            return { success: true };
+        });
+
+        this.registerCommand('unlockAchievement', (payload) => {
+            if (!payload || !payload.achievement) return { success: false, error: 'achievement is required' };
+            const achievements = StateManager.getState('achievements') || [];
+            if (!achievements.includes(payload.achievement)) {
+                achievements.push(payload.achievement);
+                StateManager.setState('achievements', achievements, true);
+                this.emitAppEvent('achievement:unlocked', { achievement: payload.achievement });
+            }
+            return { success: true };
+        });
+
+        this.registerCommand('resetAchievements', () => {
+            StateManager.setState('achievements', [], true);
+            this.emitAppEvent('achievements:reset', {});
+            return { success: true };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getIcons', () => {
+            return StateManager.getState('icons') || [];
+        });
+
+        this.registerQuery('getAchievements', () => {
+            return StateManager.getState('achievements') || [];
+        });
+
+        this.registerQuery('isAdmin', () => {
+            return StateManager.getState('user.isAdmin') || false;
+        });
+
+        this.registerQuery('getSystemInfo', () => {
+            return {
+                iconCount: (StateManager.getState('icons') || []).length,
+                openWindows: (StateManager.getState('windows') || []).length,
+                recycledItems: (StateManager.getState('recycledItems') || []).length,
+                achievements: (StateManager.getState('achievements') || []).length,
+                sound: StateManager.getState('settings.sound'),
+                crtEffect: StateManager.getState('settings.crtEffect')
+            };
+        });
     }
 
     onOpen() {

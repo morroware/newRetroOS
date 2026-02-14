@@ -18,6 +18,68 @@ class FeaturesSettings extends AppBase {
             category: 'settings',
             singleton: true
         });
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('enableFeature', (payload) => {
+            if (!payload || !payload.featureId) return { success: false, error: 'featureId is required' };
+            try {
+                FeatureRegistry.enable(payload.featureId);
+                this.emitAppEvent('feature:enabled', { featureId: payload.featureId });
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        this.registerCommand('disableFeature', (payload) => {
+            if (!payload || !payload.featureId) return { success: false, error: 'featureId is required' };
+            try {
+                FeatureRegistry.disable(payload.featureId);
+                this.emitAppEvent('feature:disabled', { featureId: payload.featureId });
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        this.registerCommand('setFeatureConfig', (payload) => {
+            if (!payload || !payload.featureId || !payload.key) return { success: false, error: 'featureId and key are required' };
+            try {
+                FeatureRegistry.setFeatureConfig(payload.featureId, payload.key, payload.value);
+                this.emitAppEvent('feature:configChanged', { featureId: payload.featureId, key: payload.key, value: payload.value });
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getFeatures', (payload) => {
+            const features = FeatureRegistry.getAll();
+            if (payload && payload.category) {
+                return features.filter(f => f.category === payload.category);
+            }
+            return features;
+        });
+
+        this.registerQuery('getFeature', (payload) => {
+            if (!payload || !payload.featureId) return null;
+            const features = FeatureRegistry.getAll();
+            return features.find(f => f.id === payload.featureId) || null;
+        });
+
+        this.registerQuery('isFeatureEnabled', (payload) => {
+            if (!payload || !payload.featureId) return false;
+            const features = FeatureRegistry.getAll();
+            const feature = features.find(f => f.id === payload.featureId);
+            return feature ? feature.enabled : false;
+        });
     }
 
     onOpen() {

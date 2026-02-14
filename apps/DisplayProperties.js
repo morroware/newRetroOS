@@ -143,6 +143,52 @@ class DisplayProperties extends AppBase {
         this.selectedWallpaper = '';
         this.selectedColor = '#008080';
         this.previewColor = '#008080';
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('setWallpaper', (payload) => {
+            if (!payload || payload.wallpaper === undefined) return { success: false, error: 'No wallpaper provided' };
+            this.selectedWallpaper = payload.wallpaper;
+            return { success: true, wallpaper: payload.wallpaper };
+        });
+
+        this.registerCommand('setColorScheme', (payload) => {
+            if (!payload || !payload.scheme) return { success: false, error: 'No scheme provided' };
+            if (!COLOR_SCHEMES[payload.scheme]) return { success: false, error: 'Invalid scheme' };
+            this.colorScheme = payload.scheme;
+            return { success: true, scheme: payload.scheme };
+        });
+
+        this.registerCommand('applySettings', () => {
+            this.applySettings();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getSettings', () => {
+            return {
+                wallpaper: this.selectedWallpaper,
+                backgroundColor: this.selectedColor,
+                colorScheme: this.colorScheme,
+                screensaverType: this.screensaverType,
+                crtEffect: StateManager.getState('settings.crtEffect'),
+                windowAnimations: this.windowAnimations,
+                menuShadows: this.menuShadows,
+                smoothScrolling: this.smoothScrolling,
+                iconSize: this.iconSize
+            };
+        });
     }
 
     onOpen() {

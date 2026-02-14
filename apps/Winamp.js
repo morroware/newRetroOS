@@ -43,6 +43,126 @@ class Winamp extends AppBase {
             { title: 'Midnight Protocol', artist: 'DataStream', duration: 220, freq: 415 },
             { title: 'Binary Love', artist: 'CodeBeats', duration: 185, freq: 370 }
         ];
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('play', () => {
+            this.play?.();
+            return { success: true, trackIndex: this.currentTrack, title: this.playlist[this.currentTrack]?.title };
+        });
+
+        this.registerCommand('pause', () => {
+            this.pause?.();
+            return { success: true };
+        });
+
+        this.registerCommand('stop', () => {
+            this.stop?.();
+            return { success: true };
+        });
+
+        this.registerCommand('next', () => {
+            this.next?.();
+            return { success: true, trackIndex: this.currentTrack, title: this.playlist[this.currentTrack]?.title };
+        });
+
+        this.registerCommand('previous', () => {
+            this.prev?.();
+            return { success: true, trackIndex: this.currentTrack, title: this.playlist[this.currentTrack]?.title };
+        });
+
+        this.registerCommand('setVolume', (payload) => {
+            const { volume } = payload;
+            if (volume === undefined || volume < 0 || volume > 100) return { success: false, error: 'volume must be between 0 and 100' };
+            this.volume = volume;
+            if (this.gainNode) {
+                this.gainNode.gain.value = this.volume / 100;
+            }
+            const volumeSlider = this.getElement?.('#volumeSlider');
+            if (volumeSlider) volumeSlider.value = volume;
+            this.emitAppEvent('volume:changed', { volume });
+            return { success: true, volume };
+        });
+
+        this.registerCommand('seek', (payload) => {
+            const { position } = payload;
+            if (position === undefined || position < 0) return { success: false, error: 'position (in seconds) is required and must be >= 0' };
+            const track = this.playlist[this.currentTrack];
+            this.currentTime = Math.min(position, track.duration);
+            this.updateTimeDisplay?.();
+            const seekBar = this.getElement?.('#seekBar');
+            if (seekBar) {
+                seekBar.value = (this.currentTime / track.duration) * 100;
+            }
+            return { success: true, position: this.currentTime };
+        });
+
+        this.registerCommand('loadPlaylist', (payload) => {
+            const { tracks } = payload;
+            if (!tracks || !Array.isArray(tracks) || tracks.length === 0) return { success: false, error: 'tracks array is required and must not be empty' };
+            this.stop?.();
+            this.playlist = tracks.map((t, i) => ({
+                title: t.title || `Track ${i + 1}`,
+                artist: t.artist || 'Unknown',
+                duration: t.duration || 180,
+                freq: t.freq || 440
+            }));
+            this.currentTrack = 0;
+            this.currentTime = 0;
+            // Re-render playlist UI if mounted
+            const playlistEl = this.getElement?.('#playlist');
+            if (playlistEl) {
+                playlistEl.innerHTML = this.playlist.map((t, i) => `
+                    <div class="winamp-playlist-item ${i === this.currentTrack ? 'active' : ''}" data-index="${i}">
+                        <span><span class="winamp-playlist-num">${i + 1}.</span>${t.artist} - ${t.title}</span>
+                        <span class="winamp-playlist-duration">${this.formatTime(t.duration)}</span>
+                    </div>
+                `).join('');
+            }
+            this.updateTitleScroll?.();
+            this.emitAppEvent('playlist:loaded', { trackCount: this.playlist.length });
+            return { success: true, trackCount: this.playlist.length };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            const track = this.playlist[this.currentTrack];
+            return {
+                isPlaying: this.isPlaying,
+                isPaused: !this.isPlaying && this.currentTime > 0,
+                currentTrack: track ? { index: this.currentTrack, title: track.title, artist: track.artist, duration: track.duration } : null,
+                volume: this.volume,
+                elapsed: this.currentTime,
+                duration: this.duration
+            };
+        });
+
+        this.registerQuery('getCurrentTrack', () => {
+            const track = this.playlist[this.currentTrack];
+            if (!track) return null;
+            return {
+                index: this.currentTrack,
+                title: track.title,
+                artist: track.artist,
+                duration: track.duration,
+                elapsed: this.currentTime
+            };
+        });
+
+        this.registerQuery('getPlaylist', () => {
+            return this.playlist.map((t, i) => ({
+                index: i,
+                title: t.title,
+                artist: t.artist,
+                duration: t.duration,
+                active: i === this.currentTrack
+            }));
+        });
     }
 
     onOpen() {

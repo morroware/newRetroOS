@@ -46,6 +46,45 @@ class SkiFree extends AppBase {
         };
 
         this.initGameState();
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('start', () => {
+            this.startGame();
+            return { success: true };
+        });
+
+        this.registerCommand('pause', () => {
+            if (this.state === this.STATE.PLAYING) {
+                this.togglePause();
+            }
+            return { success: true, state: this.state };
+        });
+
+        this.registerCommand('resume', () => {
+            if (this.state === this.STATE.PAUSED) {
+                this.togglePause();
+            }
+            return { success: true, state: this.state };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            return {
+                score: this.score,
+                highScore: this.highScore,
+                distance: Math.floor(this.distance),
+                lives: this.lives,
+                state: this.state,
+                speed: Math.floor(this.player.speed * 10),
+                yetiActive: this.yeti.active
+            };
+        });
     }
 
     initGameState() {
@@ -340,6 +379,8 @@ class SkiFree extends AppBase {
         this.playSound('start');
         this.updateStateText('Skiing!');
 
+        this.emitAppEvent('game:start', { lives: this.lives });
+
         // Emit game started event
         EventBus.emit('game:start', {
             appId: 'skifree',
@@ -566,7 +607,15 @@ class SkiFree extends AppBase {
         // Score from distance
         const newScore = Math.floor(this.distance / 10);
         if (newScore > this.score) {
+            const previousScore = this.score;
             this.score = newScore;
+            // Emit score:updated every 50 points to avoid excessive events
+            if (Math.floor(this.score / 50) > Math.floor(previousScore / 50)) {
+                this.emitAppEvent('score:updated', {
+                    score: this.score,
+                    distance: Math.floor(this.distance)
+                });
+            }
         }
 
         // Trigger yeti
@@ -758,6 +807,10 @@ class SkiFree extends AppBase {
         this.updateStateText('⚠️ YETI! RUN! Press F for speed!');
         this.flashTimer = 30;
 
+        this.emitAppEvent('yeti:appeared', {
+            distance: this.distance
+        });
+
         // Emit yeti spawn event
         EventBus.emit('skifree:yeti:spawn', {
             distance: this.distance
@@ -894,6 +947,13 @@ class SkiFree extends AppBase {
 
     gameOver(byYeti) {
         this.state = this.STATE.GAMEOVER;
+
+        this.emitAppEvent('game:over', {
+            score: this.score,
+            distance: Math.floor(this.distance),
+            byYeti: byYeti,
+            lives: this.lives
+        });
 
         // Update high score
         const isHighScore = this.score > this.highScore;

@@ -39,6 +39,82 @@ class TaskManager extends AppBase {
 
         // Event unsubscribers
         this.eventUnsubscribers = [];
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('endTask', (payload) => {
+            if (!payload || !payload.windowId) return { success: false, error: 'No windowId provided' };
+            WindowManager.close(payload.windowId);
+            this.windowMemory.delete(payload.windowId);
+            this.windowPids.delete(payload.windowId);
+            return { success: true };
+        });
+
+        this.registerCommand('switchTo', (payload) => {
+            if (!payload || !payload.windowId) return { success: false, error: 'No windowId provided' };
+            this.switchToWindow(payload.windowId);
+            return { success: true };
+        });
+
+        this.registerCommand('refreshView', () => {
+            this.update();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getApplications', () => {
+            const windows = StateManager.getState('windows') || [];
+            return windows.filter(win => win.id !== 'taskmgr').map(win => ({
+                windowId: win.id,
+                title: win.title || win.id,
+                minimized: win.minimized || false,
+                memory: this.getWindowMemory(win.id)
+            }));
+        });
+
+        this.registerQuery('getProcesses', () => {
+            const windows = StateManager.getState('windows') || [];
+            const systemProcesses = [
+                { name: 'System', pid: 4 },
+                { name: 'smss.exe', pid: 156 },
+                { name: 'csrss.exe', pid: 184 },
+                { name: 'winlogon.exe', pid: 208 },
+                { name: 'services.exe', pid: 252 },
+                { name: 'lsass.exe', pid: 264 },
+                { name: 'explorer.exe', pid: 1024 },
+                { name: 'taskmgr.exe', pid: 2048 }
+            ];
+            const appProcesses = windows
+                .filter(win => win.id !== 'taskmgr')
+                .map(win => ({
+                    name: (win.title || win.id).replace(/^[\p{Emoji}\s]+/u, '').trim().split(' ')[0].toLowerCase() + '.exe',
+                    pid: this.getWindowPid(win.id),
+                    windowId: win.id
+                }));
+            return [...systemProcesses, ...appProcesses];
+        });
+
+        this.registerQuery('getPerformance', () => {
+            const cpu = this.cpuHistory.length > 0 ? this.cpuHistory[this.cpuHistory.length - 1] : 0;
+            const mem = this.memHistory.length > 0 ? this.memHistory[this.memHistory.length - 1] : 0;
+            return { cpu, memory: mem };
+        });
+
+        this.registerQuery('getProcessCount', () => {
+            const windows = StateManager.getState('windows') || [];
+            return { count: windows.length + 8 };
+        });
     }
 
     onOpen() {

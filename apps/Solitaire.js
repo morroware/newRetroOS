@@ -22,6 +22,43 @@ class Solitaire extends AppBase {
         });
 
         this.resetState();
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('newGame', () => {
+            this.startNewGame();
+            return { success: true };
+        });
+
+        this.registerCommand('undo', () => {
+            // Solitaire doesn't have undo built in, but we can acknowledge the command
+            return { success: false, error: 'Undo not supported in Solitaire' };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            return {
+                moves: this.moves,
+                time: this.time,
+                isWon: this.isWon,
+                stockRemaining: this.stock.length,
+                wasteCount: this.waste.length,
+                foundationCounts: this.foundations.map(f => f.length)
+            };
+        });
+
+        this.registerQuery('getScore', () => {
+            return {
+                score: this.moves * 5,
+                moves: this.moves,
+                time: this.time
+            };
+        });
     }
 
     resetState() {
@@ -133,6 +170,8 @@ class Solitaire extends AppBase {
         this.renderAll();
         this.timer = setInterval(() => { this.time++; this.updateHeader(); }, 1000);
 
+        this.emitAppEvent('game:start', { type: 'klondike' });
+
         // Emit game started event
         EventBus.emit('game:start', {
             appId: 'solitaire',
@@ -231,6 +270,13 @@ class Solitaire extends AppBase {
 
         this.moves++;
 
+        this.emitAppEvent('card:moved', {
+            card: `${cardsToMove[0].val}${cardsToMove[0].suit}`,
+            from: `${fromType}:${fromIdx}`,
+            to: `${toType}:${toIdx}`,
+            moves: this.moves
+        });
+
         // Emit card move event
         EventBus.emit('solitaire:card:move', {
             card: `${cardsToMove[0].val}${cardsToMove[0].suit}`,
@@ -269,6 +315,12 @@ class Solitaire extends AppBase {
             this.isWon = true;
             clearInterval(this.timer);
             if (StateManager.unlockAchievement) StateManager.unlockAchievement('solitaire_master');
+
+            this.emitAppEvent('game:won', {
+                moves: this.moves,
+                time: this.time,
+                score: this.moves * 5
+            });
 
             // Emit win events
             EventBus.emit('solitaire:win', {

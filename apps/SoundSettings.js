@@ -22,6 +22,50 @@ class SoundSettings extends AppBase {
 
         this.currentTab = 'sounds';
         this.selectedEvent = null;
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('setVolume', (payload) => {
+            if (payload === undefined || payload === null || payload.volume === undefined) return { success: false, error: 'No volume provided' };
+            const value = Math.max(0, Math.min(100, payload.volume)) / 100;
+            StateManager.setState('settings.volume', value, true);
+            EventBus.emit(Events.VOLUME_CHANGE, { volume: value });
+            const volumeSlider = this.getElement('#master-volume');
+            const volumeDisplay = this.getElement('#volume-display');
+            if (volumeSlider) volumeSlider.value = Math.round(value * 100);
+            if (volumeDisplay) volumeDisplay.textContent = `${Math.round(value * 100)}%`;
+            return { success: true, volume: Math.round(value * 100) };
+        });
+
+        this.registerCommand('setSoundEnabled', (payload) => {
+            if (payload === undefined || payload === null || payload.enabled === undefined) return { success: false, error: 'No enabled value provided' };
+            StateManager.setState('settings.sound', payload.enabled, true);
+            const enabledCheck = this.getElement('#sound-enabled');
+            if (enabledCheck) enabledCheck.checked = payload.enabled;
+            return { success: true, enabled: payload.enabled };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getVolume', () => {
+            const volume = StateManager.getState('settings.volume') || 0.5;
+            return { volume: Math.round(volume * 100) };
+        });
+
+        this.registerQuery('isSoundEnabled', () => {
+            const enabled = StateManager.getState('settings.sound');
+            return { enabled: !!enabled };
+        });
     }
 
     onOpen() {

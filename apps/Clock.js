@@ -22,6 +22,212 @@ class Clock extends AppBase {
             category: 'accessories',
             singleton: true
         });
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('setAlarm', (payload) => {
+            const { hour, minute, ampm, label } = payload;
+            if (hour === undefined || minute === undefined) return { success: false, error: 'hour and minute are required' };
+            const alarms = this.getInstanceState('alarms') || [];
+            const newAlarm = {
+                id: Date.now().toString(36),
+                hour: Math.min(12, Math.max(1, hour)),
+                minute: Math.min(59, Math.max(0, minute)),
+                ampm: ampm || 'AM',
+                label: label || 'Alarm',
+                enabled: true
+            };
+            alarms.push(newAlarm);
+            this.setInstanceState('alarms', alarms);
+            this.saveAlarms(alarms);
+            this.renderAlarms?.();
+            this.emitAppEvent('alarm:set', { alarmId: newAlarm.id, hour: newAlarm.hour, minute: newAlarm.minute, ampm: newAlarm.ampm, label: newAlarm.label });
+            return { success: true, alarmId: newAlarm.id };
+        });
+
+        this.registerCommand('removeAlarm', (payload) => {
+            const { alarmId } = payload;
+            if (!alarmId) return { success: false, error: 'alarmId is required' };
+            const alarms = this.getInstanceState('alarms') || [];
+            const filtered = alarms.filter(a => a.id !== alarmId);
+            if (filtered.length === alarms.length) return { success: false, error: 'Alarm not found' };
+            this.setInstanceState('alarms', filtered);
+            this.saveAlarms(filtered);
+            this.renderAlarms?.();
+            return { success: true };
+        });
+
+        this.registerCommand('startTimer', (payload) => {
+            const { minutes, seconds } = payload;
+            const totalMs = ((minutes || 0) * 60 + (seconds || 0)) * 1000;
+            if (totalMs <= 0) return { success: false, error: 'Timer duration must be greater than 0' };
+
+            // Stop any existing timer
+            const existingInterval = this.getInstanceState('timerInterval');
+            if (existingInterval) clearInterval(existingInterval);
+
+            this.setInstanceState('timerTime', totalMs);
+            this.setInstanceState('timerInitial', totalMs);
+            this.updateTimerDisplay?.(totalMs);
+
+            // Start the timer
+            const startTime = Date.now();
+            const initialRemaining = totalMs;
+            const interval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const newRemaining = Math.max(0, initialRemaining - elapsed);
+                this.setInstanceState('timerTime', newRemaining);
+                this.updateTimerDisplay?.(newRemaining);
+                if (newRemaining <= 0) {
+                    this.timerComplete?.();
+                }
+            }, 100);
+
+            this.setInstanceState('timerInterval', interval);
+            this.setInstanceState('timerRunning', true);
+            const startBtn = this.getElement?.('#timerStart');
+            if (startBtn) startBtn.textContent = '⏸ Pause';
+
+            return { success: true, duration: totalMs };
+        });
+
+        this.registerCommand('stopTimer', () => {
+            const interval = this.getInstanceState('timerInterval');
+            if (interval) clearInterval(interval);
+            this.setInstanceState('timerRunning', false);
+            this.setInstanceState('timerInterval', null);
+            const startBtn = this.getElement?.('#timerStart');
+            if (startBtn) startBtn.textContent = '▶ Start';
+            return { success: true };
+        });
+
+        this.registerCommand('startStopwatch', () => {
+            const running = this.getInstanceState('stopwatchRunning');
+            if (running) return { success: false, error: 'Stopwatch is already running' };
+
+            const startTime = Date.now() - (this.getInstanceState('stopwatchTime') || 0);
+            const interval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                this.setInstanceState('stopwatchTime', elapsed);
+                this.updateStopwatchDisplay?.(elapsed);
+            }, 10);
+
+            this.setInstanceState('stopwatchInterval', interval);
+            this.setInstanceState('stopwatchRunning', true);
+            const swStart = this.getElement?.('#swStart');
+            if (swStart) swStart.textContent = '⏸ Stop';
+            const swLap = this.getElement?.('#swLap');
+            if (swLap) swLap.disabled = false;
+
+            this.emitAppEvent('stopwatch:started', {});
+            return { success: true };
+        });
+
+        this.registerCommand('stopStopwatch', () => {
+            const running = this.getInstanceState('stopwatchRunning');
+            if (!running) return { success: false, error: 'Stopwatch is not running' };
+
+            const interval = this.getInstanceState('stopwatchInterval');
+            if (interval) clearInterval(interval);
+            this.setInstanceState('stopwatchRunning', false);
+            const swStart = this.getElement?.('#swStart');
+            if (swStart) swStart.textContent = '▶ Start';
+            const swLap = this.getElement?.('#swLap');
+            if (swLap) swLap.disabled = true;
+
+            this.emitAppEvent('stopwatch:stopped', {
+                time: this.getInstanceState('stopwatchTime'),
+                laps: (this.getInstanceState('stopwatchLaps') || []).length
+            });
+            return { success: true, time: this.getInstanceState('stopwatchTime') };
+        });
+
+        this.registerCommand('resetStopwatch', () => {
+            const interval = this.getInstanceState('stopwatchInterval');
+            if (interval) clearInterval(interval);
+
+            this.setInstanceState('stopwatchTime', 0);
+            this.setInstanceState('stopwatchRunning', false);
+            this.setInstanceState('stopwatchLaps', []);
+            this.setInstanceState('stopwatchInterval', null);
+
+            this.updateStopwatchDisplay?.(0);
+            const swStart = this.getElement?.('#swStart');
+            if (swStart) swStart.textContent = '▶ Start';
+            const swLap = this.getElement?.('#swLap');
+            if (swLap) swLap.disabled = true;
+            const lapList = this.getElement?.('#lapList');
+            if (lapList) lapList.innerHTML = '<div class="lap-placeholder">Lap times will appear here</div>';
+
+            return { success: true };
+        });
+
+        this.registerCommand('switchTab', (payload) => {
+            const { tab } = payload;
+            const validTabs = ['clock', 'alarm', 'stopwatch', 'timer'];
+            if (!tab || !validTabs.includes(tab)) return { success: false, error: 'Invalid tab. Must be one of: clock, alarm, stopwatch, timer' };
+            this.switchTab?.(tab);
+            return { success: true, tab };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getCurrentTime', () => {
+            const now = new Date();
+            const hours = now.getHours();
+            const displayHours = hours % 12 || 12;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            return {
+                hours: displayHours,
+                minutes: now.getMinutes(),
+                seconds: now.getSeconds(),
+                ampm,
+                formatted: `${displayHours}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} ${ampm}`,
+                date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+            };
+        });
+
+        this.registerQuery('getAlarms', () => {
+            return this.getInstanceState('alarms') || [];
+        });
+
+        this.registerQuery('getTimerState', () => {
+            const timerTime = this.getInstanceState('timerTime') || 0;
+            const timerInitial = this.getInstanceState('timerInitial') || 0;
+            const timerRunning = this.getInstanceState('timerRunning') || false;
+            const totalSeconds = Math.ceil(timerTime / 1000);
+            return {
+                running: timerRunning,
+                remainingMs: timerTime,
+                initialMs: timerInitial,
+                remainingFormatted: `${String(Math.floor(totalSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0')}:${String(totalSeconds % 60).padStart(2, '0')}`
+            };
+        });
+
+        this.registerQuery('getStopwatchState', () => {
+            const time = this.getInstanceState('stopwatchTime') || 0;
+            const running = this.getInstanceState('stopwatchRunning') || false;
+            const laps = this.getInstanceState('stopwatchLaps') || [];
+            return {
+                running,
+                timeMs: time,
+                formatted: this.formatStopwatchTime?.(time) || '00:00:00.00',
+                lapCount: laps.length,
+                laps: laps.map((lap, i) => ({
+                    lapNumber: i + 1,
+                    timeMs: lap,
+                    formatted: this.formatStopwatchTime?.(lap) || '00:00:00.00'
+                }))
+            };
+        });
+
+        this.registerQuery('getActiveTab', () => {
+            return { tab: this.getInstanceState('activeTab') || 'clock' };
+        });
     }
 
     onOpen() {
