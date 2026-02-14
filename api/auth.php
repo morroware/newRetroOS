@@ -103,9 +103,14 @@ function getIpRateLimitData(string $ip): ?array {
     return $data;
 }
 
-function setIpRateLimitData(string $ip, array $data): void {
+function setIpRateLimitData(string $ip, array $data): bool {
     $file = getRateLimitDir() . '/' . md5($ip) . '.json';
-    file_put_contents($file, json_encode($data), LOCK_EX);
+    $result = @file_put_contents($file, json_encode($data), LOCK_EX);
+    if ($result === false) {
+        error_log('[auth.php] Failed to write rate-limit data for IP hash ' . md5($ip));
+        return false;
+    }
+    return true;
 }
 
 function clearIpRateLimitData(string $ip): void {
@@ -178,10 +183,16 @@ function handleLogin(array $input): void {
 
         // Track failed attempt by IP
         $currentIpAttempts = $ipData['attempts'] ?? 0;
-        setIpRateLimitData($ip, [
+        if (!setIpRateLimitData($ip, [
             'attempts' => $currentIpAttempts + 1,
             'last_attempt' => time()
-        ]);
+        ])) {
+            // Fail-safe: if we cannot persist rate-limit state, deny with a
+            // generic error to prevent untracked brute-force attempts.
+            http_response_code(503);
+            echo json_encode(['error' => 'Service temporarily unavailable. Try again later.']);
+            return;
+        }
 
         http_response_code(401);
         echo json_encode(['error' => 'Invalid password']);
@@ -252,6 +263,11 @@ function handleChangePassword(array $input): void {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to save credentials']);
         return;
+    }
+
+    // Harden file permissions to owner-only read/write
+    if (!@chmod($credFile, 0600)) {
+        error_log('[auth.php] Warning: failed to set permissions on credentials file');
     }
 
     // Rotate CSRF token after privileged operation

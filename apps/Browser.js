@@ -16,6 +16,7 @@
 import AppBase from './AppBase.js';
 import WindowManager from '../core/WindowManager.js';
 import EventBus from '../core/EventBus.js';
+import { escapeHtml, isSafeHttpUrl } from '../core/Sanitize.js';
 
 class Browser extends AppBase {
     constructor() {
@@ -203,7 +204,7 @@ class Browser extends AppBase {
                     <button class="browser-btn" id="btnGo" title="Go">→</button>
                 </div>
                 <div class="browser-bookmarks" id="bookmarksBar">
-                    ${this.bookmarks.map(b => `<span class="browser-bookmark" data-url="${b.url}">${b.name}</span>`).join('')}
+                    ${this.bookmarks.map(b => `<span class="browser-bookmark" data-url="${escapeHtml(b.url)}">${escapeHtml(b.name)}</span>`).join('')}
                 </div>
                 <div class="browser-content">
                     <div class="browser-loading" id="loadingMsg">Loading...</div>
@@ -343,14 +344,18 @@ class Browser extends AppBase {
     _renderBookmarks() {
         const bar = this.getElement('#bookmarksBar');
         if (!bar) return;
-        bar.innerHTML = this.bookmarks.map(b =>
-            `<span class="browser-bookmark" data-url="${b.url}">${b.name}</span>`
-        ).join('');
-        // Re-attach click handlers
-        this.getElements('.browser-bookmark').forEach(el => {
-            this.addHandler(el, 'click', () => {
-                this.navigate(el.dataset.url);
+        bar.innerHTML = '';
+        this.bookmarks.forEach(b => {
+            const span = document.createElement('span');
+            span.className = 'browser-bookmark';
+            span.textContent = b.name;
+            span.dataset.url = b.url;
+            span.addEventListener('click', () => {
+                if (isSafeHttpUrl(span.dataset.url)) {
+                    this.navigate(span.dataset.url);
+                }
             });
+            bar.appendChild(span);
         });
     }
 }

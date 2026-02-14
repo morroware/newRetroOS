@@ -3643,7 +3643,7 @@ QUICK EXAMPLES:
                 break;
             case 'events':
                 outputText.innerHTML = this.eventLog.map(e =>
-                    `<span class="event">[${e.time}] ${e.event}</span>\n  ${e.payload}`
+                    `<span class="event">[${e.time}] ${this.escapeHtml(e.event)}</span>\n  ${this.escapeHtml(e.payload)}`
                 ).join('\n\n') || 'No events logged yet.\nRun a script or interact with the system to see events.\n';
                 break;
             case 'variables':

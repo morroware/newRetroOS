@@ -7,6 +7,7 @@ import AppBase from './AppBase.js';
 import FileSystemManager from '../core/FileSystemManager.js';
 import AppRegistry from './AppRegistry.js';
 import EventBus from '../core/EventBus.js';
+import { escapeHtml } from '../core/Sanitize.js';
 
 class FindFiles extends AppBase {
     constructor() {
@@ -512,11 +513,11 @@ class FindFiles extends AppBase {
             <div class="result-item" data-index="${index}">
                 <div class="result-icon">
                     <span>${this.getFileIcon(result)}</span>
-                    <span>${result.name}</span>
+                    <span>${escapeHtml(result.name)}</span>
                 </div>
-                <div>${result.folder}</div>
+                <div>${escapeHtml(result.folder)}</div>
                 <div>${this.formatSize(result.size)}</div>
-                <div>${result.type}</div>
+                <div>${escapeHtml(result.type)}</div>
             </div>
         `).join('');
 

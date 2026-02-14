@@ -8,6 +8,7 @@ import StateManager from '../core/StateManager.js';
 import WindowManager from '../core/WindowManager.js';
 import AppRegistry from '../apps/AppRegistry.js';
 import { getConfig } from '../core/ConfigLoader.js';
+import { isSafeHttpUrl } from '../core/Sanitize.js';
 
 class TaskbarRendererClass {
     constructor() {
@@ -90,27 +91,30 @@ class TaskbarRendererClass {
             { type: 'link', url: 'https://sethmorrow.com', icon: '\uD83C\uDF00', title: 'Internet' }
         ]);
 
-        quickLaunch.innerHTML = items.map(item => {
+        quickLaunch.innerHTML = '';
+        items.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'quick-launch-btn';
+            btn.title = item.title || '';
+            btn.textContent = item.icon || '';
+
             if (item.type === 'app') {
-                return `<button class="quick-launch-btn" data-app="${item.appId}" title="${item.title}">${item.icon}</button>`;
+                btn.dataset.app = item.appId || '';
+                btn.addEventListener('click', () => {
+                    AppRegistry.launch(btn.dataset.app);
+                });
             } else if (item.type === 'link') {
-                return `<button class="quick-launch-btn" data-action="web" data-url="${item.url}" title="${item.title}">${item.icon}</button>`;
-            }
-            return '';
-        }).join('\n            ');
-
-        quickLaunch.querySelectorAll('.quick-launch-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const app = btn.dataset.app;
-                const action = btn.dataset.action;
-
-                if (app) {
-                    AppRegistry.launch(app);
-                } else if (action === 'web') {
+                btn.dataset.action = 'web';
+                btn.dataset.url = item.url || '';
+                btn.addEventListener('click', () => {
                     const url = btn.dataset.url || 'https://sethmorrow.com';
-                    AppRegistry.launch('browser', { url });
-                }
-            });
+                    if (isSafeHttpUrl(url)) {
+                        AppRegistry.launch('browser', { url });
+                    }
+                });
+            }
+
+            quickLaunch.appendChild(btn);
         });
     }
 
@@ -249,7 +253,9 @@ class TaskbarRendererClass {
             const btn = document.createElement('button');
             const isActive = w.id === activeWindow && !w.minimized;
             btn.className = `taskbar-button${isActive ? ' active' : ''}`;
-            btn.innerHTML = `<span>${w.title}</span>`;
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = w.title;
+            btn.appendChild(titleSpan);
 
             // Click handler
             btn.addEventListener('click', () => {
