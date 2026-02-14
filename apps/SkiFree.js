@@ -152,7 +152,7 @@ class SkiFree extends AppBase {
                 }
                 .skifree-menu-item {
                     padding: 2px 10px;
-                    font-size: 11px;
+                    font-size: 12px;
                     cursor: pointer;
                 }
                 .skifree-menu-item:hover {
@@ -165,7 +165,7 @@ class SkiFree extends AppBase {
                     padding: 4px 10px;
                     background: linear-gradient(180deg, #000080 0%, #0000a0 100%);
                     color: white;
-                    font-size: 11px;
+                    font-size: 12px;
                     font-family: 'MS Sans Serif', 'Segoe UI', sans-serif;
                     border-bottom: 2px groove #c0c0c0;
                 }
@@ -197,7 +197,7 @@ class SkiFree extends AppBase {
                     padding: 3px 8px;
                     background: #c0c0c0;
                     border-top: 2px groove #c0c0c0;
-                    font-size: 10px;
+                    font-size: 12px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;

@@ -74,7 +74,7 @@ class HelpSystem extends AppBase {
                     flex-direction: column;
                     height: 100%;
                     background: #c0c0c0;
-                    font-size: 13px;
+                    font-size: 14px;
                 }
                 .help-toolbar {
                     display: flex;
@@ -88,7 +88,7 @@ class HelpSystem extends AppBase {
                     background: #c0c0c0;
                     border: 2px outset #fff;
                     cursor: pointer;
-                    font-size: 13px;
+                    font-size: 14px;
                     display: flex;
                     align-items: center;
                     gap: 4px;
@@ -120,7 +120,7 @@ class HelpSystem extends AppBase {
                 .help-nav-tab {
                     padding: 4px 10px;
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: 14px;
                     border: 1px solid transparent;
                 }
                 .help-nav-tab.active {
@@ -169,9 +169,11 @@ class HelpSystem extends AppBase {
                     background: white;
                     overflow-y: auto;
                     padding: 15px;
+                    font-size: 14px;
+                    line-height: 1.6;
                 }
                 .help-title {
-                    font-size: 16px;
+                    font-size: 18px;
                     font-weight: bold;
                     color: #000080;
                     border-bottom: 1px solid #c0c0c0;
@@ -192,6 +194,7 @@ class HelpSystem extends AppBase {
                 }
                 .help-list li {
                     margin-bottom: 5px;
+                    line-height: 1.5;
                 }
                 .help-link {
                     color: #0000ff;
@@ -221,7 +224,7 @@ class HelpSystem extends AppBase {
                     padding: 3px 8px;
                     background: #c0c0c0;
                     border-top: 2px groove #fff;
-                    font-size: 12px;
+                    font-size: 13px;
                 }
                 .help-search {
                     padding: 5px;
@@ -231,7 +234,7 @@ class HelpSystem extends AppBase {
                     width: 100%;
                     padding: 3px;
                     border: 2px inset #fff;
-                    font-size: 13px;
+                    font-size: 14px;
                 }
             </style>
 

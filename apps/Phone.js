@@ -378,7 +378,7 @@ class Phone extends AppBase {
                             <div class="phone-vm-control-btn" id="btnVmBack">Back</div>
                         </div>
                         <div id="vmCallbackBar" style="display:flex; gap:4px; justify-content:center; margin-top:4px;">
-                            <div class="phone-action-btn phone-call-btn" id="btnVmCallback" style="font-size:11px; padding:3px 10px;">Call Back</div>
+                            <div class="phone-action-btn phone-call-btn" id="btnVmCallback" style="font-size:12px; padding:3px 10px;">Call Back</div>
                         </div>
                     </div>
                 </div>

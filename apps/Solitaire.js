@@ -479,7 +479,7 @@ style.textContent = `
     .btm-right { bottom: 4px; right: 4px; transform: rotate(180deg); }
     .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; }
     
-    .win95-btn { border: 2px outset white; background: #c0c0c0; cursor: pointer; padding: 2px 8px; font-weight: bold; font-size: 11px; }
+    .win95-btn { border: 2px outset white; background: #c0c0c0; cursor: pointer; padding: 2px 8px; font-weight: bold; font-size: 12px; }
     .win95-btn:active { border-style: inset; }
     .status-box { background: black; color: lime; font-family: monospace; padding: 2px 5px; border: 2px inset grey; font-size: 12px; margin-left: 5px; }
     .pile-group { display: flex; gap: 10px; }

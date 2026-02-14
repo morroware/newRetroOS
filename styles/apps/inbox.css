@@ -48,7 +48,7 @@
     border-right: 1px solid var(--win95-button-shadow);
     border-bottom: 1px solid var(--win95-button-shadow);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--win95-font-family);
     white-space: nowrap;
     display: flex;
@@ -90,7 +90,7 @@
     border-right: 2px solid var(--win95-button-highlight);
     border-bottom: 2px solid var(--win95-button-highlight);
     background: var(--win95-input-bg);
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--win95-font-family);
     color: var(--win95-text-color);
 }
@@ -121,12 +121,12 @@
     color: var(--win95-window-title-text);
     padding: 6px 8px;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
 }
 .inbox-folder-item {
     padding: 5px 8px 5px 12px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -146,7 +146,7 @@
 .inbox-folder-badge {
     background: #cc0000;
     color: #fff;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: bold;
     padding: 1px 5px;
     border-radius: 8px;
@@ -173,7 +173,7 @@
     display: flex;
     background: var(--win95-gray);
     border-bottom: 1px solid var(--win95-button-shadow);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: bold;
     color: var(--win95-text-color);
 }
@@ -204,7 +204,7 @@
     padding: 3px 0;
     cursor: pointer;
     border-bottom: 1px solid #f0f0f0;
-    font-size: 11px;
+    font-size: 12px;
 }
 .inbox-msg-row:hover {
     background: #e8e8ff;
@@ -227,7 +227,7 @@
 }
 .inbox-msg-row .col-date {
     width: 70px; padding: 0 6px; text-align: right;
-    font-size: 10px; color: var(--win95-button-shadow); flex-shrink: 0;
+    font-size: 12px; color: var(--win95-button-shadow); flex-shrink: 0;
 }
 .inbox-msg-row.active .col-date {
     color: #cce;
@@ -266,7 +266,7 @@
     padding: 8px 10px;
     border-bottom: 1px solid var(--win95-button-shadow);
     background: var(--win95-gray);
-    font-size: 11px;
+    font-size: 12px;
     flex-shrink: 0;
 }
 .inbox-viewer-headers .hdr-row {
@@ -289,7 +289,7 @@
     margin-top: 4px;
     padding-top: 4px;
     border-top: 1px dashed var(--win95-button-shadow);
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-button-shadow);
     font-family: 'Courier New', monospace;
     max-height: 60px;
@@ -309,7 +309,7 @@
     padding: 6px 10px;
     border-top: 1px solid var(--win95-button-shadow);
     background: var(--win95-gray);
-    font-size: 10px;
+    font-size: 12px;
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
@@ -351,7 +351,7 @@
 }
 .inbox-compose-label {
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--win95-blue);
     width: 55px;
     flex-shrink: 0;
@@ -365,7 +365,7 @@
     border-right: 2px solid var(--win95-button-highlight);
     border-bottom: 2px solid var(--win95-button-highlight);
     background: var(--win95-input-bg);
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--win95-font-family);
     color: var(--win95-text-color);
 }
@@ -400,7 +400,7 @@
     background: var(--win95-gray);
     /* Win95 sunken status bar */
     border-top: 1px solid var(--win95-button-shadow);
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-text-color);
     flex-shrink: 0;
 }

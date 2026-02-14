@@ -264,12 +264,12 @@
 }
 
 .event-item-time {
-    font-size: 11px;
+    font-size: 12px;
     color: #666;
 }
 
 .event-item-desc {
-    font-size: 11px;
+    font-size: 12px;
     color: #888;
     white-space: nowrap;
     overflow: hidden;

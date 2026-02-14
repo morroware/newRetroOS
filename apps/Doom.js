@@ -176,7 +176,7 @@ class Doom extends AppBase {
                     padding: 3px 8px;
                     background: rgba(0,0,0,0.7);
                     color: #0f0;
-                    font-size: 11px;
+                    font-size: 12px;
                     border-radius: 3px;
                     z-index: 5;
                     display: none;

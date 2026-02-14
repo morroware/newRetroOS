@@ -184,7 +184,7 @@ class Winamp extends AppBase {
                 .winamp-titlebar {
                     background: linear-gradient(90deg, #1a3a5c 0%, #2a5a8c 50%, #1a3a5c 100%);
                     color: #fff;
-                    font-size: 9px;
+                    font-size: 12px;
                     font-weight: bold;
                     padding: 2px 5px;
                     display: flex;
@@ -212,12 +212,12 @@ class Winamp extends AppBase {
                     position: relative;
                     z-index: 1;
                     color: #0f0;
-                    font-size: 8px;
+                    font-size: 12px;
                     text-shadow: 0 0 5px #0f0;
                 }
                 .winamp-title-scroll {
                     color: #0f0;
-                    font-size: 11px;
+                    font-size: 12px;
                     white-space: nowrap;
                     overflow: hidden;
                     margin-bottom: 3px;
@@ -235,21 +235,21 @@ class Winamp extends AppBase {
                 }
                 .winamp-kbps {
                     color: #0f0;
-                    font-size: 9px;
+                    font-size: 12px;
                     position: absolute;
                     left: 5px;
                     bottom: 5px;
                 }
                 .winamp-khz {
                     color: #0f0;
-                    font-size: 9px;
+                    font-size: 12px;
                     position: absolute;
                     left: 50px;
                     bottom: 5px;
                 }
                 .winamp-stereo {
                     color: #0f0;
-                    font-size: 8px;
+                    font-size: 12px;
                     position: absolute;
                     right: 5px;
                     bottom: 5px;
@@ -265,7 +265,7 @@ class Winamp extends AppBase {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    font-size: 8px;
+                    font-size: 12px;
                     color: #0f0;
                 }
                 .winamp-slider {
@@ -312,7 +312,7 @@ class Winamp extends AppBase {
                     background: linear-gradient(180deg, #666 0%, #333 100%);
                     border: 1px outset #555;
                     color: #fff;
-                    font-size: 10px;
+                    font-size: 12px;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
@@ -335,7 +335,7 @@ class Winamp extends AppBase {
                 }
                 .winamp-playlist-item {
                     color: #0f0;
-                    font-size: 10px;
+                    font-size: 12px;
                     padding: 2px 5px;
                     cursor: pointer;
                     display: flex;
@@ -382,7 +382,7 @@ class Winamp extends AppBase {
                 <div class="winamp-main">
                     <div class="winamp-titlebar">
                         <span>WINAMP</span>
-                        <span style="font-size: 7px;">It really whips the llama's ass!</span>
+                        <span style="font-size: 11px;">It really whips the llama's ass!</span>
                     </div>
 
                     <div class="winamp-display">

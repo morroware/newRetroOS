@@ -2324,7 +2324,7 @@ Type your script or click "Help" for full reference.
                     background: var(--win95-gray);
                     border: 2px outset var(--win95-light);
                     cursor: pointer;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
 
                 .find-btn:hover {
@@ -2336,7 +2336,7 @@ Type your script or click "Help" for full reference.
                 }
 
                 .find-info {
-                    font-size: 11px;
+                    font-size: 12px;
                     color: #404040;
                     margin-left: 8px;
                 }
@@ -2389,7 +2389,7 @@ Type your script or click "Help" for full reference.
 
                 .pane-header-info {
                     font-weight: normal;
-                    font-size: 11px;
+                    font-size: 12px;
                     opacity: 0.9;
                 }
 
@@ -2524,7 +2524,7 @@ Type your script or click "Help" for full reference.
                     padding: 4px 8px;
                     background: var(--win95-gray);
                     border-top: 2px groove var(--win95-gray);
-                    font-size: 11px;
+                    font-size: 12px;
                     color: #404040;
                 }
 
@@ -2539,7 +2539,7 @@ Type your script or click "Help" for full reference.
 
                 .file-path-display {
                     color: #404040;
-                    font-size: 11px;
+                    font-size: 12px;
                     max-width: 200px;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -2654,7 +2654,7 @@ Type your script or click "Help" for full reference.
                     border: 1px solid #555;
                     color: #0f0;
                     cursor: pointer;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
 
                 .copy-btn:hover {

@@ -125,7 +125,7 @@ class TaskManager extends AppBase {
                     flex-direction: column;
                     height: 100%;
                     background: #c0c0c0;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .taskmgr-tabs {
                     display: flex;
@@ -139,7 +139,7 @@ class TaskManager extends AppBase {
                     border-color: #fff #808080 #c0c0c0 #fff;
                     cursor: pointer;
                     margin-right: 2px;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .taskmgr-tab.active {
                     background: #c0c0c0;
@@ -222,7 +222,7 @@ class TaskManager extends AppBase {
                     background: #c0c0c0;
                     border: 2px outset #fff;
                     cursor: pointer;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .taskmgr-btn:active:not(:disabled) {
                     border-style: inset;
@@ -234,7 +234,7 @@ class TaskManager extends AppBase {
                 .taskmgr-status {
                     display: flex;
                     gap: 20px;
-                    font-size: 10px;
+                    font-size: 12px;
                 }
                 .taskmgr-status-item {
                     display: flex;
@@ -276,7 +276,7 @@ class TaskManager extends AppBase {
                 }
                 .perf-details {
                     margin-top: 8px;
-                    font-size: 10px;
+                    font-size: 12px;
                     color: #444;
                 }
                 .proc-list-header {

@@ -64,13 +64,13 @@
 }
 .chatroom-rooms-title {
     font-weight: bold;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-blue);
     margin-bottom: 5px;
 }
 .chatroom-room {
     padding: 3px 5px;
-    font-size: 10px;
+    font-size: 12px;
     cursor: pointer;
     border: 1px solid transparent;
 }
@@ -100,12 +100,12 @@
 }
 .chatroom-users-title {
     font-weight: bold;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-blue);
     margin-bottom: 5px;
 }
 .chatroom-user {
-    font-size: 10px;
+    font-size: 12px;
     padding: 2px 5px;
     display: flex;
     align-items: center;
@@ -151,7 +151,7 @@
 }
 .chatroom-message-time {
     color: var(--win95-button-shadow);
-    font-size: 10px;
+    font-size: 12px;
 }
 .chatroom-message-user {
     font-weight: bold;
@@ -166,14 +166,14 @@
 }
 .chatroom-typing {
     padding: 2px 10px;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-button-shadow);
     font-style: italic;
     height: 14px;
 }
 .chatroom-topic {
     padding: 3px 10px;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-blue);
     background: var(--win95-gray);
     border-bottom: 1px solid var(--win95-button-shadow);

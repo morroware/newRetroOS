@@ -141,7 +141,7 @@ class InstantMessenger extends AppBase {
                         <div class="im-signon-label" style="margin-top:8px;">Password:</div>
                         <input type="password" class="im-signon-field" id="imPassword" placeholder="(anything works)" maxlength="20">
                         <button class="im-signon-btn" id="imSignOnBtn">Sign On</button>
-                        <div style="text-align:center; margin-top:8px; font-size:10px; color:#666;">
+                        <div style="text-align:center; margin-top:8px; font-size:12px; color:#666;">
                             New? Just type any screen name!
                         </div>
                     </div>

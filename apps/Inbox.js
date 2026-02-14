@@ -129,7 +129,7 @@ class Inbox extends AppBase {
                         <div class="inbox-viewer-empty" id="inboxViewerEmpty">
                             <div class="inbox-viewer-empty-icon">&#128233;</div>
                             <div>Select a message to read</div>
-                            <div style="font-size:10px;">&mdash; or &mdash;</div>
+                            <div style="font-size:12px;">&mdash; or &mdash;</div>
                             <div>Click <b>New</b> to compose</div>
                         </div>
                         <div id="inboxViewerContent" style="display:none;flex:1;flex-direction:column;"></div>
@@ -940,7 +940,7 @@ class Inbox extends AppBase {
             if (!badge && this.unreadCount > 0) {
                 badge = document.createElement('span');
                 badge.className = 'inbox-tray-badge';
-                badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#cc0000;color:#fff;font-size:8px;font-weight:bold;padding:0 3px;border-radius:6px;min-width:10px;text-align:center;line-height:13px;pointer-events:none;';
+                badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#cc0000;color:#fff;font-size:11px;font-weight:bold;padding:0 3px;border-radius:6px;min-width:12px;text-align:center;line-height:15px;pointer-events:none;';
                 this._trayIcon.appendChild(badge);
             }
             if (badge) {
