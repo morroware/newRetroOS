@@ -4,6 +4,8 @@ RetroScript is IlluminatOS's built-in scripting language for automation, interac
 
 ## Table of Contents
 
+### Part I: RetroScript Language
+
 1. [Running Scripts](#1-running-scripts)
 2. [Comments](#2-comments)
 3. [Variables](#3-variables)
@@ -23,6 +25,23 @@ RetroScript is IlluminatOS's built-in scripting language for automation, interac
 17. [Terminal Scripting Bridge](#17-terminal-scripting-bridge)
 18. [Safety Limits](#18-safety-limits)
 19. [Gotchas and Common Mistakes](#19-gotchas-and-common-mistakes)
+
+### Part II: App Scripting System
+
+20. [App Scripting Overview](#20-app-scripting-overview)
+21. [Communication Apps](#21-communication-apps) — Inbox, Phone, Instant Messenger, Chat Room
+22. [Productivity Apps](#22-productivity-apps) — Browser, Calculator, Notepad, Paint
+23. [Media & Entertainment](#23-media--entertainment) — Winamp, Media Player, Video Player
+24. [Games](#24-games) — Minesweeper, Snake, Solitaire, FreeCell, Asteroids, SkiFree, Zork, Doom
+25. [System Utilities](#25-system-utilities) — Terminal, My Computer, Recycle Bin, Task Manager, Find Files, Help, Defrag, Run Dialog
+26. [Settings & Configuration](#26-settings--configuration) — Control Panel, Display Properties, Sound Settings, Features Settings
+27. [Admin & Special Apps](#27-admin--special-apps) — Admin Panel, Calendar, Clock, HyperCard
+
+### Part III: System Reference
+
+28. [System Events Reference](#28-system-events-reference)
+29. [System Commands Reference](#29-system-commands-reference)
+30. [ARG Development Patterns](#30-arg-development-patterns)
 
 ---
 
@@ -1343,3 +1362,1916 @@ if $x > 0 {
 if $x > 0
   print "positive"
 ```
+
+---
+---
+
+# Part II: App Scripting System
+
+---
+
+## 20) App Scripting Overview
+
+Every app in IlluminatOS extends `AppBase`, which provides three scriptability mechanisms:
+
+1. **Commands** — Actions you can trigger on an app from a script
+2. **Queries** — Read-only state you can request from an app
+3. **Events** — Notifications an app emits when something happens
+
+### How Commands Work
+
+Commands are registered by apps and invoked from scripts via `emit`:
+
+```retro
+# Launch the app first
+launch notepad
+wait 500
+
+# Send a command to the app
+emit command:notepad:setText text="Hello from script!"
+```
+
+The event name follows the pattern `command:<appId>:<action>`. Payload keys become the command's parameters.
+
+### How Queries Work
+
+Queries let you read app state. Emit a query event, then listen for the response:
+
+```retro
+# Using the built-in query helper
+set $result = call query "notepad:getText"
+print $result
+```
+
+Or via the event system:
+
+```retro
+on query:notepad:getText:response {
+  print "Notepad text: " + $event.text
+}
+emit query:notepad:getText
+```
+
+### How Events Work
+
+Apps emit events when their state changes. Subscribe with `on`:
+
+```retro
+on app:notepad:saved {
+  print "File saved to: " + $event.path
+}
+
+on app:minesweeper:game:win {
+  notify "You won Minesweeper in " + $event.time + " seconds!"
+}
+```
+
+App events follow the pattern `app:<appId>:<eventName>`.
+
+### Quick Reference Pattern
+
+For every app documented below, you can use these patterns:
+
+```retro
+# Command:  emit command:<appId>:<commandName> key=value
+# Query:    set $state = call query "<appId>:<queryName>"
+# Event:    on app:<appId>:<eventName> { ... }
+```
+
+---
+
+## 21) Communication Apps
+
+### Inbox (`inbox`)
+
+Full email client with folders, auto-reply, scheduled delivery, and bulk operations.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `deliverMessage` | `{from, to, subject, body, folder?, read?, starred?, tags?, attachments?, headers?}` | Deliver a message to the inbox |
+| `sendMessage` | `{to, subject, body, from?, folder?, timestamp?, tags?, attachments?}` | Send a message (appears in Sent) |
+| `markRead` | `{messageId}` | Mark message as read |
+| `markUnread` | `{messageId}` | Mark message as unread |
+| `moveMessage` | `{messageId, folder}` | Move message to folder |
+| `deleteMessage` | `{messageId, permanent?}` | Delete message (or move to Trash) |
+| `restoreMessage` | `{messageId, folder?}` | Restore from Trash |
+| `createFolder` | `{name}` | Create custom folder |
+| `renameFolder` | `{oldName, newName}` | Rename folder |
+| `deleteFolder` | `{name}` | Delete custom folder |
+| `setFlag` | `{messageId, flag?, tag?, value?}` | Set flag or tag on message |
+| `clearFlag` | `{messageId, flag?, tag?}` | Clear flag or tag |
+| `setNotificationState` | `{hasNewMail}` | Set new mail indicator |
+| `clearNewIndicator` | — | Clear new mail indicator |
+| `scheduledDelivery` | `{delay, from, subject, body, text?, folder?, headers?, attachments?, starred?}` | Schedule message delivery after delay (ms) |
+| `setAutoReply` | `{message, subject?, from?}` | Enable auto-reply |
+| `clearAutoReply` | — | Disable auto-reply |
+| `bulkDeliver` | `{messages: [{from, subject, body, ...}, ...]}` | Deliver multiple messages at once |
+| `reset` | — | Full state reset |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getFolders` | — | `{folders: [{name, isDefault, messageCount, unreadCount}]}` |
+| `getMessages` | `{folder?, read?, starred?, tag?, from?, search?, sortField?, sortAsc?, offset?, limit?}` | `{messages, total, offset, limit}` |
+| `getMessageById` | `{messageId}` | `{message}` |
+| `getUnreadCount` | `{folder?}` | `{unreadCount}` |
+| `searchMessages` | `{query}` | `{messages, total}` |
+| `getStatus` | — | `{activeFolder, activeMessageId, composing, unreadCount, hasNewMail, totalMessages, folders}` |
+| `getConfig` | — | `{activeFolder, composing, unreadCount, hasNewMail, totalMessages, folders, autoReply, scheduledDeliveries}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `messageReceived` | `{message}` | New message delivered |
+| `messageSent` | `{message}` | Message sent |
+| `messageReadChanged` | `{messageId, read}` | Read status changed |
+| `messageMoved` | `{messageId, from, to}` | Message moved to folder |
+| `messageDeleted` | `{messageId, permanent}` | Message deleted |
+| `messageRestored` | `{messageId, folder}` | Message restored from trash |
+| `folderChanged` | `{folders}` | Folder structure changed |
+| `unreadCountChanged` | `{unreadCount}` | Unread count changed |
+| `notificationStateChanged` | `{hasNewMail}` | Notification state changed |
+| `scheduledDelivered` | `{id, from, subject}` | Scheduled message delivered |
+| `autoReplySet` | `{message}` | Auto-reply enabled/disabled |
+
+#### Example: ARG Email Delivery
+
+```retro
+# Deliver a mysterious email after 30 seconds
+emit command:inbox:scheduledDelivery delay=30000 from="unknown@darknet.sys" subject="They're watching" body="Check the recycling bin. The files aren't deleted. -X"
+
+# React when the user reads it
+on app:inbox:messageReadChanged {
+  if $event.read == true {
+    wait 5000
+    emit command:inbox:deliverMessage from="unknown@darknet.sys" subject="Re: They're watching" body="Good. You're paying attention. Now check the terminal."
+  }
+}
+```
+
+---
+
+### Phone (`phone`)
+
+Full phone system with contacts, voicemail, call simulation, call interception, speed dial, and scripted conversations.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `dial` | `{number}` | Dial a number |
+| `hangup` | — | End current call |
+| `hold` | — | Put call on hold |
+| `answer` | — | Answer incoming call |
+| `decline` | — | Decline incoming call |
+| `addContact` | `{name, number, group?}` | Add contact |
+| `removeContact` | `{name}` | Remove contact |
+| `updateContact` | `{name, number, group?}` | Update contact |
+| `clearContacts` | — | Clear all contacts |
+| `sendVoicemail` | `{from, number?, message, id?}` | Send voicemail |
+| `sendAudioVoicemail` | `{from, number, message, audioSrc, duration?}` | Send voicemail with audio |
+| `deleteVoicemail` | `{id}` | Delete voicemail |
+| `clearVoicemails` | — | Clear all voicemails |
+| `simulateIncoming` | `{from, number?, responses?, audioSrc?}` | Simulate incoming call |
+| `scheduleCall` | `{from, number, delay, responses?, id?}` | Schedule a future call |
+| `cancelScheduledCall` | `{id}` | Cancel scheduled call |
+| `injectMessage` | `{text}` | Inject message into active call |
+| `setResponses` | `{responses: [...]}` | Set custom call responses |
+| `clearResponses` | — | Clear custom responses |
+| `setCallOutcome` | `{number, name?, outcome}` | Set outcome override for number |
+| `clearCallOutcome` | `{number, name?}` | Clear outcome override |
+| `interceptCall` | `{number, name?, outcome?, message?, responses?, audioSrc?, voicemail?, duration?}` | Intercept calls to a number |
+| `clearIntercept` | `{number, name?}` | Clear call intercept |
+| `playCallAudio` | `{src}` | Play audio during call |
+| `stopCallAudio` | — | Stop call audio |
+| `setSpeedDial` | `{slot, name, number}` | Set speed dial slot |
+| `clearSpeedDial` | `{slot}` | Clear speed dial slot |
+| `setText` | `{text}` | Set LCD display text |
+| `setLCDStatus` | `{text}` | Set LCD status line |
+| `setView` | `{view}` | Change UI view |
+| `setGreeting` | `{greeting}` | Set answering machine greeting |
+| `setCallerIdEnabled` | `{enabled}` | Toggle caller ID |
+| `setAnsweringMachineEnabled` | `{enabled}` | Toggle answering machine |
+| `clearHistory` | — | Clear call history |
+| `setBotResponses` | `{name, responses: [...]}` | Set contact bot responses |
+| `reset` | — | Full state reset |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getStatus` | — | `{callState, currentCall, isRinging, activeCallAudio}` |
+| `getCurrentCall` | — | `{call}` |
+| `getContacts` | — | `{contacts}` |
+| `getCallHistory` | — | `{history}` |
+| `getVoicemails` | — | `{voicemails}` |
+| `getSpeedDial` | — | `{speedDial}` |
+| `getTranscript` | — | `{messages}` |
+| `getGreeting` | — | `{greeting}` |
+| `getConfig` | — | `{callerIdEnabled, answeringMachineEnabled, answeringMachineGreeting, speedDialCount, scheduledCallCount}` |
+| `getScheduledCalls` | — | `{scheduledCalls}` |
+| `getView` | — | `{view}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `dialed` | `{number, name}` | Number dialed |
+| `ringing` | `{number, name}` | Call ringing |
+| `connected` | `{number, name}` | Call connected |
+| `ended` | `{number, name, duration, reason, transcript}` | Call ended |
+| `incoming` | `{number, name}` | Incoming call received |
+| `answered` | `{number, name}` | Incoming call answered |
+| `declined` | `{}` | Incoming call declined |
+| `voicemail` | `{from, number, message, id?, hasAudio?}` | Voicemail received |
+| `voicemailPlayed` | `{id, from, number}` | Voicemail played |
+| `contactAdded` | `{name, number, group?}` | Contact added |
+| `contactRemoved` | `{name, number}` | Contact removed |
+| `contactUpdated` | `{name, number}` | Contact updated |
+| `messageReceived` | `{text}` | In-call message received |
+| `messageSent` | `{text}` | In-call message sent |
+| `callIntercepted` | `{number, name, intercept}` | Call intercepted |
+| `speedDialUsed` | `{slot, name, number}` | Speed dial used |
+| `dtmf` | `{digit}` | DTMF tone pressed |
+| `audioStarted` | `{src}` | Call audio started |
+| `audioEnded` | `{src}` | Call audio ended |
+| `scheduledCallTriggered` | `{id, from, number}` | Scheduled call triggered |
+| `viewChanged` | `{view, previousView}` | UI view changed |
+
+#### Example: Mysterious Incoming Call
+
+```retro
+# Set up a contact
+emit command:phone:addContact name="??? Unknown" number="555-0000" group="Unknown"
+
+# Schedule a creepy call in 60 seconds
+emit command:phone:scheduleCall from="??? Unknown" number="555-0000" delay=60000 responses=["I know where you are.", "The signal is coming from inside the OS.", "Check your inbox. NOW."]
+
+# React when the call ends
+on app:phone:ended {
+  if $event.number == "555-0000" {
+    emit command:inbox:deliverMessage from="SYSTEM" subject="TRACE COMPLETE" body="Call origin: INTERNAL. This should not be possible."
+  }
+}
+```
+
+---
+
+### Instant Messenger (`instantmessenger`)
+
+AIM-style instant messenger with buddy list, conversations, away status, and bot responses.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `signOn` | `{username}` | Sign on with username |
+| `signOff` | — | Sign off |
+| `sendMessage` | `{buddy, message}` | Send message to buddy |
+| `setAway` | `{message}` | Set away status |
+| `addBuddy` | `{screenName, group?}` | Add buddy |
+| `removeBuddy` | `{screenName}` | Remove buddy |
+| `openConversation` | `{buddy}` | Open chat window with buddy |
+| `closeConversation` | — | Close active conversation |
+| `setStatus` | `{status}` | Set status (online, away, idle) |
+| `warnBuddy` | `{screenName}` | Warn a buddy |
+| `simulateMessage` | `{from, message}` | Simulate incoming message |
+| `setBuddyStatus` | `{screenName, status}` | Set buddy's online status |
+| `setBuddyResponses` | `{buddy, responses: [...]}` | Set auto-responses for buddy |
+| `clearBuddyResponses` | `{buddy}` | Clear auto-responses |
+| `simulateBuddyTyping` | `{buddy}` | Show typing indicator |
+| `setConversation` | `{buddy, messages: [...]}` | Set conversation history |
+| `clearConversation` | `{buddy}` | Clear conversation |
+| `clearAllConversations` | — | Clear all conversations |
+| `scheduledMessage` | `{buddy, message, delay?, id?}` | Schedule a future message |
+| `setBuddyProfile` | `{screenName, profile, awayMsg?, warningLevel?}` | Set buddy profile |
+| `reset` | — | Full state reset |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getStatus` | — | `{isSignedOn, username, status, awayMessage}` |
+| `getBuddyList` | — | `{buddyGroups}` |
+| `getConversation` | `{buddy}` | `{messages}` |
+| `getAwayMessage` | — | `{awayMessage}` |
+| `getOnlineBuddies` | — | `{buddies}` |
+| `getWarningLevel` | `{screenName}` | `{warningLevel}` |
+| `getAllConversations` | — | `{conversations}` |
+| `getConfig` | — | `{isSignedOn, username, status, buddyCount, conversationCount, customResponseCount}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `signedOn` | `{username}` | User signed on |
+| `signedOff` | `{username}` | User signed off |
+| `messageReceived` | `{from, message}` | Message received |
+| `messageSent` | `{to, message}` | Message sent |
+| `buddyOnline` | `{screenName, group?}` | Buddy came online |
+| `buddyOffline` | `{screenName}` | Buddy went offline |
+| `awayChanged` | `{away, message}` | Away status changed |
+| `conversationOpened` | `{buddy}` | Conversation opened |
+| `conversationClosed` | `{buddy}` | Conversation closed |
+| `buddyStatusChanged` | `{screenName, oldStatus, newStatus}` | Buddy status changed |
+
+#### Example: Bot Buddy
+
+```retro
+launch instantmessenger
+wait 1000
+
+# Sign on
+emit command:instantmessenger:signOn username="Player1"
+wait 500
+
+# Add a mysterious buddy with auto-responses
+emit command:instantmessenger:addBuddy screenName="gh0st_in_the_machine" group="Hackers"
+emit command:instantmessenger:setBuddyStatus screenName="gh0st_in_the_machine" status="online"
+emit command:instantmessenger:setBuddyResponses buddy="gh0st_in_the_machine" responses=["I've been waiting for you.", "The system remembers everything.", "Type 'help' if you want to know the truth."]
+
+# Schedule a message from the buddy
+emit command:instantmessenger:scheduledMessage buddy="gh0st_in_the_machine" message="Are you still there? I have something to show you." delay=30000
+```
+
+---
+
+### Chat Room (`chatroom`)
+
+IRC-style chat room with rooms, bots, topic control, and room locking.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `login` | `{username}` | Log in to chat |
+| `sendMessage` | `{message}` | Send message to room |
+| `joinRoom` | `{room}` | Join a room |
+| `setNick` | `{name}` | Change nickname |
+| `clear` | — | Clear message history |
+| `addBot` | `{name, status?, color?}` | Add bot user |
+| `removeBot` | `{name}` | Remove bot user |
+| `injectMessage` | `{from, message, color?}` | Inject message as any user |
+| `injectSystemMessage` | `{message}` | Inject system message |
+| `simulateUserJoin` | `{name, status?, color?}` | Simulate user joining |
+| `simulateUserLeave` | `{name, message?}` | Simulate user leaving |
+| `setUserColor` | `{name, color}` | Set user's chat color |
+| `scheduledMessage` | `{from, message, delay?, id?, color?}` | Schedule a message |
+| `setRoomTopic` | `{topic}` | Set room topic |
+| `lockRoom` | — | Lock the room |
+| `unlockRoom` | — | Unlock the room |
+| `setBotResponses` | `{name, responses: [...]}` | Set bot auto-responses |
+| `reset` | — | Full state reset |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getStatus` | — | `{loggedIn, username, room, userCount}` |
+| `getCurrentRoom` | — | `{name, label, userCount}` |
+| `getUsers` | — | `[{name, status, isUser, color}]` |
+| `getMessages` | `{count?}` | `[messages]` |
+| `getRooms` | — | `[{name, label, users, active}]` |
+| `getConfig` | — | `{loggedIn, username, room, roomLocked, roomTopic, userCount, messageCount, customBotResponseCount, scheduledMessages}` |
+| `getRoomTopic` | — | `{topic, room}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `loggedIn` | `{username, room}` | User logged in |
+| `messageSent` | `{username, message, room}` | Message sent |
+| `messageReceived` | `{from, message, room}` | Message received |
+| `roomChanged` | `{room, previousRoom, label}` | Room changed |
+| `userJoined` | `{username, room}` | User joined room |
+| `userLeft` | `{username, room}` | User left room |
+| `roomLocked` | `{room}` | Room locked |
+| `roomUnlocked` | `{room}` | Room unlocked |
+| `topicChanged` | `{topic, room}` | Room topic changed |
+
+#### Example: Haunted Chat Room
+
+```retro
+launch chatroom
+wait 1000
+emit command:chatroom:login username="Player"
+wait 500
+
+# Set an ominous topic
+emit command:chatroom:setRoomTopic topic="DO NOT TRUST THE ADMIN"
+
+# Add ghost users
+emit command:chatroom:addBot name="[DELETED_USER]" color="#ff0000"
+emit command:chatroom:addBot name="sys_daemon" color="#00ff00"
+
+# Simulate a conversation
+emit command:chatroom:scheduledMessage from="[DELETED_USER]" message="Can anyone hear me?" delay=5000 color="#ff0000"
+emit command:chatroom:scheduledMessage from="sys_daemon" message="User [DELETED_USER] does not exist in the system." delay=8000 color="#00ff00"
+emit command:chatroom:scheduledMessage from="[DELETED_USER]" message="They deleted my account but I'm still here." delay=12000 color="#ff0000"
+
+# Lock the room after the exchange
+wait 15000
+emit command:chatroom:lockRoom
+emit command:chatroom:injectSystemMessage message="Room has been locked by SYSTEM ADMINISTRATOR"
+```
+
+---
+
+## 22) Productivity Apps
+
+### Browser (`browser`)
+
+Web browser with navigation, bookmarks, history, and homepage.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `navigate` | `{url}` (or string) | Navigate to URL |
+| `back` | — | Go back in history |
+| `forward` | — | Go forward in history |
+| `refresh` | — | Refresh current page |
+| `home` | — | Navigate to homepage |
+| `setHomepage` | `{url}` | Set homepage URL |
+| `addBookmark` | `{name, url}` | Add bookmark |
+| `removeBookmark` | `{url}` | Remove bookmark |
+| `setStatusText` | `{text}` | Set status bar text |
+| `setAddressBar` | `{url}` | Set address bar text |
+| `reset` | — | Reset to defaults |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getCurrentUrl` | — | `{url}` |
+| `getHistory` | — | `{history, currentIndex}` |
+| `getHomepage` | — | `{homepage}` |
+| `getBookmarks` | — | `[{name, url}]` |
+| `getConfig` | — | `{homepage, currentUrl, historyLength, bookmarkCount}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `homepageChanged` | `{url}` | Homepage changed |
+| `bookmarkAdded` | `{name, url}` | Bookmark added |
+| `bookmarkRemoved` | `{name, url}` | Bookmark removed |
+
+```retro
+launch browser
+wait 1000
+emit command:browser:navigate url="https://illuminatos.local/secret"
+emit command:browser:setStatusText text="SIGNAL DETECTED..."
+```
+
+---
+
+### Calculator (`calculator`)
+
+Basic calculator with expression evaluation.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `input` | `{value}` | Input digit, operator, or decimal |
+| `clear` | — | Clear display |
+| `calculate` | `{expression}` | Evaluate expression string |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getValue` | — | Current numeric value |
+| `getDisplay` | — | Current display string |
+| `getOperator` | — | Current operator or null |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `input` | `{value, display}` | Input received |
+| `cleared` | `{}` | Calculator cleared |
+| `calculated` | `{expression, result}` | Expression evaluated |
+
+```retro
+launch calculator
+wait 500
+emit command:calculator:calculate expression="13 * 37"
+
+on app:calculator:calculated {
+  print "Result: " + $event.result
+}
+```
+
+---
+
+### Notepad (`notepad`)
+
+Text editor with file open/save and text manipulation.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `setText` | `{text}` | Set full text content |
+| `appendText` | `{text}` | Append text to end |
+| `clear` | — | Clear all text |
+| `save` | `{path?}` | Save to file |
+| `open` | `{path}` | Open file |
+| `new` | — | New blank document |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getText` | — | Text content (string) |
+| `getFilePath` | — | Current file path or null |
+| `getFileName` | — | Current file name |
+| `getLength` | — | Character count |
+| `getLineCount` | — | Line count |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `textChanged` | `{text}` | Text content changed |
+| `textCleared` | `{}` | Text cleared |
+| `saved` | `{path}` | File saved |
+| `fileOpened` | `{path, content}` | File opened |
+| `newDocument` | `{}` | New document created |
+
+```retro
+launch notepad
+wait 1000
+emit command:notepad:setText text="CLASSIFIED DOCUMENT\n\nOperation: MIDNIGHT SUN\nStatus: ACTIVE\nClearance: LEVEL 5 REQUIRED\n\n[REDACTED]"
+wait 500
+emit command:notepad:save path="C:/Users/User/Documents/classified.txt"
+```
+
+---
+
+### Paint (`paint`)
+
+Bitmap drawing application with tools, colors, and shapes.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `setTool` | tool (string) | Set tool: brush, eraser, bucket |
+| `setColor` | color (string) | Set color (#RRGGBB) |
+| `setBrushSize` | size (number) | Set brush size (1-50) |
+| `clear` | — | Clear canvas |
+| `drawLine` | `x1, y1, x2, y2` | Draw a line |
+| `fillRect` | `x, y, width, height` | Fill a rectangle |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{tool, color, brushSize, currentFile, fileName}` |
+| `getCanvasDimensions` | — | `{width, height}` |
+
+---
+
+## 23) Media & Entertainment
+
+### Winamp (`winamp`)
+
+Music player with playlist, volume, and playback controls.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `play` | — | Play current track |
+| `pause` | — | Pause playback |
+| `stop` | — | Stop playback |
+| `next` | — | Next track |
+| `previous` | — | Previous track |
+| `setVolume` | `{volume: 0-100}` | Set volume |
+| `seek` | `{position}` | Seek to position (seconds) |
+| `loadPlaylist` | `{tracks: [{title, artist?, duration?}]}` | Load new playlist |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{isPlaying, currentTrack, trackIndex, volume, currentTime}` |
+| `getCurrentTrack` | — | `{index, title, artist?, duration?}` |
+| `getPlaylist` | — | `[{index, title, artist?, duration?}]` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `play` | `{trackIndex, title, artist?}` | Playback started |
+| `pause` | `{trackIndex, currentTime}` | Playback paused |
+| `stop` | `{trackIndex}` | Playback stopped |
+| `track:changed` | `{trackIndex, title, artist?}` | Track changed |
+| `volume:changed` | `{volume}` | Volume changed |
+| `playlist:loaded` | `{trackCount}` | New playlist loaded |
+
+```retro
+launch winamp
+wait 1000
+emit command:winamp:loadPlaylist tracks=[{title: "Suspicious Signal", artist: "Unknown", duration: 180}, {title: "Hidden Frequency", artist: "???", duration: 240}]
+emit command:winamp:play
+emit command:winamp:setVolume volume=75
+```
+
+---
+
+### Media Player (`mediaplayer`)
+
+Windows Media Player-style audio player.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `play` | — | Play audio |
+| `pause` | — | Pause audio |
+| `stop` | — | Stop audio |
+| `next` | — | Next track |
+| `previous` | — | Previous track |
+| `setVolume` | volume (number 0-100) | Set volume |
+| `seek` | position (number) | Seek to position |
+| `playTrack` | index (number) | Play track by index |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{playing, currentTrack, currentTime, duration, volume, repeat, shuffle}` |
+| `getPlaylist` | — | `{playlist}` |
+| `getCurrentTrack` | — | `{index, track}` |
+
+---
+
+### Video Player (`videoplayer`)
+
+Video/audio player with playlist, fullscreen, shuffle, and repeat.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `play` | — | Play media |
+| `pause` | — | Pause media |
+| `stop` | — | Stop media |
+| `load` | `src, name?` | Load media source |
+| `next` | — | Next track |
+| `previous` | — | Previous track |
+| `setVolume` | volume (0-100) | Set volume |
+| `seek` | position (number) | Seek to position |
+| `fullscreen` | — | Toggle fullscreen |
+| `mute` | — | Toggle mute |
+| `shuffle` | — | Toggle shuffle |
+| `repeat` | — | Toggle repeat |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{playing, currentIndex, currentTime, duration, volume, muted, loop, shuffle, isAudio}` |
+| `getPlaylist` | — | `{playlist}` |
+| `getCurrentMedia` | — | `{index, media}` |
+
+---
+
+## 24) Games
+
+### Minesweeper (`minesweeper`)
+
+Classic mine-finding puzzle game.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `newGame` | — | Start new game |
+| `setDifficulty` | `{level: 'easy'\|'medium'\|'hard'\|'expert'}` | Change difficulty |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{rows, cols, mines, revealed, flagged, gameStatus, time}` |
+| `getBoard` | — | `{board: [{count, flagged, revealed, hasMine}]}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `game:start` | `{rows, cols, mines}` | Game started |
+| `cell:revealed` | `{row, col, value}` | Cell revealed |
+| `cell:flagged` | `{row, col, flagged}` | Cell flagged/unflagged |
+| `game:win` | `{time, rows, cols, mines, moves}` | Game won |
+| `game:lose` | `{time, rows, cols, mines, hitMine: {row, col}}` | Game lost (hit mine) |
+
+```retro
+# Track Minesweeper performance for an ARG challenge
+set $wins = 0
+set $totalTime = 0
+
+on app:minesweeper:game:win {
+  set $wins = $wins + 1
+  set $totalTime = $totalTime + $event.time
+  if $wins >= 3 {
+    notify "Achievement unlocked: Mine Sweeper"
+    emit command:inbox:deliverMessage from="SYSTEM" subject="Clearance Granted" body="Your pattern recognition skills are impressive. Access code: GAMMA-7."
+  }
+}
+```
+
+---
+
+### Snake (`snake`)
+
+Classic snake game with score tracking.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `start` | — | Start new game |
+| `pause` | — | Pause game |
+| `resume` | — | Resume paused game |
+| `reset` | — | Reset to title screen |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{score, highScore, gridSize, tileCount, state, snakeLength}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `game:start` | `{gridSize, tileCount}` | Game started |
+| `food:eaten` | `{x, y, score, snakeLength}` | Food eaten |
+| `score:updated` | `{score, previousScore, delta}` | Score changed |
+| `game:over` | `{score, snakeLength}` | Game over |
+
+---
+
+### Solitaire (`solitaire`)
+
+Klondike solitaire card game.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `newGame` | — | Start new game |
+| `undo` | — | Undo last move (returns error - not supported) |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{moves, time, gameWon, gameOver}` |
+| `getScore` | — | `{score, moves, time}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `game:start` | `{type: 'klondike'}` | Game started |
+| `card:moved` | `{card, from, to, moves}` | Card moved |
+| `game:won` | `{moves, time, score}` | Game won |
+
+---
+
+### FreeCell (`freecell`)
+
+FreeCell card game with undo support.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `newGame` | — | Start new game |
+| `undo` | — | Undo last move |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{totalInFoundations, freeCellsUsed, cardsMoved, gameWon, gameOver}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `game:start` | `{type: 'freecell'}` | Game started |
+| `card:moved` | `{card, from, to, moves}` | Card moved |
+| `game:won` | `{moves, time}` | Game won |
+
+---
+
+### Asteroids (`asteroids`)
+
+Arcade-style space shooting game.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `start` | — | Start game |
+| `pause` | — | Pause game |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{score, lives, level, gameState}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `game:start` | `{lives}` | Game started |
+| `level:up` | `{level, previousLevel}` | Level advanced |
+| `score:updated` | `{score, previousScore, delta, reason}` | Score changed |
+| `game:over` | `{score, level, highScore}` | Game over |
+
+---
+
+### SkiFree (`skifree`)
+
+Downhill skiing game with yeti chase.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `start` | — | Start game |
+| `pause` | — | Pause game |
+| `resume` | — | Resume paused game |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{score, highScore, distance, lives, state, yetiAppeared}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `game:start` | `{lives}` | Game started |
+| `score:updated` | `{score, distance}` | Score/distance changed |
+| `yeti:appeared` | `{distance}` | Yeti appears |
+| `game:over` | `{score, distance, byYeti, finalState}` | Game over |
+
+```retro
+# React to the yeti
+on app:skifree:yeti:appeared {
+  notify "HE'S COMING."
+  wait 2000
+  emit command:chatroom:injectSystemMessage message="WARNING: Entity detected at distance " + $event.distance
+}
+```
+
+---
+
+### Zork (`zork`)
+
+Text adventure game with rich ARG scripting — teleportation, inventory manipulation, flags, and score control.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `sendCommand` | `{command}` | Send text command to game engine |
+| `injectText` | `{text}` | Inject text into output (no processing) |
+| `teleport` | `{room}` | Move player to a room directly |
+| `addInventory` | `{item}` | Add item to player's inventory |
+| `removeInventory` | `{item}` | Remove item from inventory |
+| `setScore` | `{score}` | Set player's score |
+| `setFlag` | `{flag, value?}` | Set game flag (lanternOn, trollDead, leafletRead, eggOpened, thiefEncountered, gameOver) |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{currentRoom, score, moves, inventory, gameOver}` |
+| `getRoom` | — | `{id, name, description, exits, objects, dark}` |
+| `getInventory` | — | `[item IDs]` |
+| `getScore` | — | `{score, moves}` |
+| `getFlag` | `{flag}` | `{flag, value}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `room:changed` | `{from, to}` | Player moved to new room |
+| `item:taken` | `{item}` | Item picked up |
+| `item:dropped` | `{item}` | Item dropped |
+| `score:changed` | `{score, change}` | Score changed |
+| `game:over` | `{won, score}` | Game ended |
+| `command:entered` | `{command, response}` | Player typed a command |
+
+#### Example: ARG Zork Integration
+
+```retro
+launch zork
+wait 1000
+
+# Monitor player commands for secret phrases
+on app:zork:command:entered {
+  if call contains $event.command "xyzzy" {
+    emit command:zork:injectText text="\n*** HIDDEN PASSAGE ACTIVATED ***\nA portal shimmers into existence...\n"
+    emit command:zork:teleport room="clearing"
+    emit command:zork:addInventory item="strange_key"
+    emit command:zork:setScore score=100
+  }
+}
+
+# React to room changes
+on app:zork:room:changed {
+  if $event.to == "cellar" {
+    wait 2000
+    emit command:zork:injectText text="\nYou hear a faint transmission from somewhere above...\n'The password is LIGHTHOUSE.'\n"
+  }
+}
+```
+
+---
+
+### Doom (`doom`)
+
+Doom game running in an iframe wrapper.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `reload` | — | Reload the game |
+| `focus` | — | Focus the game iframe |
+| `fullscreen` | — | Toggle fullscreen |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{isFocused}` |
+
+---
+
+## 25) System Utilities
+
+### Terminal (`terminal`)
+
+Command-line terminal with extensive scripting support.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `execute` | cmd (string) | Execute a terminal command |
+| `executeSequence` | commands (string[]) | Execute multiple commands |
+| `clear` | — | Clear terminal screen |
+| `print` | text, color? | Print text to terminal |
+| `printHtml` | html (string) | Print HTML to terminal |
+| `cd` | path (string) | Change directory |
+| `dir` | path? (string) | List directory |
+| `readFile` | filePath (string) | Read file contents |
+| `writeFile` | filePath, content, extension? | Write file |
+| `setEnvVar` | name, value | Set environment variable |
+| `getEnvVar` | name | Get environment variable |
+| `createAlias` | name, command | Create command alias |
+| `removeAlias` | name | Remove alias |
+| `runScript` | scriptPath | Run .retro or .bat script |
+| `focus` | — | Focus terminal window |
+| `minimize` | — | Minimize terminal |
+| `maximize` | — | Maximize terminal |
+| `closeTerminal` | — | Close terminal window |
+| `showMessage` | message, type? | Show styled message |
+| `createFile` | filePath, content? | Create file |
+| `deleteFile` | filePath | Delete file |
+| `fileExists` | filePath | Check file exists |
+| `launchApp` | appId, params? | Launch app from terminal |
+| `startMatrix` | — | Start matrix rain effect |
+| `stopMatrix` | — | Stop matrix rain |
+| `enableGodMode` | — | Enable god mode |
+| `updatePrompt` | — | Update terminal prompt |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getCurrentPath` | — | `{path, pathString}` |
+| `getHistory` | — | `{history}` |
+| `getLastOutput` | — | `{output}` |
+| `getEnvVars` | — | `{envVars}` |
+| `getAliases` | — | `{aliases}` |
+| `getState` | — | `{currentPath, pathString, godMode, hasActiveProcess, historyCount, windowId}` |
+| `getWindowInfo` | — | `{windowId, appId, appName}` |
+| `getAllOutput` | — | `{outputText, outputHtml}` |
+| `isGodMode` | — | `{godMode}` |
+| `getBatchState` | — | `{isExecutingBatch, batchCommandCount, currentBatchIndex}` |
+
+---
+
+### My Computer (`mycomputer`)
+
+File explorer with navigation, file operations, and directory browsing.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `navigate` | `{path}` | Navigate to path |
+| `createFolder` | `{path, name}` | Create folder |
+| `delete` | `{path}` | Delete file or folder |
+| `rename` | `{path, newName}` | Rename item |
+| `openFile` | `{path}` | Open file with default app |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getCurrentPath` | — | `{path, pathString}` |
+| `listDirectory` | path? | `{success, path, items}` |
+| `getNodeInfo` | path | `{success, node}` |
+| `getSystemFolders` | — | `{folders}` |
+
+---
+
+### Recycle Bin (`recyclebin`)
+
+Deleted file management.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `restoreItem` | `{index}` | Restore item by index |
+| `deleteItem` | `{index}` | Permanently delete item |
+| `emptyBin` | — | Empty entire recycle bin |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getItems` | — | `[{id, label, type, emoji}]` |
+| `getCount` | — | `{count}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `item:restored` | item data | Item restored |
+| `item:deleted` | item data | Item permanently deleted |
+| `bin:emptied` | — | Bin emptied |
+
+---
+
+### Task Manager (`taskmanager`)
+
+Process and window management.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `endTask` | `{windowId}` | End/close application |
+| `switchTo` | `{windowId}` | Switch to window |
+| `refreshView` | — | Refresh display |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getApplications` | — | `[{windowId, title, minimized, memory}]` |
+| `getProcesses` | — | `[{name, pid, windowId?}]` |
+| `getPerformance` | — | `{cpu, memory}` |
+| `getProcessCount` | — | `{count}` |
+
+---
+
+### Find Files (`findfiles`)
+
+File search utility.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `search` | `{name?, content?, location?}` | Start search |
+| `stopSearch` | — | Stop ongoing search |
+| `clearResults` | — | Clear results |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getResults` | — | `[{name, folder, size, type}]` |
+| `getSearchState` | — | `{isSearching, resultCount}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `search:complete` | `{query, location, resultsCount}` | Search completed |
+| `result:opened` | `{name, path, type}` | Result opened |
+| `search:stopped` | `{resultsFound}` | Search stopped |
+
+---
+
+### Help System (`help`)
+
+Help viewer with topic navigation and history.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `navigateTo` | `{topic}` | Navigate to help topic |
+| `goBack` | — | Go to previous topic |
+| `goForward` | — | Go to next topic |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getCurrentTopic` | — | `{topic}` |
+| `getHistory` | — | `{history, historyIndex}` |
+
+---
+
+### Defrag (`defrag`)
+
+Disk defragmentation utility.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `analyze` | — | Analyze disk |
+| `defragment` | — | Start defragmentation |
+| `pause` | — | Pause operation |
+| `stop` | — | Stop operation |
+| `selectDrive` | `{drive}` | Select drive |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{isRunning, isPaused, selectedDrive, fragmentedPercent, progress}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `analysis:complete` | analysis data | Analysis finished |
+| `defrag:start` | — | Defrag started |
+| `defrag:complete` | — | Defrag finished |
+| `defrag:stopped` | — | Defrag stopped |
+
+---
+
+### Run Dialog (`run`)
+
+Quick-launch dialog for apps and URLs.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `execute` | `{command}` | Execute app name or URL |
+
+---
+
+## 26) Settings & Configuration
+
+### Control Panel (`controlpanel`)
+
+Central settings hub.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `setSetting` | `{setting, value}` | Set system setting |
+
+Supported settings: `crtEffect`, `sound`, `petEnabled`, `petType`, `screensaverDelay`, `desktopBg`
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getSettings` | — | `{crtEffect, sound, pet, screensaverDelay, desktopBg}` |
+
+```retro
+# Toggle CRT effect
+emit command:controlpanel:setSetting setting="crtEffect" value=true
+
+# Enable desktop pet
+emit command:controlpanel:setSetting setting="petEnabled" value=true
+emit command:controlpanel:setSetting setting="petType" value="cat"
+```
+
+---
+
+### Display Properties (`displayproperties`)
+
+Wallpaper and color scheme settings.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `setWallpaper` | `{wallpaper}` | Select wallpaper pattern |
+| `setColorScheme` | `{scheme}` | Set color scheme: win95, highcontrast, desert, ocean, rose, slate |
+| `applySettings` | — | Apply all current settings |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getSettings` | — | `{wallpaper, backgroundColor}` |
+
+---
+
+### Sound Settings (`soundsettings`)
+
+System volume and sound toggle.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `setVolume` | `{volume: 0-100}` | Set master volume |
+| `setSoundEnabled` | `{enabled}` | Enable/disable sound |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getVolume` | — | `{volume}` |
+| `isSoundEnabled` | — | `{enabled}` |
+
+---
+
+### Features Settings (`featuressettings`)
+
+Toggle and configure system features.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `enableFeature` | `{featureId}` | Enable a feature |
+| `disableFeature` | `{featureId}` | Disable a feature |
+| `setFeatureConfig` | `{featureId, key, value}` | Set feature config value |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getFeatures` | `{category?}` | Array of features |
+| `getFeature` | `{featureId}` | Single feature or null |
+| `isFeatureEnabled` | `{featureId}` | Boolean |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `feature:enabled` | `{featureId}` | Feature enabled |
+| `feature:disabled` | `{featureId}` | Feature disabled |
+| `feature:configChanged` | `{featureId, key, value}` | Feature config changed |
+
+---
+
+## 27) Admin & Special Apps
+
+### Admin Panel (`adminpanel`)
+
+Desktop icon management and achievement system.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `addIcon` | `{emoji, id, label, type?, x?, y?, url?}` | Add desktop icon |
+| `removeIcon` | `{index}` | Remove icon by index |
+| `unlockAchievement` | `{achievement}` | Unlock an achievement |
+| `resetAchievements` | — | Clear all achievements |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getIcons` | — | Array of desktop icons |
+| `getAchievements` | — | Array of achievement names |
+| `isAdmin` | — | Boolean |
+| `getSystemInfo` | — | `{iconCount, openWindows, recycledItems, achievements, sound, crtEffect}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `icon:added` | `{emoji, id, label, type, x, y, url?}` | Icon added to desktop |
+| `icon:removed` | icon object | Icon removed |
+| `achievement:unlocked` | `{achievement}` | Achievement unlocked |
+| `achievements:reset` | — | All achievements cleared |
+
+```retro
+# Add a mysterious icon to the desktop
+emit command:adminpanel:addIcon emoji="👁️" id="the-eye" label="THE EYE" type="app"
+
+# Unlock achievements based on gameplay
+on app:minesweeper:game:win {
+  emit command:adminpanel:unlockAchievement achievement="Mine Sweeper"
+}
+on app:zork:game:over {
+  if $event.won == true {
+    emit command:adminpanel:unlockAchievement achievement="Adventure Complete"
+  }
+}
+```
+
+---
+
+### Calendar (`calendar`)
+
+Calendar with event management.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `addEvent` | `{title, date, time?, color?}` | Create event |
+| `removeEvent` | `{eventId}` | Remove event by ID |
+| `goToDate` | `{date}` | Navigate to date |
+| `setMonth` | `{month?, year?}` | Change displayed month |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getEvents` | `{date?}` | Array of events |
+| `getSelectedDate` | — | Selected date |
+| `getCurrentMonth` | — | `{month, year}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `event:created` | `{title, date, time?, color?}` | Event created |
+| `event:deleted` | `{eventId}` | Event deleted |
+| `event:updated` | `{eventId, title, date, time}` | Event updated |
+| `month:changed` | `{month, year}` | Month changed |
+| `date:selected` | `{date, previousDate}` | Date selected |
+
+```retro
+launch calendar
+wait 1000
+emit command:calendar:addEvent title="DEADLINE" date="1995-12-31" time="23:59" color="#ff0000"
+emit command:calendar:addEvent title="Meeting with X" date="1995-06-15" time="03:00" color="#ffff00"
+```
+
+---
+
+### Clock (`clock`)
+
+Multi-function clock with alarm, timer, and stopwatch tabs.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `setAlarm` | `{hour, minute, ampm, label?}` | Set alarm |
+| `removeAlarm` | `{alarmId}` | Remove alarm |
+| `startTimer` | `{minutes, seconds}` | Start countdown timer |
+| `stopTimer` | — | Stop timer |
+| `startStopwatch` | — | Start stopwatch |
+| `stopStopwatch` | — | Stop stopwatch |
+| `resetStopwatch` | — | Reset stopwatch |
+| `switchTab` | `{tab: 'clock'\|'alarm'\|'stopwatch'\|'timer'}` | Switch tab |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getCurrentTime` | — | `{hours, minutes, seconds, ampm, time}` |
+| `getAlarms` | — | Array of alarms |
+| `getTimerState` | — | `{timerTime, timerInitial, timerRunning, timerPercent}` |
+| `getStopwatchState` | — | `{time, running, laps, formatted}` |
+| `getActiveTab` | — | `{tab}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `alarm:set` | `{alarmId, hour, minute, ampm, label}` | Alarm set |
+| `alarm:triggered` | `{alarmId, label, time}` | Alarm triggered |
+| `alarm:dismissed` | — | Alarm dismissed |
+| `stopwatch:started` | — | Stopwatch started |
+| `stopwatch:stopped` | `{time, laps}` | Stopwatch stopped |
+| `stopwatch:lap` | `{lapNumber, time, formatted}` | Stopwatch lap |
+| `timer:complete` | `{initialTime}` | Timer finished |
+
+```retro
+# Set a timed challenge
+launch clock
+wait 500
+emit command:clock:switchTab tab="timer"
+emit command:clock:startTimer minutes=5 seconds=0
+
+on app:clock:timer:complete {
+  alert "TIME'S UP. Did you find the hidden file?"
+}
+```
+
+---
+
+### HyperCard (`hypercard`)
+
+HyperCard-style application in an iframe.
+
+#### Commands
+
+| Command | Payload | Description |
+|---------|---------|-------------|
+| `reload` | — | Reload iframe |
+| `goHome` | — | Navigate to home page |
+
+#### Queries
+
+| Query | Payload | Returns |
+|-------|---------|---------|
+| `getState` | — | `{status}` |
+
+#### Events
+
+| Event | Payload | When |
+|-------|---------|------|
+| `loaded` | — | Iframe loaded |
+
+---
+---
+
+# Part III: System Reference
+
+---
+
+## 28) System Events Reference
+
+IlluminatOS emits system-level events that scripts can subscribe to. These are independent of any specific app.
+
+### Window Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `window:open` | `{id, title}` | Window opened |
+| `window:close` | `{id}` | Window closed |
+| `window:focus` | `{id}` | Window gained focus |
+| `window:minimize` | `{id}` | Window minimized |
+| `window:maximize` | `{id, maximized}` | Window maximize toggled |
+| `window:restore` | `{id}` | Window restored from minimized |
+| `window:resize` | `{id, width, height}` | Window resized |
+| `window:move` | `{id}` | Window moved |
+| `window:snap` | `{id}` | Window snapped to edge |
+| `window:shake` | `{id}` | Window shaken |
+
+### App Lifecycle Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `app:launch` | `{appId, windowId}` | App launched |
+| `app:open` | `{appId}` | App window opened |
+| `app:close` | `{appId, windowId}` | App closed |
+| `app:focus` | `{appId, windowId}` | App gained focus |
+| `app:blur` | `{appId, windowId}` | App lost focus |
+| `app:ready` | `{appId, windowId}` | App mounted and ready |
+| `app:error` | `{appId, windowId, error}` | App error |
+| `app:registered` | `{appId}` | New app registered |
+
+### System Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `system:boot` | — | Boot sequence started |
+| `system:ready` | — | System fully booted |
+| `system:idle` | — | User inactive |
+| `system:active` | — | User activity detected |
+| `system:sleep` | — | Tab hidden |
+| `system:wake` | — | Tab visible again |
+| `system:online` | — | Network online |
+| `system:offline` | — | Network offline |
+| `system:resize` | `{innerWidth, innerHeight}` | Browser resized |
+| `system:screensaver:start` | — | Screensaver activated |
+| `system:screensaver:end` | — | Screensaver deactivated |
+| `bsod:show` | — | Blue screen of death shown |
+
+### Filesystem Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `fs:file:create` | `{path}` | File created |
+| `fs:file:read` | `{path}` | File read |
+| `fs:file:update` | `{path}` | File updated |
+| `fs:file:delete` | `{path}` | File deleted |
+| `fs:file:rename` | `{path, oldPath, newPath}` | File renamed |
+| `fs:file:move` | `{source, destination}` | File moved |
+| `fs:file:copy` | `{source, destination}` | File copied |
+| `fs:directory:create` | `{path}` | Directory created |
+| `fs:directory:delete` | `{path}` | Directory deleted |
+| `filesystem:changed` | — | Any filesystem change |
+
+### Script Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `script:start` | — | Script execution started |
+| `script:complete` | `{success, result}` | Script finished |
+| `script:error` | `{error}` | Script error |
+| `script:output` | `{message}` | Script print output |
+
+### Terminal Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `terminal:command` | `{command}` | Terminal command executed |
+| `terminal:output` | `{text}` | Terminal output |
+| `terminal:cwd:change` | `{path}` | Working directory changed |
+| `app:terminal:command` | `{command}` | Terminal command (app event) |
+
+### Input Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `keyboard:keydown` | `{key, code, ctrlKey, shiftKey, altKey}` | Key pressed |
+| `keyboard:combo` | `{combo}` | Keyboard shortcut |
+| `mouse:click` | `{x, y, button}` | Mouse clicked |
+| `mouse:dblclick` | `{x, y}` | Double clicked |
+
+### UI Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `ui:menu:start:open` | — | Start menu opened |
+| `ui:menu:start:close` | — | Start menu closed |
+| `desktop:refresh` | — | Desktop refreshed |
+| `desktop:bg-change` | — | Background changed |
+
+### Setting & State Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `setting:changed` | `{key, value}` | Setting changed |
+| `state:change` | `{path, value, oldValue}` | State changed |
+
+### Feature Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `feature:registered` | `{featureId, name}` | Feature registered |
+| `feature:enabled` | `{featureId}` | Feature enabled |
+| `feature:disabled` | `{featureId}` | Feature disabled |
+| `features:initialized` | — | All features ready |
+
+### Achievement Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `achievement:unlock` | `{id}` | Achievement unlocked |
+
+### Sound/Audio Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `sound:play` | `{type}` | Sound effect played |
+| `audio:play` | — | Audio playback started |
+| `audio:pause` | — | Audio paused |
+| `audio:stop` | — | Audio stopped |
+| `audio:ended` | — | Audio finished |
+
+### Notification Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `notification:show` | `{message}` | Notification shown |
+| `notification:dismiss` | — | Notification dismissed |
+
+### Recycle Bin Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `recyclebin:update` | — | Bin contents changed |
+| `recyclebin:recycle-file` | `{path}` | File recycled |
+| `recyclebin:restore` | `{path}` | File restored |
+| `recyclebin:empty` | — | Bin emptied |
+
+---
+
+## 29) System Commands Reference
+
+These are system-level commands available through the CommandBus, usable from RetroScript.
+
+### App & Window Commands
+
+```retro
+# Launch app
+launch notepad
+launch browser with url="https://example.com"
+
+# Window control
+focus notepad
+minimize terminal
+maximize browser
+close notepad
+```
+
+### Filesystem Commands
+
+```retro
+# Read/write files
+write "content" to "C:/path/file.txt"
+read "C:/path/file.txt" into $data
+mkdir "C:/path/folder"
+delete "C:/path/file.txt"
+```
+
+### Dialog Commands
+
+```retro
+alert "Message"
+confirm "Are you sure?" into $yes
+prompt "Enter name:" default "User" into $name
+notify "Toast message"
+```
+
+### Sound Commands
+
+```retro
+play click
+play notify
+play error
+play "C:/Music/file.mp3" volume=0.5 loop=true
+stop
+```
+
+### Setting Commands
+
+```retro
+# Via Control Panel
+emit command:controlpanel:setSetting setting="crtEffect" value=true
+emit command:controlpanel:setSetting setting="sound" value=false
+
+# Via Display Properties
+emit command:displayproperties:setColorScheme scheme="highcontrast"
+emit command:displayproperties:applySettings
+
+# Via Sound Settings
+emit command:soundsettings:setVolume volume=50
+emit command:soundsettings:setSoundEnabled enabled=true
+```
+
+### Timer Commands
+
+```retro
+# Set a repeating timer
+emit timer:set interval=5000 event="heartbeat" repeat=true
+
+# Clear a timer
+emit timer:clear id=$timerId
+```
+
+### Query Commands
+
+```retro
+# Query system state
+set $windows = call query "windows"
+set $apps = call query "apps"
+set $settings = call query "settings"
+```
+
+---
+
+## 30) ARG Development Patterns
+
+This section covers common patterns for building Alternate Reality Game (ARG) experiences using RetroScript and the app scripting system.
+
+### Pattern 1: Multi-App Storytelling
+
+Use multiple apps together to tell a story across the OS:
+
+```retro
+# Phase 1: The mysterious email
+emit command:inbox:deliverMessage from="admin@illuminatos.sys" subject="System Notice" body="Routine maintenance scheduled. Do not open the Recycle Bin."
+
+# Phase 2: User opens Recycle Bin - react
+on app:recyclebin:item:restored {
+  wait 2000
+  emit command:inbox:deliverMessage from="admin@illuminatos.sys" subject="WARNING" body="We told you not to look. Now they know."
+  wait 3000
+  emit command:phone:simulateIncoming from="UNKNOWN" number="000-000-0000" responses=["You shouldn't have done that.", "They're watching now.", "Check the terminal."]
+}
+
+# Phase 3: Terminal clue
+on app:terminal:command {
+  if call contains $event.command "secret" {
+    emit command:chatroom:injectMessage from="[SYSTEM]" message="ACCESS GRANTED - LEVEL 2"
+  }
+}
+```
+
+### Pattern 2: Progressive Unlocking
+
+Gate content behind achievements and discoveries:
+
+```retro
+set $discoveries = 0
+
+on app:zork:room:changed {
+  if $event.to == "cellar" {
+    set $discoveries = $discoveries + 1
+    emit command:adminpanel:unlockAchievement achievement="Deep Explorer"
+  }
+}
+
+on app:minesweeper:game:win {
+  set $discoveries = $discoveries + 1
+  emit command:adminpanel:unlockAchievement achievement="Mine Expert"
+}
+
+on app:calculator:calculated {
+  if $event.result == 42 {
+    set $discoveries = $discoveries + 1
+    emit command:adminpanel:unlockAchievement achievement="The Answer"
+  }
+}
+
+# Check for full unlock
+on achievement:unlock {
+  if $discoveries >= 3 {
+    notify "ALL ACCESS GRANTED"
+    emit command:adminpanel:addIcon emoji="🔓" id="vault" label="THE VAULT" type="app"
+  }
+}
+```
+
+### Pattern 3: Timed Events
+
+Create time-pressure scenarios:
+
+```retro
+# Start a countdown
+launch clock
+wait 500
+emit command:clock:switchTab tab="timer"
+emit command:clock:startTimer minutes=10 seconds=0
+
+# Periodic pressure messages
+set $count = 0
+on app:clock:timer:complete {
+  alert "TIME EXPIRED. Connection terminated."
+  emit command:chatroom:lockRoom
+  emit command:chatroom:injectSystemMessage message="SESSION TERMINATED BY ADMIN"
+}
+
+# Drip-feed clues
+emit command:inbox:scheduledDelivery delay=60000 from="ally@resistance.net" subject="Hint 1" body="The password is hidden in the Help system."
+emit command:inbox:scheduledDelivery delay=180000 from="ally@resistance.net" subject="Hint 2" body="Search for 'about' in the Help topics."
+emit command:inbox:scheduledDelivery delay=300000 from="ally@resistance.net" subject="URGENT" body="You're running out of time!"
+```
+
+### Pattern 4: Cross-App State Tracking
+
+Track player actions across multiple apps:
+
+```retro
+# Initialize state file
+write '{"found": [], "phase": 1}' to "C:/Users/User/Documents/.progress"
+
+def updateProgress($action) {
+  read "C:/Users/User/Documents/.progress" into $raw
+  set $state = call fromJSON $raw
+  set $found = call push $state.found $action
+  set $state = call set $state "found" $found
+  write call toJSON $state to "C:/Users/User/Documents/.progress"
+  return call count $found
+}
+
+on app:notepad:fileOpened {
+  if call contains $event.path "classified" {
+    set $total = call updateProgress "read_classified"
+  }
+}
+
+on app:browser:navigate {
+  if call contains $event.url "secret" {
+    set $total = call updateProgress "found_secret_page"
+  }
+}
+
+on app:zork:item:taken {
+  set $total = call updateProgress "zork_item_" + $event.item
+}
+```
+
+### Pattern 5: Environment Manipulation
+
+Change the OS environment to create atmosphere:
+
+```retro
+# Glitch effect sequence
+emit command:controlpanel:setSetting setting="crtEffect" value=true
+emit command:displayproperties:setColorScheme scheme="highcontrast"
+emit command:displayproperties:applySettings
+play error
+wait 2000
+
+# Restore
+emit command:displayproperties:setColorScheme scheme="win95"
+emit command:displayproperties:applySettings
+wait 500
+emit command:controlpanel:setSetting setting="crtEffect" value=false
+```
+
+### Pattern 6: Autoexec Boot Experience
+
+Use `autoexec.retro` to set up the entire ARG on boot:
+
+```retro
+# autoexec.retro - runs automatically at boot
+print "Initializing experience..."
+
+# Deploy files
+mkdir "C:/Users/User/Documents/Evidence"
+write "Case file #4471\nSubject: UNKNOWN\nStatus: OPEN" to "C:/Users/User/Documents/Evidence/case_4471.txt"
+write "Exhibit A: Screenshot timestamp 03:14 AM" to "C:/Users/User/Documents/Evidence/exhibit_a.txt"
+
+# Set up contacts
+emit command:phone:addContact name="Agent K" number="555-1234" group="Contacts"
+emit command:phone:addContact name="??? Unknown" number="555-0000" group="Unknown"
+
+# Set up IM buddies
+emit command:instantmessenger:addBuddy screenName="informant_x" group="Contacts"
+
+# Deploy initial email
+emit command:inbox:deliverMessage from="dispatch@agency.gov" subject="New Assignment" body="Agent, your new case files are in C:/Users/User/Documents/Evidence. Review immediately.\n\nDO NOT discuss this on unsecured channels."
+
+# Register global event handlers
+on app:zork:command:entered {
+  if call contains $event.command "xyzzy" {
+    emit command:inbox:deliverMessage from="SYSTEM" subject="EASTER EGG FOUND" body="You know the old magic words. Impressive."
+  }
+}
+
+notify "System ready. Check your inbox."
+```
+
+### Complete App ID Reference
+
+Use these IDs in commands, queries, and events:
+
+| App ID | App Name |
+|--------|----------|
+| `inbox` | Inbox (Email) |
+| `phone` | Phone |
+| `instantmessenger` | Instant Messenger |
+| `chatroom` | Chat Room |
+| `browser` | Browser |
+| `calculator` | Calculator |
+| `notepad` | Notepad |
+| `paint` | Paint |
+| `terminal` | Terminal |
+| `videoplayer` | Video Player |
+| `mediaplayer` | Media Player |
+| `mycomputer` | My Computer |
+| `winamp` | Winamp |
+| `minesweeper` | Minesweeper |
+| `snake` | Snake |
+| `solitaire` | Solitaire |
+| `freecell` | FreeCell |
+| `asteroids` | Asteroids |
+| `skifree` | SkiFree |
+| `zork` | Zork |
+| `doom` | Doom |
+| `calendar` | Calendar |
+| `clock` | Clock |
+| `defrag` | Defrag |
+| `findfiles` | Find Files |
+| `help` | Help System |
+| `recyclebin` | Recycle Bin |
+| `taskmanager` | Task Manager |
+| `controlpanel` | Control Panel |
+| `displayproperties` | Display Properties |
+| `soundsettings` | Sound Settings |
+| `featuressettings` | Features Settings |
+| `adminpanel` | Admin Panel |
+| `run` | Run Dialog |
+| `hypercard` | HyperCard |
