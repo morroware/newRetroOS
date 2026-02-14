@@ -12,6 +12,35 @@ class HyperCard extends AppBase {
             category: 'accessories',
             showInMenu: true
         });
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('reload', () => {
+            this.refresh();
+            return { success: true };
+        });
+
+        this.registerCommand('goHome', () => {
+            this.goHome();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            const statusBar = this.getElement('#statusBar');
+            return { status: statusBar ? statusBar.textContent : 'Unknown' };
+        });
     }
 
     onOpen() {
@@ -119,6 +148,7 @@ class HyperCard extends AppBase {
         this.addHandler(frame, 'load', () => {
             if (loadingMsg) loadingMsg.style.display = 'none';
             this.updateStatus('Ready');
+            this.emitAppEvent('loaded', {});
         });
 
         // Toolbar buttons

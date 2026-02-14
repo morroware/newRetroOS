@@ -23,6 +23,47 @@ class HelpSystem extends AppBase {
         this.currentTopic = 'welcome';
         this.history = [];
         this.historyIndex = -1;
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('navigateTo', (payload) => {
+            if (!payload || !payload.topic) return { success: false, error: 'No topic provided' };
+            this.navigateTo(payload.topic);
+            return { success: true, topic: payload.topic };
+        });
+
+        this.registerCommand('goBack', () => {
+            this.goBack();
+            return { success: true };
+        });
+
+        this.registerCommand('goForward', () => {
+            this.goForward();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getCurrentTopic', () => {
+            return { topic: this.currentTopic };
+        });
+
+        this.registerQuery('getHistory', () => {
+            return {
+                history: [...this.history],
+                historyIndex: this.historyIndex
+            };
+        });
     }
 
     onOpen() {

@@ -20,6 +20,56 @@ class RecycleBin extends AppBase {
             singleton: true,
             category: 'system'
         });
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('restoreItem', (payload) => {
+            if (payload === undefined || payload === null || payload.index === undefined) return { success: false, error: 'No index provided' };
+            const recycledItems = StateManager.getState('recycledItems') || [];
+            if (payload.index < 0 || payload.index >= recycledItems.length) return { success: false, error: 'Invalid index' };
+            this.restoreItem(payload.index);
+            return { success: true };
+        });
+
+        this.registerCommand('deleteItem', (payload) => {
+            if (payload === undefined || payload === null || payload.index === undefined) return { success: false, error: 'No index provided' };
+            const recycledItems = StateManager.getState('recycledItems') || [];
+            if (payload.index < 0 || payload.index >= recycledItems.length) return { success: false, error: 'Invalid index' };
+            this.deleteItem(payload.index);
+            return { success: true };
+        });
+
+        this.registerCommand('emptyBin', () => {
+            this.emptyRecycleBin();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getItems', () => {
+            const recycledItems = StateManager.getState('recycledItems') || [];
+            return recycledItems.map(item => ({
+                id: item.id,
+                label: item.label,
+                type: item.type,
+                emoji: item.emoji
+            }));
+        });
+
+        this.registerQuery('getCount', () => {
+            const recycledItems = StateManager.getState('recycledItems') || [];
+            return { count: recycledItems.length };
+        });
     }
 
     onOpen() {
@@ -657,6 +707,9 @@ class RecycleBin extends AppBase {
         // Show notification
         this.playSound('restore');
 
+        // Emit item restored event
+        this.emitAppEvent('item:restored', { item: { id: item.id, label: item.label, type: item.type } });
+
         console.log(`[RecycleBin] Restored: ${item.label}`);
     }
 
@@ -708,6 +761,9 @@ class RecycleBin extends AppBase {
             // Refresh view
             this.refreshView();
 
+            // Emit item deleted event
+            this.emitAppEvent('item:deleted', { item: { id: item.id, label: item.label, type: item.type } });
+
             console.log(`[RecycleBin] Permanently deleted: ${item.label}`);
         }
     }
@@ -722,6 +778,9 @@ class RecycleBin extends AppBase {
 
             // Refresh view
             this.refreshView();
+
+            // Emit bin emptied event
+            this.emitAppEvent('bin:emptied', {});
 
             console.log('[RecycleBin] Emptied recycle bin');
         }

@@ -28,6 +28,63 @@ class Defrag extends AppBase {
         this.currentAction = '';
         this.selectedDrive = 'C:';
         this.fragmentedPercent = 0;
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('analyze', () => {
+            this.analyze();
+            return { success: true };
+        });
+
+        this.registerCommand('defragment', () => {
+            this.defragment();
+            return { success: true };
+        });
+
+        this.registerCommand('pause', () => {
+            if (this.isRunning && !this.isPaused) {
+                this.togglePause();
+                return { success: true };
+            }
+            return { success: false, error: 'Not running or already paused' };
+        });
+
+        this.registerCommand('stop', () => {
+            this.stop();
+            return { success: true };
+        });
+
+        this.registerCommand('selectDrive', (payload) => {
+            if (!payload || !payload.drive) return { success: false, error: 'No drive provided' };
+            this.selectedDrive = payload.drive;
+            const driveSelect = this.getElement('#driveSelect');
+            if (driveSelect) driveSelect.value = payload.drive;
+            this.updateDriveInfo();
+            this.generateBlockMap();
+            return { success: true, drive: payload.drive };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            return {
+                isRunning: this.isRunning,
+                isPaused: this.isPaused,
+                selectedDrive: this.selectedDrive,
+                fragmentedPercent: this.fragmentedPercent,
+                progress: parseInt(this.getElement('#progressText')?.textContent) || 0
+            };
+        });
     }
 
     onOpen() {

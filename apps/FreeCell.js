@@ -24,6 +24,41 @@ class FreeCell extends AppBase {
             category: 'games',
             singleton: true
         });
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('newGame', () => {
+            this.startNewGame();
+            return { success: true };
+        });
+
+        this.registerCommand('undo', () => {
+            if (this.moveHistory.length === 0) {
+                return { success: false, error: 'No moves to undo' };
+            }
+            this.undoMove();
+            return { success: true, moves: this.moves };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            const totalInFoundations = this.foundations.reduce((sum, f) => sum + f.length, 0);
+            const freeCellsUsed = this.cells.filter(c => c !== null).length;
+            return {
+                moves: this.moves,
+                time: this.time,
+                isWon: totalInFoundations === 52,
+                foundationCounts: this.foundations.map(f => f.length),
+                freeCellsUsed: freeCellsUsed,
+                freeCellsAvailable: 4 - freeCellsUsed,
+                undoAvailable: this.moveHistory.length > 0
+            };
+        });
     }
 
     onOpen() {
@@ -169,6 +204,8 @@ class FreeCell extends AppBase {
 
         this.renderBoard();
         this.updateDisplay();
+
+        this.emitAppEvent('game:start', { type: 'freecell' });
 
         // Emit game started event
         EventBus.emit('game:start', {
@@ -326,6 +363,13 @@ class FreeCell extends AppBase {
             moves: this.moves
         });
 
+        this.emitAppEvent('card:moved', {
+            card: `${card.value}${card.suit}`,
+            from: `${source}:${sourceIndex}`,
+            to: `cell:${cellIndex}`,
+            moves: this.moves
+        });
+
         this.clearSelection();
         this.renderBoard();
         this.updateDisplay();
@@ -383,6 +427,13 @@ class FreeCell extends AppBase {
 
         // Emit card move event
         EventBus.emit('freecell:card:move', {
+            card: `${card.value}${card.suit}`,
+            from: `${source}:${sourceIndex}`,
+            to: `foundation:${foundIndex}`,
+            moves: this.moves
+        });
+
+        this.emitAppEvent('card:moved', {
             card: `${card.value}${card.suit}`,
             from: `${source}:${sourceIndex}`,
             to: `foundation:${foundIndex}`,
@@ -451,6 +502,14 @@ class FreeCell extends AppBase {
 
         this.columns[colIndex].push(...cards);
         this.moves++;
+
+        this.emitAppEvent('card:moved', {
+            card: `${cards[0].value}${cards[0].suit}`,
+            from: `${source}:${sourceIndex}`,
+            to: `column:${colIndex}`,
+            moves: this.moves,
+            cardsCount: cards.length
+        });
 
         this.clearSelection();
         this.renderBoard();
@@ -589,6 +648,11 @@ class FreeCell extends AppBase {
         this.getElement('#fcWinScreen').classList.add('active');
 
         this.playSound('achievement');
+
+        this.emitAppEvent('game:won', {
+            moves: this.moves,
+            time: this.time
+        });
 
         // Emit win events
         EventBus.emit('freecell:win', {

@@ -29,6 +29,76 @@ class Minesweeper extends AppBase {
         this.timer = null;
         this.time = 0;
         this.isFirstClick = true;
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('newGame', () => {
+            this.initGame();
+            return { success: true };
+        });
+
+        this.registerCommand('setDifficulty', (payload) => {
+            if (!payload) return { success: false, error: 'Payload required' };
+            if (payload.level) {
+                const levels = {
+                    beginner: { rows: 9, cols: 9, mines: 10 },
+                    intermediate: { rows: 16, cols: 16, mines: 40 },
+                    expert: { rows: 16, cols: 30, mines: 99 }
+                };
+                const config = levels[payload.level];
+                if (!config) return { success: false, error: 'Invalid level. Use beginner, intermediate, or expert' };
+                this.rows = config.rows;
+                this.cols = config.cols;
+                this.mines = config.mines;
+            } else if (payload.rows && payload.cols && payload.mines) {
+                this.rows = payload.rows;
+                this.cols = payload.cols;
+                this.mines = payload.mines;
+            } else {
+                return { success: false, error: 'Provide level or { rows, cols, mines }' };
+            }
+            this.initGame();
+            return { success: true, rows: this.rows, cols: this.cols, mines: this.mines };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            const totalFlagged = this.grid.length > 0
+                ? this.grid.flat().filter(c => c.flagged).length
+                : 0;
+            const totalRevealed = this.grid.length > 0
+                ? this.grid.flat().filter(c => c.revealed).length
+                : 0;
+            return {
+                gameOver: this.gameOver,
+                time: this.time,
+                mines: this.mines,
+                rows: this.rows,
+                cols: this.cols,
+                flagsPlaced: totalFlagged,
+                cellsRevealed: totalRevealed,
+                isFirstClick: this.isFirstClick
+            };
+        });
+
+        this.registerQuery('getBoard', () => {
+            if (this.grid.length === 0) return { board: [] };
+            return {
+                board: this.grid.map(row => row.map(cell => ({
+                    row: cell.r,
+                    col: cell.c,
+                    revealed: cell.revealed,
+                    flagged: cell.flagged,
+                    mine: cell.revealed ? cell.mine : undefined,
+                    count: cell.revealed ? cell.count : undefined
+                })))
+            };
+        });
     }
 
     onOpen() {
@@ -78,9 +148,15 @@ class Minesweeper extends AppBase {
         this.updateTimerDisplay();
         this.updateMineCounter(this.mines);
 
+        this.emitAppEvent('game:start', {
+            rows: this.rows,
+            cols: this.cols,
+            mines: this.mines
+        });
+
         const gridEl = this.getElement('#mineGrid');
         if (!gridEl) return;
-        
+
         gridEl.innerHTML = '';
         // 24px is the standard Win95 cell size
         gridEl.style.gridTemplateColumns = `repeat(${this.cols}, 24px)`; 
@@ -221,6 +297,8 @@ class Minesweeper extends AppBase {
         cell.revealed = true;
         cell.element.classList.add('revealed');
 
+        this.emitAppEvent('cell:revealed', { row: r, col: c, value: cell.count });
+
         // Emit cell revealed event
         EventBus.emit('minesweeper:cell:reveal', {
             row: r,
@@ -290,6 +368,8 @@ class Minesweeper extends AppBase {
         const totalFlagged = this.grid.flat().filter(c => c.flagged).length;
         this.updateMineCounter(this.mines - totalFlagged);
 
+        this.emitAppEvent('cell:flagged', { row: r, col: c, flagged: cell.flagged });
+
         // Emit cell flag event
         EventBus.emit('minesweeper:cell:flag', {
             row: r,
@@ -313,6 +393,13 @@ class Minesweeper extends AppBase {
             this.flagAllMines();
             StateManager.unlockAchievement('mine_sweeper');
 
+            this.emitAppEvent('game:win', {
+                time: this.time,
+                rows: this.rows,
+                cols: this.cols,
+                mines: this.mines
+            });
+
             // Emit win events
             EventBus.emit('minesweeper:win', {
                 time: this.time,
@@ -329,6 +416,13 @@ class Minesweeper extends AppBase {
             });
         } else {
             this.updateFace('😵');
+
+            this.emitAppEvent('game:lose', {
+                time: this.time,
+                rows: this.rows,
+                cols: this.cols,
+                mines: this.mines
+            });
 
             // Highlight ONLY the mine that killed you
             if (killingCell) {

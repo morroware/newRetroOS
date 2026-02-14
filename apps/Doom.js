@@ -17,8 +17,48 @@ class Doom extends AppBase {
             category: 'games',
             singleton: true // One game at a time
         });
-        
+
         this.isFocused = false;
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('reload', () => {
+            const frame = this.getElement('#doomFrame');
+            const overlay = this.getElement('#doomOverlay');
+            const status = this.getElement('#doomStatus');
+            if (frame) {
+                frame.src = frame.src;
+                if (overlay) overlay.classList.remove('hidden');
+                if (status) status.classList.remove('active');
+            }
+            return { success: true };
+        });
+
+        this.registerCommand('focus', () => {
+            this.focusGame();
+            return { success: true };
+        });
+
+        this.registerCommand('fullscreen', () => {
+            this.toggleFullscreen();
+            return { success: true };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            return { isFocused: this.isFocused };
+        });
     }
 
     onOpen() {
@@ -205,6 +245,7 @@ class Doom extends AppBase {
                 } catch (e) {
                     // Cross-origin, can't directly focus
                 }
+                this.emitAppEvent('game:launched', {});
             });
         }
 
@@ -263,6 +304,7 @@ class Doom extends AppBase {
         }
 
         this.isFocused = true;
+        this.emitAppEvent('game:focused', {});
     }
 
     toggleFullscreen() {

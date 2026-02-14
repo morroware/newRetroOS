@@ -18,6 +18,142 @@ class Zork extends AppBase {
             category: 'games',
             showInMenu: true
         });
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        // Send a text command to the game as if the player typed it
+        this.registerCommand('sendCommand', (payload) => {
+            if (!payload || !payload.command) return { success: false, error: 'No command provided' };
+            if (this.gameOver) return { success: false, error: 'Game is over' };
+            this.processCommand(payload.command);
+            return { success: true };
+        });
+
+        // Display text in the game output without processing as a command
+        this.registerCommand('injectText', (payload) => {
+            if (!payload || !payload.text) return { success: false, error: 'No text provided' };
+            this.print(payload.text);
+            return { success: true };
+        });
+
+        // Move player to a specific room
+        this.registerCommand('teleport', (payload) => {
+            if (!payload || !payload.room) return { success: false, error: 'No room provided' };
+            if (!this.rooms || !this.rooms[payload.room]) return { success: false, error: 'Invalid room' };
+            const from = this.currentRoom;
+            this.currentRoom = payload.room;
+            this.emitAppEvent('room:changed', { from, to: payload.room });
+            this.look();
+            return { success: true, room: payload.room };
+        });
+
+        // Add item to player inventory
+        this.registerCommand('addInventory', (payload) => {
+            if (!payload || !payload.item) return { success: false, error: 'No item provided' };
+            if (!this.objects || !this.objects[payload.item]) return { success: false, error: 'Invalid item' };
+            if (!this.inventory.includes(payload.item)) {
+                this.inventory.push(payload.item);
+                this.emitAppEvent('item:taken', { item: payload.item });
+            }
+            return { success: true, inventory: [...this.inventory] };
+        });
+
+        // Remove item from player inventory
+        this.registerCommand('removeInventory', (payload) => {
+            if (!payload || !payload.item) return { success: false, error: 'No item provided' };
+            if (!this.inventory.includes(payload.item)) return { success: false, error: 'Item not in inventory' };
+            this.inventory = this.inventory.filter(id => id !== payload.item);
+            this.emitAppEvent('item:dropped', { item: payload.item });
+            return { success: true, inventory: [...this.inventory] };
+        });
+
+        // Set the score
+        this.registerCommand('setScore', (payload) => {
+            if (payload === undefined || payload === null || payload.score === undefined) return { success: false, error: 'No score provided' };
+            const oldScore = this.score;
+            this.score = payload.score;
+            this.updateScore();
+            this.emitAppEvent('score:changed', { score: this.score, change: this.score - oldScore });
+            return { success: true, score: this.score };
+        });
+
+        // Set a game flag
+        this.registerCommand('setFlag', (payload) => {
+            if (!payload || !payload.flag) return { success: false, error: 'No flag provided' };
+            const flagMap = {
+                lanternOn: 'lanternOn',
+                trollDead: 'trollDead',
+                leafletRead: 'leafletRead',
+                eggOpened: 'eggOpened',
+                thiefEncountered: 'thiefEncountered',
+                gameOver: 'gameOver'
+            };
+            if (!(payload.flag in flagMap)) return { success: false, error: 'Unknown flag' };
+            this[flagMap[payload.flag]] = payload.value !== undefined ? payload.value : true;
+            return { success: true, flag: payload.flag, value: this[flagMap[payload.flag]] };
+        });
+    }
+
+    /**
+     * Register queries for reading game state
+     */
+    registerQueries() {
+        // Return full game state
+        this.registerQuery('getState', () => {
+            return {
+                currentRoom: this.currentRoom,
+                score: this.score,
+                moves: this.moves,
+                inventory: this.inventory ? [...this.inventory] : [],
+                gameOver: this.gameOver
+            };
+        });
+
+        // Return current room info
+        this.registerQuery('getRoom', () => {
+            if (!this.rooms || !this.rooms[this.currentRoom]) return null;
+            const room = this.rooms[this.currentRoom];
+            return {
+                id: this.currentRoom,
+                name: room.name,
+                description: room.description,
+                exits: room.exits ? { ...room.exits } : {},
+                objects: room.objects ? [...room.objects] : [],
+                dark: room.dark
+            };
+        });
+
+        // Return inventory list
+        this.registerQuery('getInventory', () => {
+            return this.inventory ? [...this.inventory] : [];
+        });
+
+        // Return score and moves
+        this.registerQuery('getScore', () => {
+            return { score: this.score, moves: this.moves };
+        });
+
+        // Get a game flag value
+        this.registerQuery('getFlag', (payload) => {
+            if (!payload || !payload.flag) return null;
+            const flagMap = {
+                lanternOn: 'lanternOn',
+                trollDead: 'trollDead',
+                leafletRead: 'leafletRead',
+                eggOpened: 'eggOpened',
+                thiefEncountered: 'thiefEncountered',
+                gameOver: 'gameOver'
+            };
+            if (!(payload.flag in flagMap)) return null;
+            return { flag: payload.flag, value: this[flagMap[payload.flag]] };
+        });
     }
 
     onOpen() {
@@ -683,6 +819,9 @@ Release 88 / Serial number 840726
 
         // Parse command
         this.executeCommand(verb, rest, words);
+
+        // Emit command entered event
+        this.emitAppEvent('command:entered', { command: input, response: '' });
     }
 
     executeCommand(verb, rest, words) {
@@ -871,6 +1010,7 @@ Release 88 / Serial number 840726
             if (Math.random() < 0.2) {
                 this.print("<span class='error-msg'>Oh no! A lurking grue has devoured you!</span>");
                 this.gameOver = true;
+                this.emitAppEvent('game:over', { won: false, score: this.score });
             }
             return;
         }
@@ -896,7 +1036,9 @@ Release 88 / Serial number 840726
             return;
         }
 
+        const previousRoom = this.currentRoom;
         this.currentRoom = exit;
+        this.emitAppEvent('room:changed', { from: previousRoom, to: exit });
         this.look();
     }
 
@@ -936,6 +1078,7 @@ Release 88 / Serial number 840726
         if (isFirstVisit && room.dark) {
             this.score += 5;
             this.updateScore();
+            this.emitAppEvent('score:changed', { score: this.score, change: 5 });
         }
     }
 
@@ -965,6 +1108,7 @@ Release 88 / Serial number 840726
                 this.leafletRead = true;
                 this.score += 5;
                 this.updateScore();
+                this.emitAppEvent('score:changed', { score: this.score, change: 5 });
             }
         }
 
@@ -1089,12 +1233,15 @@ Release 88 / Serial number 840726
 
         this.inventory.push(objId);
         this.print(`Taken.`);
+        this.emitAppEvent('item:taken', { item: objId });
 
         // Award points for treasures
         if (obj.points && !obj.pointsAwarded) {
+            const oldScore = this.score;
             this.score += Math.floor(obj.points / 2);
             obj.pointsAwarded = true;
             this.updateScore();
+            this.emitAppEvent('score:changed', { score: this.score, change: this.score - oldScore });
         }
     }
 
@@ -1167,6 +1314,7 @@ Release 88 / Serial number 840726
         this.inventory = this.inventory.filter(id => id !== objId);
         this.rooms[this.currentRoom].objects.push(objId);
         this.print("Dropped.");
+        this.emitAppEvent('item:dropped', { item: objId });
     }
 
     putIn(item, container) {
@@ -1201,9 +1349,11 @@ Release 88 / Serial number 840726
             // Award remaining points for putting treasure in case
             const obj = this.objects[itemId];
             if (obj.points) {
-                this.score += Math.ceil(obj.points / 2);
+                const change = Math.ceil(obj.points / 2);
+                this.score += change;
                 this.updateScore();
                 this.print('<span class="success-msg">Your score has increased!</span>');
+                this.emitAppEvent('score:changed', { score: this.score, change });
             }
         }
     }
@@ -1263,6 +1413,7 @@ Release 88 / Serial number 840726
             this.eggOpened = true;
             this.score += 10;
             this.updateScore();
+            this.emitAppEvent('score:changed', { score: this.score, change: 10 });
         }
     }
 
@@ -1382,6 +1533,7 @@ Release 88 / Serial number 840726
                 this.trollDead = true;
                 this.score += 25;
                 this.updateScore();
+                this.emitAppEvent('score:changed', { score: this.score, change: 25 });
 
                 // Remove troll from room
                 const room = this.rooms[this.currentRoom];
@@ -1397,6 +1549,7 @@ Release 88 / Serial number 840726
                     if (Math.random() < 0.5) {
                         this.print("<span class='error-msg'>The troll's axe strikes you dead!</span>");
                         this.gameOver = true;
+                        this.emitAppEvent('game:over', { won: false, score: this.score });
                     } else {
                         this.print("You barely dodge the troll's attack.");
                     }

@@ -21,6 +21,66 @@ class ControlPanel extends AppBase {
             resizable: true,
             category: 'settings'
         });
+
+        // Register scriptability hooks
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    /**
+     * Register commands for script control
+     */
+    registerCommands() {
+        this.registerCommand('setSetting', (payload) => {
+            if (!payload || !payload.setting) return { success: false, error: 'No setting provided' };
+            const settingMap = {
+                crtEffect: () => {
+                    StateManager.setState('settings.crtEffect', payload.value, true);
+                    const overlay = document.querySelector('.crt-overlay');
+                    if (overlay) overlay.style.display = payload.value ? 'block' : 'none';
+                },
+                sound: () => {
+                    StateManager.setState('settings.sound', payload.value, true);
+                },
+                petEnabled: () => {
+                    StateManager.setState('settings.pet.enabled', payload.value, true);
+                    EventBus.emit('pet:toggle', { enabled: payload.value });
+                },
+                petType: () => {
+                    StateManager.setState('settings.pet.type', payload.value, true);
+                    EventBus.emit('pet:change', { type: payload.value });
+                },
+                screensaverDelay: () => {
+                    StateManager.setState('settings.screensaverDelay', payload.value, true);
+                    EventBus.emit('screensaver:update-delay', { delay: payload.value });
+                },
+                desktopBg: () => {
+                    StorageManager.set('desktopBg', payload.value);
+                    document.body.style.setProperty('--desktop-bg', payload.value);
+                    EventBus.emit('desktop:bg-change', { color: payload.value });
+                }
+            };
+            if (!settingMap[payload.setting]) return { success: false, error: 'Unknown setting' };
+            settingMap[payload.setting]();
+            return { success: true, setting: payload.setting, value: payload.value };
+        });
+    }
+
+    /**
+     * Register queries for reading state
+     */
+    registerQueries() {
+        this.registerQuery('getSettings', () => {
+            const settings = StateManager.getState('settings');
+            const desktopBg = StorageManager.get('desktopBg') || '#008080';
+            return {
+                crtEffect: settings.crtEffect,
+                sound: settings.sound,
+                pet: settings.pet,
+                screensaverDelay: settings.screensaverDelay,
+                desktopBg
+            };
+        });
     }
 
     onOpen() {

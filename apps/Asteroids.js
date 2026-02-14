@@ -72,6 +72,51 @@ class Asteroids extends AppBase {
         this.combo = 0;
         this.comboTimer = 0;
         this.multiplier = 1;
+        this.isPaused = false;
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('start', () => {
+            this.newGame();
+            return { success: true };
+        });
+
+        this.registerCommand('pause', () => {
+            if (!this.isPaused && this.gameLoop) {
+                this.isPaused = true;
+                clearInterval(this.gameLoop);
+                this.gameLoop = null;
+            }
+            return { success: true, isPaused: this.isPaused };
+        });
+
+        this.registerCommand('resume', () => {
+            if (this.isPaused) {
+                this.isPaused = false;
+                this.gameLoop = setInterval(() => this.update(), 1000 / this.FPS);
+            }
+            return { success: true, isPaused: this.isPaused };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            return {
+                score: this.score,
+                lives: this.lives,
+                level: this.level,
+                highScore: this.scoreHigh,
+                isPlaying: !this.ship?.dead && this.gameLoop !== null,
+                isPaused: this.isPaused,
+                combo: this.combo,
+                multiplier: this.multiplier,
+                activePowerup: this.activePowerup
+            };
+        });
     }
 
     onOpen() {
@@ -141,9 +186,12 @@ class Asteroids extends AppBase {
         this.activePowerup = null;
         this.powerupTimeLeft = 0;
         this.ufoSpawnTimer = 0;
+        this.isPaused = false;
         this.ship = this.newShip();
         this.newLevel();
         this.updateHUD();
+
+        this.emitAppEvent('game:start', { lives: this.lives });
 
         // Emit game started event
         EventBus.emit('game:start', {
@@ -160,6 +208,11 @@ class Asteroids extends AppBase {
         this.createAsteroidBelt();
         this.ufoSpawnTimer = this.UFO_SPAWN_INTERVAL * this.FPS;
         this.updateHUD();
+
+        this.emitAppEvent('level:up', {
+            level: this.level,
+            previousLevel: previousLevel
+        });
 
         // Emit level change event
         EventBus.emit('game:level', {
@@ -703,6 +756,13 @@ class Asteroids extends AppBase {
         const oldScore = this.score;
         this.score += points;
 
+        this.emitAppEvent('score:updated', {
+            score: this.score,
+            previousScore: oldScore,
+            delta: points,
+            reason: 'asteroid_destroyed'
+        });
+
         // Emit asteroid destroyed event
         const size = r >= 40 ? 'large' : r >= 20 ? 'medium' : 'small';
         EventBus.emit('asteroids:asteroid:destroy', {
@@ -791,6 +851,12 @@ class Asteroids extends AppBase {
             this.text = "GAME OVER";
             this.textAlpha = 1.0;
             this.playSound('error');
+
+            this.emitAppEvent('game:over', {
+                score: this.score,
+                level: this.level,
+                highScore: this.scoreHigh
+            });
 
             // Save high score
             if (this.score > this.scoreHigh) {

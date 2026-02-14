@@ -20,6 +20,86 @@ class Calendar extends AppBase {
             category: 'accessories',
             singleton: true
         });
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('addEvent', (payload) => {
+            const { title, date, time, color } = payload;
+            if (!title || !date) return { success: false, error: 'Title and date are required' };
+            const events = this.getInstanceState('events') || [];
+            const newEvent = {
+                id: Date.now().toString(),
+                title,
+                date,
+                time: time || '',
+                color: color || '#4a90d9'
+            };
+            events.push(newEvent);
+            this.setInstanceState('events', events);
+            this.saveEvents(events);
+            this.renderCalendar?.();
+            this.emitAppEvent('event:created', { title, date, time, color });
+            return { success: true, eventId: newEvent.id };
+        });
+
+        this.registerCommand('removeEvent', (payload) => {
+            const { eventId } = payload;
+            if (!eventId) return { success: false, error: 'eventId is required' };
+            const events = this.getInstanceState('events') || [];
+            const filtered = events.filter(e => e.id !== eventId);
+            if (filtered.length === events.length) return { success: false, error: 'Event not found' };
+            this.setInstanceState('events', filtered);
+            this.saveEvents(filtered);
+            this.renderCalendar?.();
+            this.emitAppEvent('event:deleted', { eventId });
+            return { success: true };
+        });
+
+        this.registerCommand('goToDate', (payload) => {
+            const { date } = payload;
+            if (!date) return { success: false, error: 'date is required' };
+            const d = new Date(date);
+            if (isNaN(d.getTime())) return { success: false, error: 'Invalid date' };
+            this.setInstanceState('currentMonth', d.getMonth());
+            this.setInstanceState('currentYear', d.getFullYear());
+            this.selectDate?.(date);
+            this.renderCalendar?.();
+            return { success: true };
+        });
+
+        this.registerCommand('setMonth', (payload) => {
+            const { month, year } = payload;
+            if (month !== undefined) this.setInstanceState('currentMonth', month);
+            if (year !== undefined) this.setInstanceState('currentYear', year);
+            this.renderCalendar?.();
+            this.emitAppEvent('month:changed', { month: this.getInstanceState('currentMonth'), year: this.getInstanceState('currentYear') });
+            return { success: true };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getEvents', (payload) => {
+            const events = this.getInstanceState('events') || [];
+            if (payload && payload.date) {
+                return events.filter(e => e.date === payload.date);
+            }
+            return events;
+        });
+
+        this.registerQuery('getSelectedDate', () => {
+            return this.getInstanceState('selectedDate');
+        });
+
+        this.registerQuery('getCurrentMonth', () => {
+            return {
+                month: this.getInstanceState('currentMonth'),
+                year: this.getInstanceState('currentYear')
+            };
+        });
     }
 
     onOpen() {

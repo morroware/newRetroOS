@@ -42,6 +42,52 @@ class Snake extends AppBase {
         // Blink interval for "Press Start" text
         this.blinkInterval = null;
         this.showText = true;
+
+        // Register semantic event commands for scriptability
+        this.registerCommands();
+        this.registerQueries();
+    }
+
+    registerCommands() {
+        this.registerCommand('start', () => {
+            if (!this.isGameRunning) {
+                this.startGame();
+            }
+            return { success: true };
+        });
+
+        this.registerCommand('pause', () => {
+            if (this.isGameRunning && !this.isPaused && !this.isGameOver) {
+                this.togglePause();
+            }
+            return { success: true, isPaused: this.isPaused };
+        });
+
+        this.registerCommand('resume', () => {
+            if (this.isGameRunning && this.isPaused) {
+                this.togglePause();
+            }
+            return { success: true, isPaused: this.isPaused };
+        });
+
+        this.registerCommand('reset', () => {
+            this.resetToTitle();
+            return { success: true };
+        });
+    }
+
+    registerQueries() {
+        this.registerQuery('getState', () => {
+            return {
+                score: this.score,
+                highScore: this.highScore,
+                isGameRunning: this.isGameRunning,
+                isPaused: this.isPaused,
+                isGameOver: this.isGameOver,
+                snakeLength: this.snake.length,
+                gameSpeed: this.gameSpeed
+            };
+        });
     }
 
     onOpen() {
@@ -131,6 +177,11 @@ class Snake extends AppBase {
 
         this.placeFood();
         this.gameLoop();
+
+        this.emitAppEvent('game:start', {
+            gridSize: this.gridSize,
+            tileCount: this.tileCount
+        });
 
         // Emit game started event
         EventBus.emit('game:start', {
@@ -257,6 +308,19 @@ class Snake extends AppBase {
             this.score += 10;
             this.updateScoreUI();
 
+            this.emitAppEvent('food:eaten', {
+                x: this.food.x,
+                y: this.food.y,
+                score: this.score,
+                snakeLength: this.snake.length
+            });
+
+            this.emitAppEvent('score:updated', {
+                score: this.score,
+                previousScore: oldScore,
+                delta: 10
+            });
+
             // Emit food eaten event
             EventBus.emit('snake:food:eat', {
                 x: this.food.x,
@@ -353,6 +417,11 @@ class Snake extends AppBase {
     gameOver() {
         this.isGameOver = true;
         this.playSound('error');
+
+        this.emitAppEvent('game:over', {
+            score: this.score,
+            snakeLength: this.snake.length
+        });
 
         const isHighScore = this.score > this.highScore;
         if (isHighScore) {
