@@ -47,7 +47,7 @@
 }
 .im-signon-subtitle {
     color: #aaccee;
-    font-size: 11px;
+    font-size: 12px;
     margin-bottom: 15px;
 }
 .im-signon-box {
@@ -99,7 +99,7 @@
     transform: translate(1px, 1px);
 }
 .im-signon-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--win95-text-color);
     font-weight: bold;
 }
@@ -129,13 +129,13 @@
     color: var(--win95-window-title-text);
     padding: 6px 10px;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 .im-my-status {
-    font-size: 10px;
+    font-size: 12px;
     color: #aad;
     cursor: pointer;
 }
@@ -148,7 +148,7 @@
 }
 .im-toolbar-btn {
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: 12px;
     font-family: var(--win95-font-family);
     background: var(--win95-button-face);
     /* Win95 raised button */
@@ -182,7 +182,7 @@
 }
 .im-group-header {
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--win95-text-color);
     padding: 4px 5px;
     cursor: pointer;
@@ -197,7 +197,7 @@
     padding: 3px 5px 3px 15px;
     cursor: pointer;
     gap: 6px;
-    font-size: 11px;
+    font-size: 12px;
 }
 .im-buddy:hover {
     background: var(--win95-selection-bg);
@@ -220,7 +220,7 @@
     white-space: nowrap;
 }
 .im-buddy-idle {
-    font-size: 9px;
+    font-size: 12px;
     color: var(--win95-button-shadow);
 }
 .im-buddy.active .im-buddy-idle,
@@ -228,7 +228,7 @@
     color: #cce;
 }
 .im-online-count {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-button-shadow);
     padding: 5px 10px;
     border-top: 1px solid var(--win95-button-shadow);
@@ -321,17 +321,17 @@
 }
 .im-msg-time {
     color: var(--win95-button-shadow);
-    font-size: 10px;
+    font-size: 12px;
 }
 .im-msg-system {
     color: var(--win95-button-shadow);
     font-style: italic;
-    font-size: 11px;
+    font-size: 12px;
     margin: 6px 0;
 }
 .im-typing-indicator {
     padding: 2px 8px;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--win95-button-shadow);
     font-style: italic;
     height: 14px;
@@ -369,7 +369,7 @@
     box-shadow: 1px 1px 0 var(--win95-button-shadow);
     cursor: pointer;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--win95-font-family);
     align-self: stretch;
     color: var(--win95-text-color);
@@ -405,7 +405,7 @@
 .im-away-bar {
     background: #ffffcc;
     padding: 4px 10px;
-    font-size: 10px;
+    font-size: 12px;
     border-bottom: 1px solid var(--win95-button-shadow);
     display: flex;
     align-items: center;
@@ -413,7 +413,7 @@
     color: var(--win95-text-color);
 }
 .im-away-bar button {
-    font-size: 9px;
+    font-size: 12px;
     padding: 1px 6px;
     cursor: pointer;
     background: var(--win95-button-face);
@@ -444,7 +444,7 @@
     border-bottom: 2px solid #000;
     padding: 12px;
     width: 220px;
-    font-size: 11px;
+    font-size: 12px;
     z-index: 100;
     box-shadow: 3px 3px 6px rgba(0,0,0,0.3);
     display: none;
@@ -482,7 +482,7 @@
     background: #d4d4d4;
 }
 .im-warn-bar {
-    font-size: 10px;
+    font-size: 12px;
     color: #c00;
     padding: 0 10px 4px;
 }

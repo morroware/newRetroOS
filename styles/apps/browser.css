@@ -96,7 +96,7 @@
     padding: 4px 8px;
     background: var(--win95-gray);
     border-bottom: 1px solid var(--win95-button-shadow);
-    font-size: 11px;
+    font-size: 12px;
 }
 .browser-bookmark {
     cursor: pointer;
@@ -145,7 +145,7 @@
 .browser-status {
     height: 20px;
     padding: 2px 8px;
-    font-size: 11px;
+    font-size: 12px;
     background: var(--win95-gray);
     /* Win95 sunken status bar panel */
     border-top: 1px solid var(--win95-button-shadow);

@@ -96,7 +96,7 @@ class RecycleBin extends AppBase {
                     border: 2px outset #fff;
                     background: #c0c0c0;
                     cursor: pointer;
-                    font-size: 11px;
+                    font-size: 12px;
                     display: flex;
                     align-items: center;
                     gap: 4px;
@@ -172,12 +172,12 @@ class RecycleBin extends AppBase {
                     filter: drop-shadow(0 0 2px white);
                 }
                 .recyclebin-item-label {
-                    font-size: 11px;
+                    font-size: 12px;
                     text-align: center;
                     word-break: break-word;
                 }
                 .recyclebin-item-info {
-                    font-size: 9px;
+                    font-size: 12px;
                     text-align: center;
                     color: #666;
                 }
@@ -188,7 +188,7 @@ class RecycleBin extends AppBase {
                     padding: 4px 8px;
                     background: #c0c0c0;
                     border-top: 2px groove #fff;
-                    font-size: 11px;
+                    font-size: 12px;
                     display: flex;
                     justify-content: space-between;
                 }
@@ -226,11 +226,11 @@ class RecycleBin extends AppBase {
                     flex: 1;
                 }
                 .recyclebin-list-label {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: bold;
                 }
                 .recyclebin-list-info {
-                    font-size: 10px;
+                    font-size: 12px;
                     color: #666;
                 }
                 .recyclebin-list-item.selected .recyclebin-list-info {
@@ -325,7 +325,7 @@ class RecycleBin extends AppBase {
             <div class="recyclebin-empty">
                 <div class="recyclebin-empty-icon">🗑️</div>
                 <div class="recyclebin-empty-text">Recycle Bin is empty</div>
-                <div style="font-size: 11px; margin-top: 10px; color: #888;">
+                <div style="font-size: 12px; margin-top: 10px; color: #888;">
                     Deleted items will appear here
                 </div>
             </div>

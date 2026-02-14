@@ -125,7 +125,7 @@ class ChatRoom extends AppBase {
                         <input type="text" class="chatroom-login-input" id="usernameInput" placeholder="CoolDude99" maxlength="20">
                         <br>
                         <button class="chatroom-login-btn" id="loginBtn">Enter Chat</button>
-                        <div style="margin-top: 15px; font-size: 10px; color: #666;">
+                        <div style="margin-top: 15px; font-size: 12px; color: #666;">
                             Tip: Be creative with your name!<br>
                             Try xX_Name_Xx or Name2000
                         </div>

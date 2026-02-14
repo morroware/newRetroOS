@@ -264,7 +264,7 @@ class DVDBouncerFeature extends FeatureBase {
         `;
         info.innerHTML = `
             <div>Corner Hits: <span id="dvd-corner-count">0</span></div>
-            <div style="margin-top: 10px; font-size: 8px;">Click anywhere to exit</div>
+            <div style="margin-top: 10px; font-size: 12px;">Click anywhere to exit</div>
         `;
 
         this.container.appendChild(this.logo);

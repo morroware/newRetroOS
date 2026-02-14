@@ -146,7 +146,7 @@ class FeaturesSettings extends AppBase {
                 }
                 .features-header p {
                     margin: 0;
-                    font-size: 11px;
+                    font-size: 12px;
                     color: #666;
                 }
                 .features-content {
@@ -163,7 +163,7 @@ class FeaturesSettings extends AppBase {
                 .feature-category {
                     padding: 8px 15px;
                     cursor: pointer;
-                    font-size: 11px;
+                    font-size: 12px;
                     display: flex;
                     align-items: center;
                     gap: 8px;
@@ -213,7 +213,7 @@ class FeaturesSettings extends AppBase {
                     margin: 0 0 3px 0;
                 }
                 .feature-desc {
-                    font-size: 10px;
+                    font-size: 12px;
                     color: #666;
                     margin: 0;
                 }
@@ -265,7 +265,7 @@ class FeaturesSettings extends AppBase {
                     padding: 5px 10px;
                     background: none;
                     border: none;
-                    font-size: 10px;
+                    font-size: 12px;
                     color: #666;
                 }
                 .feature-expand:hover {
@@ -279,7 +279,7 @@ class FeaturesSettings extends AppBase {
                 }
                 .setting-label {
                     flex: 1;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .setting-input {
                     width: 120px;
@@ -288,13 +288,13 @@ class FeaturesSettings extends AppBase {
                     width: 100px;
                 }
                 .setting-value {
-                    font-size: 10px;
+                    font-size: 12px;
                     color: #666;
                     width: 40px;
                     text-align: right;
                 }
                 .category-badge {
-                    font-size: 9px;
+                    font-size: 12px;
                     padding: 2px 6px;
                     border-radius: 8px;
                     background: #e0e0e0;

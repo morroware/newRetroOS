@@ -968,6 +968,7 @@ class DesktopRendererClass {
         const icons = StateManager.getState('icons') || [];
         let x = 20, y = 20;
 
+        // Arrange all StateManager icons (built-in + script/user-created)
         icons.forEach(icon => {
             icon.x = x;
             icon.y = y;
@@ -979,6 +980,33 @@ class DesktopRendererClass {
         });
 
         StateManager.setState('icons', icons, true);
+
+        // Also arrange file icons from the Desktop folder
+        try {
+            const desktopPath = [...PATHS.DESKTOP];
+            const files = FileSystemManager.listDirectory(desktopPath);
+            const realFiles = files.filter(file => file.extension !== 'lnk');
+
+            if (realFiles.length > 0) {
+                const filePositions = StateManager.getState('filePositions') || {};
+
+                realFiles.forEach(file => {
+                    const fileId = `file_${file.name}`;
+                    filePositions[fileId] = { x, y };
+                    y += 100;
+                    if (y > window.innerHeight - 200) {
+                        y = 20;
+                        x += 120;
+                    }
+                });
+
+                StateManager.setState('filePositions', filePositions, true);
+            }
+        } catch (e) {
+            // Desktop folder may be empty or not exist yet
+            console.log('[DesktopRenderer] No file icons to arrange:', e.message);
+        }
+
         this.render();
     }
 

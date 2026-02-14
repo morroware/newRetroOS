@@ -79,7 +79,7 @@ class SoundSettings extends AppBase {
                     height: 100%;
                     display: flex;
                     flex-direction: column;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .sound-tabs {
                     display: flex;
@@ -227,7 +227,7 @@ class SoundSettings extends AppBase {
                     border: 2px groove #fff;
                 }
                 .mixer-label {
-                    font-size: 10px;
+                    font-size: 12px;
                     text-align: center;
                 }
                 .mixer-slider {

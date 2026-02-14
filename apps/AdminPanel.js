@@ -162,7 +162,7 @@ class AdminPanel extends AppBase {
                 }
                 .admin-error {
                     color: red;
-                    font-size: 11px;
+                    font-size: 12px;
                     margin-top: 10px;
                     display: none;
                 }
@@ -171,7 +171,7 @@ class AdminPanel extends AppBase {
                 <div class="admin-login-box">
                     <div class="admin-login-icon">🔐</div>
                     <div class="admin-login-title">Administrator Access Required</div>
-                    <div style="margin-bottom: 15px; font-size: 11px; color: #666;">
+                    <div style="margin-bottom: 15px; font-size: 12px; color: #666;">
                         Enter password to access Admin Panel
                     </div>
                     <input type="password" class="admin-input" id="admin-password" placeholder="Password">
@@ -238,7 +238,7 @@ class AdminPanel extends AppBase {
                 .admin-table {
                     width: 100%;
                     border-collapse: collapse;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .admin-table th {
                     background: #c0c0c0;
@@ -256,7 +256,7 @@ class AdminPanel extends AppBase {
                     background: #c0c0c0;
                     border: 2px outset #fff;
                     cursor: pointer;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .admin-button:active {
                     border-style: inset;
@@ -268,7 +268,7 @@ class AdminPanel extends AppBase {
                 .admin-input {
                     padding: 4px;
                     border: 2px inset #fff;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .admin-form {
                     display: grid;
@@ -277,7 +277,7 @@ class AdminPanel extends AppBase {
                     align-items: center;
                 }
                 .admin-form label {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: bold;
                 }
             </style>
@@ -382,7 +382,7 @@ class AdminPanel extends AppBase {
 
                     <div class="admin-section">
                         <div class="admin-section-title">Session Info</div>
-                        <div style="font-size: 11px; line-height: 1.8;">
+                        <div style="font-size: 12px; line-height: 1.8;">
                             <strong>Status:</strong> Administrator<br>
                             <strong>Browser:</strong> ${navigator.userAgent}<br>
                             <strong>Screen:</strong> ${window.screen.width}x${window.screen.height}<br>
@@ -398,7 +398,7 @@ class AdminPanel extends AppBase {
                             <button class="admin-button" id="unlock-all-btn">🏆 Unlock All Achievements</button>
                             <button class="admin-button danger" id="clear-achievements-btn">❌ Clear All Achievements</button>
                         </div>
-                        <div style="font-size: 11px;">
+                        <div style="font-size: 12px;">
                             <strong>Unlocked:</strong> ${achievements.length} achievements<br>
                             ${achievements.length > 0 ? `<div style="margin-top: 10px;">${achievements.join(', ')}</div>` : '<div style="margin-top: 10px; color: #666;">No achievements unlocked yet</div>'}
                         </div>
@@ -408,7 +408,7 @@ class AdminPanel extends AppBase {
                 <div class="admin-tab-content" data-content="system">
                     <div class="admin-section">
                         <div class="admin-section-title">System Diagnostics</div>
-                        <div style="font-size: 11px; font-family: monospace; background: black; color: #0f0; padding: 10px; overflow-x: auto;">
+                        <div style="font-size: 12px; font-family: monospace; background: black; color: #0f0; padding: 10px; overflow-x: auto;">
                             IlluminatOS! System Diagnostics v1.0<br>
                             ═══════════════════════════════<br><br>
                             Desktop Icons: ${icons.length}<br>

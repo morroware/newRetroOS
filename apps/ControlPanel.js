@@ -134,7 +134,7 @@ class ControlPanel extends AppBase {
                     font-size: 14px;
                 }
                 .control-item-desc {
-                    font-size: 13px;
+                    font-size: 14px;
                     color: #666;
                 }
                 .control-link {
@@ -313,7 +313,7 @@ class ControlPanel extends AppBase {
 
                     <div class="control-item">
                         <div class="control-item-info">
-                            <div class="control-item-label" style="font-size: 12px; color: #666; font-style: italic; font-weight: normal;">
+                            <div class="control-item-label" style="font-size: 13px; color: #666; font-style: italic; font-weight: normal;">
                                 Tip: Double-click your pet for a fortune! Drag to move.
                             </div>
                         </div>
@@ -330,7 +330,7 @@ class ControlPanel extends AppBase {
                             <div class="control-item-desc">Minutes until screensaver activates</div>
                         </div>
                         <div>
-                            <select id="screensaver-delay" style="padding: 4px; border: 2px inset #fff; font-size: 13px;">
+                            <select id="screensaver-delay" style="padding: 4px; border: 2px inset #fff; font-size: 14px;">
                                 <option value="60000" ${settings.screensaverDelay === 60000 ? 'selected' : ''}>1 minute</option>
                                 <option value="180000" ${settings.screensaverDelay === 180000 ? 'selected' : ''}>3 minutes</option>
                                 <option value="300000" ${settings.screensaverDelay === 300000 ? 'selected' : ''}>5 minutes</option>
@@ -350,7 +350,7 @@ class ControlPanel extends AppBase {
                             <div class="control-item-label">Storage Used</div>
                             <div class="control-item-desc">LocalStorage data usage</div>
                         </div>
-                        <div id="storage-info" style="font-size: 13px; font-weight: bold;">
+                        <div id="storage-info" style="font-size: 14px; font-weight: bold;">
                             Calculating...
                         </div>
                     </div>
@@ -361,7 +361,7 @@ class ControlPanel extends AppBase {
                             <div class="control-item-label">Achievements Unlocked</div>
                             <div class="control-item-desc">Your progress in IlluminatOS!</div>
                         </div>
-                        <div style="font-size: 13px; font-weight: bold;">
+                        <div style="font-size: 14px; font-weight: bold;">
                             ${StateManager.getState('achievements').length} achievements
                         </div>
                     </div>

@@ -137,7 +137,7 @@ class Asteroids extends AppBase {
                     </div>
                 </div>
                 <canvas id="gameCanvas" width="680" height="480" style="display: block; width: 100%; height: 100%;"></canvas>
-                <div class="asteroids-controls" style="color: #666; font-size: 10px; text-align: center; padding: 2px;">
+                <div class="asteroids-controls" style="color: #666; font-size: 12px; text-align: center; padding: 2px;">
                     Arrows: Move/Turn | Space: Shoot | Collect Power-ups!
                 </div>
             </div>

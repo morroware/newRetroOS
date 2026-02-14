@@ -81,7 +81,7 @@ class HyperCard extends AppBase {
                 }
                 .hypercard-info {
                     flex: 1;
-                    font-size: 11px;
+                    font-size: 12px;
                     color: #000;
                     padding: 0 8px;
                 }
@@ -102,7 +102,7 @@ class HyperCard extends AppBase {
                 .hypercard-status {
                     height: 20px;
                     padding: 2px 8px;
-                    font-size: 11px;
+                    font-size: 12px;
                     background: #c0c0c0;
                     border-top: 1px solid #808080;
                     display: flex;

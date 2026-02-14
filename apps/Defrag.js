@@ -95,7 +95,7 @@ class Defrag extends AppBase {
                     height: 100%;
                     display: flex;
                     flex-direction: column;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
                 .defrag-header {
                     padding: 10px;
@@ -168,7 +168,7 @@ class Defrag extends AppBase {
                     display: flex;
                     align-items: center;
                     gap: 5px;
-                    font-size: 10px;
+                    font-size: 12px;
                 }
                 .defrag-legend-color {
                     width: 12px;
@@ -196,14 +196,14 @@ class Defrag extends AppBase {
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: bold;
                     color: #000;
                     mix-blend-mode: difference;
                 }
                 .defrag-status {
                     padding: 5px 10px;
-                    font-size: 10px;
+                    font-size: 12px;
                     color: #000;
                 }
                 .defrag-controls {

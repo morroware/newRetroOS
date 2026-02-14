@@ -71,7 +71,7 @@ class Notepad extends AppBase {
                 .notepad-filepath {
                     padding: 4px 8px;
                     background: #f0f0f0;
-                    font-size: 11px;
+                    font-size: 12px;
                     border-bottom: 1px solid #808080;
                     flex-shrink: 0;
                 }
