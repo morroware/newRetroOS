@@ -710,7 +710,7 @@ class MyComputer extends AppBase {
         };
 
         // Add keyboard listener to document but filter by focus
-        document.addEventListener('keydown', this.keyboardHandler);
+        this.addHandler(document, 'keydown', this.keyboardHandler);
     }
 
     /**

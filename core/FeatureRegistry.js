@@ -144,8 +144,12 @@ class FeatureRegistryClass {
         }
 
         features.forEach((feature, index) => {
-            this._log(`[FeatureRegistry] Registering feature ${index + 1}/${features.length}: ${feature?.id || 'INVALID'}`);
-            this.register(feature);
+            try {
+                this._log(`[FeatureRegistry] Registering feature ${index + 1}/${features.length}: ${feature?.id || 'INVALID'}`);
+                this.register(feature);
+            } catch (err) {
+                console.error(`[FeatureRegistry] Failed to register feature '${feature?.id || index}':`, err);
+            }
         });
 
         this._log(`[FeatureRegistry] registerAll complete. Total: ${this.features.size} features`);

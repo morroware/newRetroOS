@@ -122,6 +122,10 @@ class Minesweeper extends AppBase {
 
     onMount() {
         this.getElement('#mineFace')?.addEventListener('click', () => this.initGame());
+        // Single document-level mouseup handler for face reset (instead of per-cell)
+        this.addHandler(document, 'mouseup', () => {
+            if (!this.gameOver) this.updateFace('😀');
+        });
         this.initGame();
     }
 
@@ -192,11 +196,6 @@ class Minesweeper extends AppBase {
             if (this.gameOver || this.grid[r][c].revealed) return;
             if (e.button === 0) this.updateFace('😮');
         });
-
-        // Global Mouse Up (Reset face)
-        document.addEventListener('mouseup', () => {
-            if (!this.gameOver) this.updateFace('😀');
-        }, { once: true });
 
         // Left Click (Reveal or Chord)
         el.addEventListener('click', () => {
