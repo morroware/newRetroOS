@@ -1036,7 +1036,7 @@ class WindowManagerClass {
      * @returns {string[]}
      */
     getOpenIds() {
-        return StateManager.getState('windows').map(w => w.id);
+        return (StateManager.getState('windows') || []).map(w => w.id);
     }
 
     /**

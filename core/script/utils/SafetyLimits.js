@@ -131,6 +131,7 @@ export class SafetyLimits {
      */
     clampLoopIterations(count) {
         const max = this.limits.MAX_LOOP_ITERATIONS;
+        if (count < 0) return 0;
         if (count > max) {
             console.warn(`[SafetyLimits] Loop count ${count} exceeds maximum (${max}), clamping`);
             return max;
@@ -181,7 +182,7 @@ export class SafetyLimits {
      * @returns {boolean} True if within limits
      */
     checkEventHandlerCount(count) {
-        return count < this.limits.MAX_EVENT_HANDLERS;
+        return count <= this.limits.MAX_EVENT_HANDLERS;
     }
 
     /**

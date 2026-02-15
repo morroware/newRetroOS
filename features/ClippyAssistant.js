@@ -952,9 +952,24 @@ class ClippyAssistant extends FeatureBase {
         // Auto-hide timer reference
         this.autoHideTimer = null;
 
+        // Track all ad-hoc timeouts for cleanup
+        this._pendingTimeouts = new Set();
+
         // Mark visit
         localStorage.setItem('clippy_visited', 'true');
         localStorage.setItem('clippy_total_visits', this.totalVisits.toString());
+    }
+
+    /**
+     * Track a setTimeout so it can be cleared on cleanup
+     */
+    _setTimeout(fn, delay) {
+        const id = setTimeout(() => {
+            this._pendingTimeouts.delete(id);
+            fn();
+        }, delay);
+        this._pendingTimeouts.add(id);
+        return id;
     }
 
     async initialize() {
@@ -977,13 +992,13 @@ class ClippyAssistant extends FeatureBase {
 
         // Initial greeting based on visit status
         if (this.isFirstVisit) {
-            setTimeout(() => {
+            this._setTimeout(() => {
                 this.show();
                 this.speakMessage(this.getRandomMessage(FIRST_TIME_GREETINGS));
             }, 3000);
         } else if (this.totalVisits % 5 === 0) {
             // Occasional return greeting
-            setTimeout(() => {
+            this._setTimeout(() => {
                 if (Math.random() > 0.5) {
                     this.show();
                     this.speakMessage(this.getRandomMessage(RETURN_GREETINGS));
@@ -1007,6 +1022,12 @@ class ClippyAssistant extends FeatureBase {
         if (this.autoHideTimer) {
             clearTimeout(this.autoHideTimer);
         }
+
+        // Clear all tracked ad-hoc timeouts
+        for (const id of this._pendingTimeouts) {
+            clearTimeout(id);
+        }
+        this._pendingTimeouts.clear();
 
         // Hide Clippy
         this.hide();
@@ -1074,7 +1095,7 @@ class ClippyAssistant extends FeatureBase {
 
             // React to specific apps
             if (Math.random() > 0.75 && !this.isVisible) {
-                setTimeout(() => {
+                this._setTimeout(() => {
                     this.show();
                     if (this.currentApp && APP_REACTIONS[this.currentApp]) {
                         this.speakAppReaction(this.currentApp);
@@ -1134,13 +1155,13 @@ class ClippyAssistant extends FeatureBase {
         this.subscribe(Events.SCREENSAVER_START, () => {
             if (this.isVisible) {
                 this.speakContext('screensaverStart');
-                setTimeout(() => this.hide(), 3000);
+                this._setTimeout(() => this.hide(), 3000);
             }
         });
 
         this.subscribe(Events.SCREENSAVER_END, () => {
             if (Math.random() > 0.7) {
-                setTimeout(() => {
+                this._setTimeout(() => {
                     this.show();
                     this.speakContext('screensaverEnd');
                 }, 1500);
@@ -1338,13 +1359,13 @@ class ClippyAssistant extends FeatureBase {
         this.subscribe(Events.SYSTEM_FULLSCREEN_ENTER, () => {
             if (this.isVisible) {
                 this.speakContext('fullscreenEnter');
-                setTimeout(() => this.hide(), 2000);
+                this._setTimeout(() => this.hide(), 2000);
             }
         });
 
         this.subscribe(Events.SYSTEM_FULLSCREEN_EXIT, () => {
             if (Math.random() > 0.8) {
-                setTimeout(() => {
+                this._setTimeout(() => {
                     this.show();
                     this.speakContext('fullscreenExit');
                 }, 1000);
@@ -1365,7 +1386,7 @@ class ClippyAssistant extends FeatureBase {
         this.subscribe(Events.SYSTEM_READY, () => {
             // Don't interfere with first visit greeting
             if (!this.isFirstVisit && Math.random() > 0.8) {
-                setTimeout(() => {
+                this._setTimeout(() => {
                     this.show();
                     this.speakMessage(this.getRandomMessage(SYSTEM_AWARENESS.bootComplete));
                 }, 4000);
@@ -1377,7 +1398,7 @@ class ClippyAssistant extends FeatureBase {
             if (data?.enabled) {
                 this.hasSeenPet = true;
                 if (Math.random() > 0.6) {
-                    setTimeout(() => {
+                    this._setTimeout(() => {
                         this.show();
                         this.speakMessage(this.getRandomMessage(FEATURE_AWARENESS.petAppear));
                     }, 2000);
@@ -1486,7 +1507,7 @@ class ClippyAssistant extends FeatureBase {
             clearTimeout(idleTimer);
             clearTimeout(longIdleTimer);
 
-            idleTimer = setTimeout(() => {
+            idleTimer = this._setTimeout(() => {
                 this.isUserIdle = true;
                 if (!this.isVisible && Math.random() > 0.7) {
                     this.show();
@@ -1494,7 +1515,7 @@ class ClippyAssistant extends FeatureBase {
                 }
             }, 60000); // 1 minute of inactivity
 
-            longIdleTimer = setTimeout(() => {
+            longIdleTimer = this._setTimeout(() => {
                 if (!this.isVisible && Math.random() > 0.6) {
                     this.show();
                     this.speakContext('longIdle');
@@ -1515,7 +1536,7 @@ class ClippyAssistant extends FeatureBase {
 
         const delay = 5000 + Math.random() * 25000; // 5-30 seconds
 
-        this.randomAppearanceTimer = setTimeout(() => {
+        this.randomAppearanceTimer = this._setTimeout(() => {
             if (!this.isVisible && Math.random() > 0.4) {
                 this.show();
             }
@@ -1618,7 +1639,7 @@ class ClippyAssistant extends FeatureBase {
 
         // Auto-hide after delay (if not interacting)
         const delay = this.getConfig('autoHideDelay') || 8000;
-        this.autoHideTimer = setTimeout(() => {
+        this.autoHideTimer = this._setTimeout(() => {
             if (this.isVisible && Date.now() - this.lastInteraction > delay - 1000) {
                 this.hide();
             }
@@ -1758,7 +1779,7 @@ class ClippyAssistant extends FeatureBase {
     respond(response) {
         if (response === 'no') {
             this.speakMessage(this.getRandomMessage(NO_RESPONSES));
-            setTimeout(() => this.dismiss(), 3000);
+            this._setTimeout(() => this.dismiss(), 3000);
         } else {
             // User actually said yes!
             this.hasBeenHelpful = true; // Lies, but let's be optimistic
@@ -1768,7 +1789,7 @@ class ClippyAssistant extends FeatureBase {
             this.speakMessage(this.getRandomMessage(YES_RESPONSES));
 
             // After a helpful response, cycle through more tips
-            setTimeout(() => {
+            this._setTimeout(() => {
                 if (this.isVisible) {
                     this.speak();
                 }
@@ -1806,10 +1827,10 @@ class ClippyAssistant extends FeatureBase {
                 StateManager.unlockAchievement('clippy_terminator');
             }
 
-            setTimeout(() => {
+            this._setTimeout(() => {
                 this.hide();
                 // Reset dismissing flag after cooldown
-                setTimeout(() => {
+                this._setTimeout(() => {
                     this.isDismissing = false;
                 }, this.dismissCooldown);
             }, 4000);
@@ -1819,10 +1840,10 @@ class ClippyAssistant extends FeatureBase {
         // Sometimes come back one more time to be annoying (but funny)
         if (this.dismissCount > 5 && this.dismissCount % 5 === 0 && Math.random() > 0.5) {
             this.speakMessage("I'm back! Did you miss me? ...No? Okay. Fair.");
-            setTimeout(() => {
+            this._setTimeout(() => {
                 this.hide();
                 // Reset dismissing flag after cooldown
-                setTimeout(() => {
+                this._setTimeout(() => {
                     this.isDismissing = false;
                 }, this.dismissCooldown);
             }, 3000);
@@ -1832,7 +1853,7 @@ class ClippyAssistant extends FeatureBase {
         this.hide();
 
         // Reset dismissing flag after cooldown
-        setTimeout(() => {
+        this._setTimeout(() => {
             this.isDismissing = false;
         }, this.dismissCooldown);
 

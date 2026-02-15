@@ -215,6 +215,11 @@ class ChatRoom extends AppBase {
         if (this.chatInterval) {
             clearInterval(this.chatInterval);
         }
+        // Clean up any scheduled message timeouts
+        for (const id of Object.keys(this._scheduledMessages)) {
+            clearTimeout(this._scheduledMessages[id].timeoutId);
+        }
+        this._scheduledMessages = {};
         this.isLoggedIn = false;
         this.messages = [];
     }

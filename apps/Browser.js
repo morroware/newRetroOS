@@ -350,7 +350,7 @@ class Browser extends AppBase {
             span.className = 'browser-bookmark';
             span.textContent = b.name;
             span.dataset.url = b.url;
-            span.addEventListener('click', () => {
+            this.addHandler(span, 'click', () => {
                 if (isSafeHttpUrl(span.dataset.url)) {
                     this.navigate(span.dataset.url);
                 }

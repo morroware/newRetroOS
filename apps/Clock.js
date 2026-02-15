@@ -387,11 +387,15 @@ class Clock extends AppBase {
         const timerInterval = this.getInstanceState('timerInterval');
         const clockInterval = this.getInstanceState('clockInterval');
         const alarmChecker = this.getInstanceState('alarmChecker');
+        const beepInterval = this.getInstanceState('beepInterval');
+        const flashInterval = this.getInstanceState('flashInterval');
 
         if (swInterval) clearInterval(swInterval);
         if (timerInterval) clearInterval(timerInterval);
         if (clockInterval) clearInterval(clockInterval);
         if (alarmChecker) clearInterval(alarmChecker);
+        if (beepInterval) clearInterval(beepInterval);
+        if (flashInterval) clearInterval(flashInterval);
     }
 
     // --- Tab Management ---
@@ -831,10 +835,12 @@ class Clock extends AppBase {
             flashes++;
             if (flashes >= 10) {
                 clearInterval(flashInterval);
+                this.setInstanceState('flashInterval', null);
                 display.style.color = '';
             }
             this.playSound('click');
         }, 300);
+        this.setInstanceState('flashInterval', flashInterval);
     }
 
     // --- Utilities ---

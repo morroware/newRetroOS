@@ -143,7 +143,7 @@ export function registerArrayBuiltins(interpreter) {
         const estimatedSize = Math.abs((e - s) / st);
         if (estimatedSize > maxLength) {
             // Limit to max array length
-            const limitedEnd = st > 0 ? s + (st * maxLength) : s + (st * maxLength);
+            const limitedEnd = st > 0 ? s + (st * maxLength) : s - (Math.abs(st) * maxLength);
             if (st > 0) {
                 for (let i = s; i < limitedEnd && result.length < maxLength; i += st) {
                     result.push(i);
