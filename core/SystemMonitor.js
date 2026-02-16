@@ -152,12 +152,13 @@ class SystemMonitorClass {
 
     _onActivity() {
         const wasIdle = this.state.isIdle;
+        const idleDuration = Date.now() - this.state.lastActivity;
         this.state.lastActivity = Date.now();
 
         if (wasIdle) {
             this.state.isIdle = false;
             EventBus.emit(Events.SYSTEM_ACTIVE, {
-                idleDuration: Date.now() - this.state.lastActivity,
+                idleDuration,
             });
         }
     }

@@ -108,12 +108,16 @@ class PluginLoaderClass {
             // Register features if provided
             if (plugin.features && Array.isArray(plugin.features)) {
                 for (const feature of plugin.features) {
-                    // Mark feature as plugin-provided
-                    feature.category = 'plugin';
-                    feature.pluginId = plugin.id;
+                    try {
+                        // Mark feature as plugin-provided
+                        feature.category = 'plugin';
+                        feature.pluginId = plugin.id;
 
-                    FeatureRegistry.register(feature);
-                    this.pluginFeatures.set(feature.id, plugin.id);
+                        FeatureRegistry.register(feature);
+                        this.pluginFeatures.set(feature.id, plugin.id);
+                    } catch (err) {
+                        console.error(`[PluginLoader] Failed to register feature '${feature?.id}' from plugin '${plugin.id}':`, err);
+                    }
                 }
             }
 
@@ -122,9 +126,13 @@ class PluginLoaderClass {
                 // Import AppRegistry dynamically to avoid circular dependencies
                 const { default: AppRegistry } = await import('../apps/AppRegistry.js');
                 for (const app of plugin.apps) {
-                    app.pluginId = plugin.id;
-                    const registrationResult = AppRegistry.register(app);
-                    this._trackRegisteredPluginApp(app, plugin.id, registrationResult);
+                    try {
+                        app.pluginId = plugin.id;
+                        const registrationResult = AppRegistry.register(app);
+                        this._trackRegisteredPluginApp(app, plugin.id, registrationResult);
+                    } catch (err) {
+                        console.error(`[PluginLoader] Failed to register app '${app?.id}' from plugin '${plugin.id}':`, err);
+                    }
                 }
             }
 
@@ -233,10 +241,14 @@ class PluginLoaderClass {
             return;
         }
 
-        // Load each plugin
+        // Load each plugin (isolated so one failure doesn't stop others)
         for (const pluginConfig of manifest.plugins) {
             if (pluginConfig.enabled !== false) {
-                await this.loadPluginFromPath(pluginConfig.path);
+                try {
+                    await this.loadPluginFromPath(pluginConfig.path);
+                } catch (err) {
+                    console.error(`[PluginLoader] Failed to load plugin at '${pluginConfig.path}':`, err);
+                }
             }
         }
 

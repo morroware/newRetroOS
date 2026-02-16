@@ -259,7 +259,7 @@ class AppRegistryClass {
         // Emit health warning if any apps failed to register
         if (failedApps.length > 0) {
             console.warn(`[AppRegistry] ${failedApps.length} app(s) failed to register: ${failedApps.join(', ')}`);
-            EventBus.emit('system:health:warning', {
+            EventBus.emit(Events.SYSTEM_HEALTH_WARNING, {
                 source: 'AppRegistry',
                 message: `${failedApps.length} app(s) failed to register`,
                 failedApps
@@ -300,7 +300,7 @@ class AppRegistryClass {
         // Validate input
         if (!appId || typeof appId !== 'string') {
             console.error('[AppRegistry] Invalid appId:', appId);
-            EventBus.emit('app:launch:error', {
+            EventBus.emit(Events.APP_LAUNCH_ERROR, {
                 appId: String(appId),
                 error: 'Invalid app ID',
                 type: 'validation'
@@ -312,7 +312,7 @@ class AppRegistryClass {
 
         if (!app) {
             console.error(`[AppRegistry] Unknown app: ${appId}`);
-            EventBus.emit('app:launch:error', {
+            EventBus.emit(Events.APP_LAUNCH_ERROR, {
                 appId,
                 error: 'App not found',
                 type: 'not_found'
@@ -386,7 +386,7 @@ class AppRegistryClass {
             console.error('[AppRegistry] Error stack:', error.stack);
 
             // Emit semantic event for error tracking
-            EventBus.emit('app:launch:error', {
+            EventBus.emit(Events.APP_LAUNCH_ERROR, {
                 appId,
                 appName: app.name,
                 error: error.message,
@@ -434,7 +434,7 @@ class AppRegistryClass {
             return true;
         } catch (error) {
             console.error(`[AppRegistry] Error closing ${appId}:`, error);
-            EventBus.emit('app:close:error', {
+            EventBus.emit(Events.APP_CLOSE_ERROR, {
                 appId,
                 error: error.message,
                 timestamp: Date.now()

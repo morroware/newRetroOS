@@ -1368,9 +1368,50 @@ export const Events = {
 
     // App error events
     APP_LAUNCH_ERROR: 'app:launch:error',
+    APP_CLOSE_ERROR: 'app:close:error',
 
     // BSOD events
-    BSOD_SHOW: 'bsod:show'
+    BSOD_SHOW: 'bsod:show',
+
+    // Filesystem granular events
+    FILESYSTEM_FILE_CHANGED: 'filesystem:file:changed',
+    FILESYSTEM_DIRECTORY_CHANGED: 'filesystem:directory:changed',
+
+    // Clipboard events
+    CLIPBOARD_CHANGED: 'clipboard:changed',
+    CLIPBOARD_CUT_STATE: 'clipboard:cut-state',
+
+    // Feature lifecycle events
+    FEATURE_UNREGISTERED: 'feature:unregistered',
+    FEATURE_DEPENDENCY_FAILED: 'feature:dependency-failed',
+
+    // Plugin lifecycle events
+    PLUGINS_LOADED: 'plugins:loaded',
+    PLUGIN_UNLOADED: 'plugin:unloaded',
+
+    // Autoexec events
+    AUTOEXEC_START: 'autoexec:start',
+    AUTOEXEC_COMPLETE: 'autoexec:complete',
+    AUTOEXEC_ERROR: 'autoexec:error',
+
+    // System health events
+    SYSTEM_HEALTH_WARNING: 'system:health:warning',
+
+    // Macro lifecycle events
+    MACRO_RECORDING: 'macro:recording',
+    MACRO_RECORDED: 'macro:recorded',
+    MACRO_PLAYING: 'macro:playing',
+    MACRO_COMPLETE: 'macro:complete',
+
+    // Game events (generic cross-game)
+    GAME_START: 'game:start',
+    GAME_OVER: 'game:over',
+    GAME_SCORE: 'game:score',
+    GAME_HIGHSCORE: 'game:highscore',
+    GAME_LIVES: 'game:lives',
+    GAME_PAUSE: 'game:pause',
+    GAME_RESUME: 'game:resume',
+    GAME_LEVEL: 'game:level'
 };
 
 // Export priority levels

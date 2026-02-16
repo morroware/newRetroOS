@@ -767,12 +767,16 @@ export class Interpreter {
             case '*': return Number(left) * Number(right);
             case '/': {
                 const divisor = Number(right);
-                if (divisor === 0) return 0; // Return 0 for division by zero
+                if (divisor === 0) {
+                    throw new RuntimeError('Division by zero', { line: expr.line, column: expr.column });
+                }
                 return Number(left) / divisor;
             }
             case '%': {
                 const modDivisor = Number(right);
-                if (modDivisor === 0) return 0; // Return 0 for modulo by zero (consistent with division)
+                if (modDivisor === 0) {
+                    throw new RuntimeError('Modulo by zero', { line: expr.line, column: expr.column });
+                }
                 return Number(left) % modDivisor;
             }
 

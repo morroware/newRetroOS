@@ -131,13 +131,16 @@ class BootSequence {
  * @param {string} name - Component name for logging
  * @param {Function} initFn - Initialization function (can be async)
  */
-async function initComponent(name, initFn) {
+async function initComponent(name, initFn, { critical = true } = {}) {
     try {
         console.log(`[IlluminatOS!]   - Initializing ${name}...`);
         await initFn();
     } catch (error) {
         console.error(`[IlluminatOS!] FAILED to initialize ${name}:`, error);
-        throw new Error(`Failed to initialize ${name}: ${error.message}`);
+        if (critical) {
+            throw new Error(`Failed to initialize ${name}: ${error.message}`);
+        }
+        console.warn(`[IlluminatOS!] Non-critical component ${name} failed — continuing boot`);
     }
 }
 
@@ -206,7 +209,7 @@ async function initializeOS(onProgress = () => {}) {
 
         // Save the updated filesystem
         FileSystemManager.saveFileSystem();
-    });
+    }, { critical: false });
 
     // === Phase 2: Features ===
     console.log('[IlluminatOS!] Phase 2: Features');
@@ -237,7 +240,7 @@ async function initializeOS(onProgress = () => {}) {
         });
 
         FeatureRegistry.registerAll(featuresToRegister);
-    });
+    }, { critical: false });
 
     // === Phase 2.5: Load Plugins ===
     console.log('[IlluminatOS!] Phase 2.5: Plugin System');
@@ -273,14 +276,14 @@ async function initializeOS(onProgress = () => {}) {
         // Log status for debugging
         console.log('[IlluminatOS!] Plugins loaded:');
         PluginLoader.logStatus();
-    });
+    }, { critical: false });
 
     // === Phase 2.7: Initialize All Features (Core + Plugin) ===
     console.log('[IlluminatOS!] Phase 2.7: Initializing all features');
     onProgress(50, 'Initializing features...');
     await initComponent('FeatureRegistry.initializeAll', async () => {
         await FeatureRegistry.initializeAll();
-    });
+    }, { critical: false });
 
     // === Phase 3: UI Renderers ===
     console.log('[IlluminatOS!] Phase 3: UI Renderers');
@@ -293,12 +296,12 @@ async function initializeOS(onProgress = () => {}) {
     // === Phase 4: Apply saved settings ===
     console.log('[IlluminatOS!] Phase 4: Applying settings');
     onProgress(80, 'Applying settings...');
-    await initComponent('Settings', () => applySettings());
+    await initComponent('Settings', () => applySettings(), { critical: false });
 
     // === Phase 5: Setup global handlers ===
     console.log('[IlluminatOS!] Phase 5: Global handlers');
     onProgress(90, 'Setting up handlers...');
-    await initComponent('GlobalHandlers', () => setupGlobalHandlers());
+    await initComponent('GlobalHandlers', () => setupGlobalHandlers(), { critical: false });
 
     // === Phase 5.5: Run Autoexec Script ===
     console.log('[IlluminatOS!] Phase 5.5: Autoexec Scripts');
@@ -447,7 +450,7 @@ function setupGlobalHandlers() {
     });
 
     // Handle BSOD (Blue Screen of Death)
-    EventBus.on('bsod:trigger', () => {
+    EventBus.on(Events.BSOD_SHOW, () => {
         showBSOD();
     });
 
