@@ -65,6 +65,41 @@ class AppBase {
         // Serialize command handlers to prevent _currentWindowId context races
         // when multiple script commands are emitted close together.
         this._commandExecutionChain = Promise.resolve();
+
+        // Safety timeout for queued command handlers.
+        // Prevents one hung command from permanently blocking every subsequent command.
+        this.commandHandlerTimeoutMs = Number(config.commandHandlerTimeoutMs) > 0
+            ? Number(config.commandHandlerTimeoutMs)
+            : 10000;
+    }
+
+    /**
+     * Execute a function with a timeout so command queue processing can't deadlock.
+     * @private
+     * @param {Function} work - async/sync function
+     * @param {string} action - command action name
+     */
+    async _runWithCommandTimeout(work, action) {
+        const timeoutMs = this.commandHandlerTimeoutMs;
+        if (!timeoutMs || timeoutMs <= 0) {
+            return work();
+        }
+
+        let timerId;
+        try {
+            return await Promise.race([
+                Promise.resolve().then(work),
+                new Promise((_, reject) => {
+                    timerId = setTimeout(() => {
+                        reject(new Error(`Command '${action}' timed out after ${timeoutMs}ms`));
+                    }, timeoutMs);
+                })
+            ]);
+        } finally {
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+        }
     }
 
     /**
@@ -699,7 +734,10 @@ class AppBase {
                     const previousWindowId = this._currentWindowId;
                     this._currentWindowId = capturedWindowId;
                     try {
-                        const result = await Promise.resolve(handler.call(this, payload));
+                        const result = await this._runWithCommandTimeout(
+                            () => handler.call(this, payload),
+                            action
+                        );
                         if (payload.requestId) {
                             EventBus.emit('action:result', {
                                 requestId: payload.requestId,

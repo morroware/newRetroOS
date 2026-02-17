@@ -78,6 +78,28 @@ php -S localhost:8000
 # open http://localhost:8000
 ```
 
+### Queue API for remote turn-based control
+When running with PHP, `/api/queue.php` provides a server-authoritative queue with:
+- Atomic updates via file locking (`flock`) for concurrent users
+- Automatic purge of timed-out queued users
+- Automatic expiry/rotation of active turns
+- Deterministic next-player promotion
+
+Basic usage:
+```bash
+# Join queue
+curl -X POST -d 'action=join&userId=user123&name=Player%201' http://localhost:8000/api/queue.php
+
+# Keepalive heartbeat (queued or active users)
+curl -X POST -d 'action=heartbeat&userId=user123' http://localhost:8000/api/queue.php
+
+# Complete turn and promote next player
+curl -X POST -d 'action=complete&userId=user123' http://localhost:8000/api/queue.php
+
+# Read shared queue/turn state for all clients/watchers
+curl 'http://localhost:8000/api/queue.php?action=status'
+```
+
 ## Documentation map
 
 - `DEVELOPER_GUIDE.md` — authoritative guide for adding apps, features, plugins, and script-driven experiences
@@ -113,4 +135,3 @@ php -S localhost:8000
 - The PHP backend is optional; frontend works without it using defaults/fallbacks.
 - Plugin loading currently uses a config-driven manifest generated during boot.
 - RetroScript and app/plugin systems are fully integrated through event + command layers.
-
